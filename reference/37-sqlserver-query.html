@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>37 · SQL Server · APPLY、行列转换与 JSON · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 37 章 · 原生语法</p>
+<h1>SQL Server · APPLY、行列转换与 JSON</h1>
+<p class="lead">练习 T-SQL 中常见的相关查询、透视和半结构化数据处理。所有输入都写在 SQL 里。</p>
+<div class="layout"><article class="content">
+<section id="apply" class="point" data-dialects="sqlserver">
+<h2>OUTER APPLY · 按客户读取最近一笔订单</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>APPLY 的右侧可引用当前左行。OUTER APPLY 保留右侧没有结果的客户。本例约定订单号越大越新。业务有下单时间时，通常先按时间降序，再按唯一编号降序。把 OUTER 改成 CROSS 后，客户 2 会从结果消失。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="客户" tabindex="0">
+<table class="sql-result"><caption>客户</caption>
+<thead><tr><th scope="col">customer_id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="订单" tabindex="0">
+<table class="sql-result"><caption>订单</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>101</code></td></tr>
+<tr><td><code>1</code></td><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT c.customer_id, latest.order_id
+FROM (VALUES (1), (2)) AS c(customer_id)
+OUTER APPLY (
+  SELECT TOP (1) o.order_id
+  FROM (VALUES (1, 101), (1, 102)) AS o(customer_id, order_id)
+  WHERE o.customer_id = c.customer_id
+  ORDER BY o.order_id DESC
+) AS latest
+ORDER BY c.customer_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT c.customer_id, latest.order_id
+FROM (VALUES (1), (2)) AS c(customer_id)
+OUTER APPLY (
+  SELECT TOP (1) o.order_id
+  FROM (VALUES (1, 101), (1, 102)) AS o(customer_id, order_id)
+  WHERE o.customer_id = c.customer_id
+  ORDER BY o.order_id DESC
+) AS latest
+ORDER BY c.customer_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>102</code></td></tr>
+<tr><td><code>2</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="pivot" class="point" data-dialects="sqlserver">
+<h2>PIVOT · 把状态变成列</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>输入仅保留分组、转列、被聚合的三列。IN 列出结果中要生成的状态列。有状态行但全为 NULL，或某个分组根本没有该状态，都可能让 SUM 得到 NULL。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="来源数据" tabindex="0">
+<table class="sql-result"><caption>来源数据</caption>
+<thead><tr><th scope="col">batch_id</th><th scope="col">status</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>paid</code></td><td><code>10</code></td></tr>
+<tr><td><code>1</code></td><td><code>paid</code></td><td><code>20</code></td></tr>
+<tr><td><code>1</code></td><td><code>pending</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>paid</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT batch_id, [paid], [pending]
+FROM (VALUES
+  (1, &#x27;paid&#x27;, 10), (1, &#x27;paid&#x27;, 20), (1, &#x27;pending&#x27;, 5), (2, &#x27;paid&#x27;, 2)
+) AS src(batch_id, status, amount)
+PIVOT (SUM(amount) FOR status IN ([paid], [pending])) AS totals
+ORDER BY batch_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT batch_id, [paid], [pending]
+FROM (VALUES
+  (1, &#x27;paid&#x27;, 10), (1, &#x27;paid&#x27;, 20), (1, &#x27;pending&#x27;, 5), (2, &#x27;paid&#x27;, 2)
+) AS src(batch_id, status, amount)
+PIVOT (SUM(amount) FOR status IN ([paid], [pending])) AS totals
+ORDER BY batch_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">batch_id</th><th scope="col">paid</th><th scope="col">pending</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>30</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>2</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/from-using-pivot-and-unpivot?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="openjson" class="point" data-dialects="sqlserver">
+<h2>OPENJSON WITH · 把文档数组读成类型化行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+ · 兼容级别 130+</span></p>
+<p>OPENJSON 将数组对象变成数据行。WITH 声明列类型和 JSON 路径。默认 lax 路径模式下，缺失的 qty 读取为 NULL。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入 JSON" tabindex="0">
+<table class="sql-result"><caption>输入 JSON</caption>
+<thead><tr><th scope="col">doc</th></tr></thead>
+<tbody>
+<tr><td><code>[{&quot;sku&quot;:1,&quot;qty&quot;:4},{&quot;sku&quot;:2}]</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @doc nvarchar(max) = N&#x27;[{&quot;sku&quot;:1,&quot;qty&quot;:4},{&quot;sku&quot;:2}]&#x27;;
+
+SELECT sku, qty FROM OPENJSON(@doc)
+WITH (sku int &#x27;$.sku&#x27;, qty int &#x27;$.qty&#x27;)
+ORDER BY sku;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT sku, qty FROM OPENJSON(@doc)
+WITH (sku int &#x27;$.sku&#x27;, qty int &#x27;$.qty&#x27;)
+ORDER BY sku;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>4</code></td></tr>
+<tr><td><code>2</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/openjson-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="string-split" class="point" data-dialects="sqlserver">
+<h2>STRING_SPLIT · 保留分隔字符串的位置</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+ · 兼容级别 130+</span></p>
+<p>第三个参数必须是常量。传入 1 会返回从 1 开始的 ordinal。行顺序由 ORDER BY 决定，不能依赖到达客户端的先后。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入字符串" tabindex="0">
+<table class="sql-result"><caption>输入字符串</caption>
+<thead><tr><th scope="col">csv</th></tr></thead>
+<tbody>
+<tr><td><code>sql,db,sql</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT ordinal, value
+FROM STRING_SPLIT(&#x27;sql,db,sql&#x27;, &#x27;,&#x27;, 1)
+ORDER BY ordinal;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT ordinal, value
+FROM STRING_SPLIT(&#x27;sql,db,sql&#x27;, &#x27;,&#x27;, 1)
+ORDER BY ordinal;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">ordinal</th><th scope="col">value</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>sql</code></td></tr>
+<tr><td><code>2</code></td><td><code>db</code></td></tr>
+<tr><td><code>3</code></td><td><code>sql</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/string-split-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="top-ties" class="point" data-dialects="sqlserver">
+<h2>TOP WITH TIES · 保留同分行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>TOP WITH TIES 本级仅按分数判断并列。外层排序同分项，使对照输出稳定。WITH TIES 需要 ORDER BY。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>9</code></td></tr>
+<tr><td><code>2</code></td><td><code>9</code></td></tr>
+<tr><td><code>3</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT id,score FROM (
+  SELECT TOP (1) WITH TIES id,score
+  FROM (VALUES (1,9),(2,9),(3,5)) AS src(id,score)
+  ORDER BY score DESC
+) AS picked ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,score FROM (
+  SELECT TOP (1) WITH TIES id,score
+  FROM (VALUES (1,9),(2,9),(3,5)) AS src(id,score)
+  ORDER BY score DESC
+) AS picked ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>9</code></td></tr>
+<tr><td><code>2</code></td><td><code>9</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/top-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="top-percent" class="point" data-dialects="sqlserver">
+<h2>TOP PERCENT · 向上取整后取指定比例</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>三行取 50% 是 1.5，向上取整为两行。必须给确定的排序键，才能预测会保留哪些行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>9</code></td></tr>
+<tr><td><code>2</code></td><td><code>7</code></td></tr>
+<tr><td><code>3</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT TOP (50) PERCENT id
+FROM (VALUES (1,9),(2,7),(3,5)) AS src(id,score)
+ORDER BY score DESC,id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT TOP (50) PERCENT id
+FROM (VALUES (1,9),(2,7),(3,5)) AS src(id,score)
+ORDER BY score DESC,id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/top-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="offset-null-order" class="point" data-dialects="sqlserver">
+<h2>OFFSET/FETCH · 先规定 NULL 位置再分页</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+</span></p>
+<p>排序时用 CASE 把缺失值放在后面，再按分数与唯一 id 确定完整顺序。OFFSET 跳过第一条，FETCH 读取后一条。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>9</code></td></tr>
+<tr><td><code>3</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT id,score FROM (VALUES (1,NULL),(2,9),(3,7)) AS src(id,score)
+ORDER BY CASE WHEN score IS NULL THEN 1 ELSE 0 END,score DESC,id
+OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,score FROM (VALUES (1,NULL),(2,9),(3,7)) AS src(id,score)
+ORDER BY CASE WHEN score IS NULL THEN 1 ELSE 0 END,score DESC,id
+OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-order-by-clause-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="cross-apply" class="point" data-dialects="sqlserver">
+<h2>CROSS APPLY · 将当前行展开为多行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+ · 兼容级别 130+</span></p>
+<p>右边表达式能引用当前左行。CROSS APPLY 只返回展开后存在的行。STRING_SPLIT 按逗号拆标签，NULL 输入产生空表。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">tags</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>db,sql</code></td></tr>
+<tr><td><code>2</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT item.id,tag.value
+FROM (VALUES (1,&#x27;db,sql&#x27;),(2,NULL)) AS item(id,tags)
+CROSS APPLY STRING_SPLIT(item.tags,&#x27;,&#x27;) AS tag
+ORDER BY item.id,tag.value;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT item.id,tag.value
+FROM (VALUES (1,&#x27;db,sql&#x27;),(2,NULL)) AS item(id,tags)
+CROSS APPLY STRING_SPLIT(item.tags,&#x27;,&#x27;) AS tag
+ORDER BY item.id,tag.value;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">value</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>db</code></td></tr>
+<tr><td><code>1</code></td><td><code>sql</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="unpivot" class="point" data-dialects="sqlserver">
+<h2>UNPIVOT · 将季度列变成行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>UNPIVOT 将原列名放进 quarter_name，原值放进量值列。输入中的 NULL 在转列时不产出行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">q1</th><th scope="col">q2</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td><td><code>20</code></td></tr>
+<tr><td><code>2</code></td><td><code>5</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT id,quarter_name,qty
+FROM (VALUES (1,10,20),(2,5,NULL)) AS src(id,q1,q2)
+UNPIVOT (qty FOR quarter_name IN (q1,q2)) AS tall
+ORDER BY id,quarter_name;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,quarter_name,qty
+FROM (VALUES (1,10,20),(2,5,NULL)) AS src(id,q1,q2)
+UNPIVOT (qty FOR quarter_name IN (q1,q2)) AS tall
+ORDER BY id,quarter_name;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">quarter_name</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>q1</code></td><td><code>10</code></td></tr>
+<tr><td><code>1</code></td><td><code>q2</code></td><td><code>20</code></td></tr>
+<tr><td><code>2</code></td><td><code>q1</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/from-using-pivot-and-unpivot?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="dynamic-pivot" class="point" data-dialects="sqlserver">
+<h2>动态 PIVOT · 从数据构造列名</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2017+ · 有序聚合兼容级别 110+</span></p>
+<p>QUOTENAME 将每个值变成一个安全标识符，STRING_AGG 组装列清单。动态部分只来自已经引用的列名，若另加值筛选，用 sp_executesql 单独绑定值参数。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="周期记录" tabindex="0">
+<table class="sql-result"><caption>周期记录</caption>
+<thead><tr><th scope="col">period</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>Q1</code></td><td><code>2</code></td></tr>
+<tr><td><code>Q2</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_period_counts(period sysname,qty int);
+INSERT INTO #native_period_counts VALUES (&#x27;Q1&#x27;,2),(&#x27;Q2&#x27;,3);
+DECLARE @cols nvarchar(max),@sql nvarchar(max);
+SELECT @cols=STRING_AGG(CONVERT(nvarchar(max),QUOTENAME(period)),&#x27;,&#x27;)
+             WITHIN GROUP (ORDER BY period)
+FROM (SELECT DISTINCT period FROM #native_period_counts) AS periods;
+SET @sql=N&#x27;SELECT &#x27;+@cols+N&#x27; FROM #native_period_counts PIVOT(SUM(qty)
+     FOR period IN (&#x27;+@cols+N&#x27;)) AS p;&#x27;;
+
+EXEC sys.sp_executesql @sql;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXEC sys.sp_executesql @sql;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">Q1</th><th scope="col">Q2</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/from-using-pivot-and-unpivot?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/quotename-transact-sql?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+<section id="recursive-cte-limit" class="point" data-dialects="sqlserver">
+<h2>递归 CTE 与 OPTION (MAXRECURSION)</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>起始值为 1，每层加一，业务条件 step&lt;3 正常终止。MAXRECURSION 是执行保护。递归 CTE 前面的独立语句要用分号结束。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="初始值与终点" tabindex="0">
+<table class="sql-result"><caption>初始值与终点</caption>
+<thead><tr><th scope="col">start</th><th scope="col">end</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>;WITH steps(step) AS (
+  SELECT 1
+  UNION ALL SELECT step+1 FROM steps WHERE step&lt;3
+)
+SELECT step FROM steps ORDER BY step OPTION (MAXRECURSION 5);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>;WITH steps(step) AS (
+  SELECT 1
+  UNION ALL SELECT step+1 FROM steps WHERE step&lt;3
+)
+SELECT step FROM steps ORDER BY step OPTION (MAXRECURSION 5);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">step</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/with-common-table-expression-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="full-join" class="point" data-dialects="sqlserver">
+<h2>FULL OUTER JOIN · 保留两个集合的独有行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>SQL Server 用 ON 明确联结键。COALESCE 把两侧商品键合并，没配对的数量为 NULL。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="上期" tabindex="0">
+<table class="sql-result"><caption>上期</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="本期" tabindex="0">
+<table class="sql-result"><caption>本期</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>7</code></td></tr>
+<tr><td><code>3</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT COALESCE(a.sku,b.sku) AS sku,a.qty AS prior,b.qty AS current_qty
+FROM (VALUES (1,5),(2,8)) AS a(sku,qty)
+FULL JOIN (VALUES (2,7),(3,4)) AS b(sku,qty) ON a.sku=b.sku
+ORDER BY sku;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COALESCE(a.sku,b.sku) AS sku,a.qty AS prior,b.qty AS current_qty
+FROM (VALUES (1,5),(2,8)) AS a(sku,qty)
+FULL JOIN (VALUES (2,7),(3,4)) AS b(sku,qty) ON a.sku=b.sku
+ORDER BY sku;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">sku</th><th scope="col">prior</th><th scope="col">current_qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td><td><code>7</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="tablesample" class="point" data-dialects="sqlserver">
+<h2>TABLESAMPLE · 对页采样</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>SYSTEM 通过数据页采样，ROWS 是估算值。REPEATABLE 接受种子，表变更可能改变采样结果。用百分之百验证语法，再调整比例观察样本。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="已有行" tabindex="0">
+<table class="sql-result"><caption>已有行</caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_sampling(id int PRIMARY KEY);
+INSERT INTO #native_sampling VALUES (1),(2),(3);
+
+SELECT id FROM #native_sampling TABLESAMPLE SYSTEM (100 PERCENT) REPEATABLE (7) ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id FROM #native_sampling TABLESAMPLE SYSTEM (100 PERCENT) REPEATABLE (7) ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="browse" class="point" data-dialects="sqlserver">
+<h2>FOR BROWSE · 附加浏览元数据</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>使用带唯一键及 rowversion 的练习表。FOR BROWSE 为支持浏览模式的客户端提供定位原行的元数据。可见查询列仍是 id 和 qty。常规读取可直接省略该子句。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="已有库存" tabindex="0">
+<table class="sql-result"><caption>已有库存</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_browse(id int PRIMARY KEY,qty int,rv rowversion);
+INSERT INTO #native_browse(id,qty) VALUES (1,5);
+
+SELECT id,qty FROM #native_browse FOR BROWSE;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,qty FROM #native_browse FOR BROWSE;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-for-clause-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#apply">OUTER APPLY · 按客户读取最近一笔订单</a></li>
+<li><a href="#pivot">PIVOT · 把状态变成列</a></li>
+<li><a href="#openjson">OPENJSON WITH · 把文档数组读成类型化行</a></li>
+<li><a href="#string-split">STRING_SPLIT · 保留分隔字符串的位置</a></li>
+<li><a href="#top-ties">TOP WITH TIES · 保留同分行</a></li>
+<li><a href="#top-percent">TOP PERCENT · 向上取整后取指定比例</a></li>
+<li><a href="#offset-null-order">OFFSET/FETCH · 先规定 NULL 位置再分页</a></li>
+<li><a href="#cross-apply">CROSS APPLY · 将当前行展开为多行</a></li>
+<li><a href="#unpivot">UNPIVOT · 将季度列变成行</a></li>
+<li><a href="#dynamic-pivot">动态 PIVOT · 从数据构造列名</a></li>
+<li><a href="#recursive-cte-limit">MAXRECURSION 限制递归深度</a></li>
+<li><a href="#full-join">FULL OUTER JOIN · 保留两个集合的独有行</a></li>
+<li><a href="#tablesample">TABLESAMPLE · 对页采样</a></li>
+<li><a href="#browse">FOR BROWSE 帮客户端定位源表行</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="36-sqlserver-write.html">← 数据同步、OUTPUT 与事务</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="38-sqlserver-design.html">历史版本、并发与索引 →</a></nav>
+</main>
+</body>
+</html>

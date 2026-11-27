@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>02 · 建表、数据约束与写入 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="sql-roadmap.html">SQL 学习路径</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker"><a href="sql-roadmap.html">SQL 学习路径</a> · 第 2 阶段</p>
+<h1>建表、数据约束与写入</h1>
+<p class="lead">用临时表练结构，随后在事务中修改订单练习数据并回滚。</p>
+<div class="layout">
+<article class="content">
+<section class="point" id="create-table" data-roadmap-nodes="xPOeXK1EPBNG56vgfG-VV epEpBxRosLhuAuKwp823r">
+<h2>CREATE TABLE · 创建两列</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_create (order_id INT, qty INT);
+SELECT COUNT(*) AS row_count FROM path_create;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。用新连接创建演示临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS row_count FROM path_create;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">row_count</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE path_create (order_id INT, qty INT);
+SELECT COUNT(*) AS row_count FROM path_create;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。用新连接创建演示临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS row_count FROM path_create;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">row_count</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #path_create (order_id INT, qty INT);
+SELECT COUNT(*) AS row_count FROM #path_create;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。用新连接创建演示临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS row_count FROM #path_create;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">row_count</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>新表一开始是空的。临时表限定在本连接，可开新连接重做。</p>
+
+<p class="sources"><a href="21-tables.html#quick-create-table">相关笔记</a></p>
+</section>
+<section class="point" id="alter-table" data-roadmap-nodes="WjXlO42WL9saDS7RIGapt">
+<h2>ALTER TABLE · 增加一列</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_alter (order_id INT);
+ALTER TABLE path_alter ADD qty INT;
+INSERT INTO path_alter (order_id, qty) VALUES (101, 2);
+SELECT order_id, qty FROM path_alter;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。脚本创建后再修改同一张临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, qty FROM path_alter;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE path_alter (order_id INT);
+ALTER TABLE path_alter ADD qty INT;
+INSERT INTO path_alter (order_id, qty) VALUES (101, 2);
+SELECT order_id, qty FROM path_alter;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。脚本创建后再修改同一张临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, qty FROM path_alter;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #path_alter (order_id INT);
+ALTER TABLE #path_alter ADD qty INT;
+INSERT INTO #path_alter (order_id, qty) VALUES (101, 2);
+SELECT order_id, qty FROM #path_alter;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。脚本创建后再修改同一张临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, qty FROM #path_alter;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>用 ADD 给已有表加列。已有数据的迁移要另考虑空值和默认值。</p>
+
+<p class="sources"><a href="21-tables.html#p4">相关笔记</a></p>
+</section>
+<section class="point" id="truncate-table" data-roadmap-nodes="K5vhqTJrdPK08Txv8zaEj">
+<h2>TRUNCATE TABLE · 清空演示表</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_truncate (id INT);
+INSERT INTO path_truncate VALUES (1);
+TRUNCATE TABLE path_truncate;
+SELECT COUNT(*) AS row_count FROM path_truncate;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。只操作脚本自己创建的临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS row_count FROM path_truncate;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">row_count</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE path_truncate (id INT);
+INSERT INTO path_truncate VALUES (1);
+TRUNCATE TABLE path_truncate;
+SELECT COUNT(*) AS row_count FROM path_truncate;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。只操作脚本自己创建的临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS row_count FROM path_truncate;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">row_count</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #path_truncate (id INT);
+INSERT INTO #path_truncate VALUES (1);
+TRUNCATE TABLE #path_truncate;
+SELECT COUNT(*) AS row_count FROM #path_truncate;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。只操作脚本自己创建的临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS row_count FROM #path_truncate;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">row_count</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>清空后表结构仍可用。不同引擎的事务行为不同，MySQL 对普通表的 TRUNCATE 会隐式提交。</p>
+
+<p class="sources"><a href="20-update-delete.html#p5">相关笔记</a></p>
+</section>
+<section class="point" id="drop-table" data-roadmap-nodes="YzJ6QmY2arMfRzMAPaI0T">
+<h2>DROP TABLE · 移除演示表</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_drop (id INT);
+INSERT INTO path_drop VALUES (1);
+DROP TABLE path_drop;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。只操作脚本自己创建的临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期状态" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>DROP TABLE path_drop;</code><span class="sql-caption-context">预期状态</span></span></caption>
+<thead><tr><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>演示表已移除</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE path_drop (id INT);
+INSERT INTO path_drop VALUES (1);
+DROP TABLE path_drop;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。只操作脚本自己创建的临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期状态" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>DROP TABLE path_drop;</code><span class="sql-caption-context">预期状态</span></span></caption>
+<thead><tr><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>演示表已移除</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #path_drop (id INT);
+INSERT INTO #path_drop VALUES (1);
+DROP TABLE #path_drop;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。只操作脚本自己创建的临时表。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期状态" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>DROP TABLE #path_drop;</code><span class="sql-caption-context">预期状态</span></span></caption>
+<thead><tr><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>演示表已移除</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>这条 DDL 移除脚本刚建的临时表。运行前确认脚本使用的是新连接。</p>
+
+<p class="sources"><a href="21-tables.html#p5">相关笔记</a></p>
+</section>
+<section class="point" id="primary-key" data-roadmap-nodes="qBios3sZVhcJMpXmj9f7B Jlwmyq6CUQeDAlL4dazOP">
+<h2>主键 · 拒绝重复编号</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_primary_key (id INT PRIMARY KEY);
+INSERT INTO path_primary_key VALUES (1), (1);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO path_primary_key VALUES (1), (1);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>23505</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE path_primary_key (id INT PRIMARY KEY);
+INSERT INTO path_primary_key VALUES (1), (1);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO path_primary_key VALUES (1), (1);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>1062</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #path_primary_key (id INT PRIMARY KEY);
+INSERT INTO #path_primary_key VALUES (1), (1);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO #path_primary_key VALUES (1), (1);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>2627</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>主键唯一标识行，且值不能为空。</p>
+
+<p class="sources"><a href="21-tables.html#p2">相关笔记</a></p>
+</section>
+<section class="point" id="foreign-key" data-roadmap-nodes="DHz6sRLYhFeCbAcNJS8hm">
+<h2>外键 · 拒绝不存在的订单</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+INSERT INTO sql_notes_lab.order_items (order_id, product_id, qty, unit_price) VALUES (999, 1, 1, 20);
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。确认订单 999 不存在。最后的插入有意违反外键。客户端遇错暂停时，请从同一窗口单独执行末尾回滚。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO sql_notes_lab.order_items (order_id, product_id, qty, unit_price) VALUES (999, 1, 1, 20);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>23503</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>START TRANSACTION;
+INSERT INTO order_items (order_id, product_id, qty, unit_price) VALUES (999, 1, 1, 20);
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。确认订单 999 不存在。最后的插入有意违反外键。客户端遇错暂停时，请从同一窗口单独执行末尾回滚。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO order_items (order_id, product_id, qty, unit_price) VALUES (999, 1, 1, 20);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>1452</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+INSERT INTO dbo.order_items (order_id, product_id, qty, unit_price) VALUES (999, 1, 1, 20);
+ROLLBACK TRANSACTION;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。确认订单 999 不存在。最后的插入有意违反外键。客户端遇错暂停时，请从同一窗口单独执行末尾回滚。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO dbo.order_items (order_id, product_id, qty, unit_price) VALUES (999, 1, 1, 20);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>547</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>外键要求订单编号在父表存在。999 不在原始练习数据里。出错后确认同一连接已回滚，或关闭练习连接。</p>
+
+<p class="sources"><a href="21-tables.html#p2">相关笔记</a></p>
+</section>
+<section class="point" id="unique" data-roadmap-nodes="5yGo8i7eplxtXOD_qfzOs">
+<h2>UNIQUE · 拒绝重复值</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_unique (id INT UNIQUE);
+INSERT INTO path_unique VALUES (1), (1);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO path_unique VALUES (1), (1);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>23505</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE path_unique (id INT UNIQUE);
+INSERT INTO path_unique VALUES (1), (1);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO path_unique VALUES (1), (1);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>1062</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #path_unique (id INT UNIQUE);
+INSERT INTO #path_unique VALUES (1), (1);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO #path_unique VALUES (1), (1);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>2627</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>UNIQUE 可保护候选键。含 NULL 的唯一性规则需按数据库核对。</p>
+
+<p class="sources"><a href="21-tables.html#dial-unique-nulls">相关笔记</a></p>
+</section>
+<section class="point" id="not-null" data-roadmap-nodes="M4M_-vjM9GNy0NmXZneDA">
+<h2>NOT NULL · 拒绝缺失值</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_not_null (id INT NOT NULL);
+INSERT INTO path_not_null VALUES (NULL);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO path_not_null VALUES (NULL);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>23502</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE path_not_null (id INT NOT NULL);
+INSERT INTO path_not_null VALUES (NULL);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO path_not_null VALUES (NULL);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>1048</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #path_not_null (id INT NOT NULL);
+INSERT INTO #path_not_null VALUES (NULL);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO #path_not_null VALUES (NULL);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>515</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>列声明 NOT NULL 后，写入 NULL 会触发错误。</p>
+
+<p class="sources"><a href="21-tables.html">相关笔记</a></p>
+</section>
+<section class="point" id="check" data-roadmap-nodes="Q0h9Wfnl_W9ThOkv7Q17A">
+<h2>CHECK · 保证数量大于零</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_check (qty INT CHECK (qty &gt; 0));
+INSERT INTO path_check VALUES (0);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO path_check VALUES (0);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>23514</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE path_check (qty INT CHECK (qty &gt; 0));
+INSERT INTO path_check VALUES (0);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO path_check VALUES (0);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>3819</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #path_check (qty INT CHECK (qty &gt; 0));
+INSERT INTO #path_check VALUES (0);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。最后一条是故意失败的约束测试，核对错误后结束该次练习。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期错误" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO #path_check VALUES (0);</code><span class="sql-caption-context">预期错误</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">结果</th></tr></thead>
+<tbody>
+<tr><td><code>547</code></td><td><code>插入被拒绝</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>CHECK 定义可接受值。需拒绝 NULL 时，也加 NOT NULL。</p>
+
+<p class="sources"><a href="21-tables.html#w3-unique-check">相关笔记</a></p>
+</section>
+<section class="point" id="insert" data-roadmap-nodes="mPj6BiK5FKKkIQ9WsWEo6 -Hew0y53ziZK3epQnGA0O">
+<h2>INSERT · 添加一条明细</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+SELECT order_id, product_id, qty
+FROM sql_notes_lab.order_items WHERE order_id = 102 AND product_id = 4;
+INSERT INTO sql_notes_lab.order_items (order_id, product_id, qty, unit_price) VALUES (102, 4, 1, 5.00);
+SELECT order_id, product_id, qty
+FROM sql_notes_lab.order_items WHERE order_id = 102 AND product_id = 4;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。需要 SELECT 和相应写入权限。先核对第一条查询，最后回滚。表格对应第二次查询。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty
+FROM sql_notes_lab.order_items WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>4</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>START TRANSACTION;
+SELECT order_id, product_id, qty
+FROM order_items WHERE order_id = 102 AND product_id = 4;
+INSERT INTO order_items (order_id, product_id, qty, unit_price) VALUES (102, 4, 1, 5.00);
+SELECT order_id, product_id, qty
+FROM order_items WHERE order_id = 102 AND product_id = 4;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。需要 SELECT 和相应写入权限。先核对第一条查询，最后回滚。表格对应第二次查询。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty
+FROM order_items WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>4</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+SELECT order_id, product_id, qty
+FROM dbo.order_items WHERE order_id = 102 AND product_id = 4;
+INSERT INTO dbo.order_items (order_id, product_id, qty, unit_price) VALUES (102, 4, 1, 5.00);
+SELECT order_id, product_id, qty
+FROM dbo.order_items WHERE order_id = 102 AND product_id = 4;
+ROLLBACK TRANSACTION;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。需要 SELECT 和相应写入权限。先核对第一条查询，最后回滚。表格对应第二次查询。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty
+FROM dbo.order_items WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>4</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>订单 102 与商品 4 已存在，原始明细没有这一组合。</p>
+
+<p class="sources"><a href="19-insert.html#quick-insert-one">相关笔记</a></p>
+</section>
+<section class="point" id="update" data-roadmap-nodes="eu9dJFi6gBPMBdy08Y5Bb KJJ6PYjTnr_3yU2mNPL9v">
+<h2>UPDATE · 只改一条明细</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+SELECT qty
+FROM sql_notes_lab.order_items WHERE order_id = 101 AND product_id = 1;
+UPDATE sql_notes_lab.order_items SET qty = 3 WHERE order_id = 101 AND product_id = 1;
+SELECT qty
+FROM sql_notes_lab.order_items WHERE order_id = 101 AND product_id = 1;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。需要 SELECT 和相应写入权限。先核对第一条查询，最后回滚。表格对应第二次查询。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT qty
+FROM sql_notes_lab.order_items WHERE order_id = 101 AND product_id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>START TRANSACTION;
+SELECT qty
+FROM order_items WHERE order_id = 101 AND product_id = 1;
+UPDATE order_items SET qty = 3 WHERE order_id = 101 AND product_id = 1;
+SELECT qty
+FROM order_items WHERE order_id = 101 AND product_id = 1;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。需要 SELECT 和相应写入权限。先核对第一条查询，最后回滚。表格对应第二次查询。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT qty
+FROM order_items WHERE order_id = 101 AND product_id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+SELECT qty
+FROM dbo.order_items WHERE order_id = 101 AND product_id = 1;
+UPDATE dbo.order_items SET qty = 3 WHERE order_id = 101 AND product_id = 1;
+SELECT qty
+FROM dbo.order_items WHERE order_id = 101 AND product_id = 1;
+ROLLBACK TRANSACTION;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。需要 SELECT 和相应写入权限。先核对第一条查询，最后回滚。表格对应第二次查询。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT qty
+FROM dbo.order_items WHERE order_id = 101 AND product_id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>原数量为 2。写入后变成 3，最后回滚恢复为 2。</p>
+
+<p class="sources"><a href="20-update-delete.html#quick-update-one">相关笔记</a></p>
+</section>
+<section class="point" id="delete" data-roadmap-nodes="ddtVaA4Ls6qRj-7OtTSIH zWnvuHJLHr03PWkrW1wZZ">
+<h2>DELETE · 只删一条明细</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+SELECT qty
+FROM sql_notes_lab.order_items WHERE order_id = 101 AND product_id = 1;
+DELETE FROM sql_notes_lab.order_items WHERE order_id = 101 AND product_id = 1;
+SELECT qty
+FROM sql_notes_lab.order_items WHERE order_id = 101 AND product_id = 1;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。需要 SELECT 和相应写入权限。先核对第一条查询，最后回滚。表格对应第二次查询。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT qty
+FROM sql_notes_lab.order_items WHERE order_id = 101 AND product_id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td colspan="1">0 行</td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>START TRANSACTION;
+SELECT qty
+FROM order_items WHERE order_id = 101 AND product_id = 1;
+DELETE FROM order_items WHERE order_id = 101 AND product_id = 1;
+SELECT qty
+FROM order_items WHERE order_id = 101 AND product_id = 1;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。需要 SELECT 和相应写入权限。先核对第一条查询，最后回滚。表格对应第二次查询。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT qty
+FROM order_items WHERE order_id = 101 AND product_id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td colspan="1">0 行</td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+SELECT qty
+FROM dbo.order_items WHERE order_id = 101 AND product_id = 1;
+DELETE FROM dbo.order_items WHERE order_id = 101 AND product_id = 1;
+SELECT qty
+FROM dbo.order_items WHERE order_id = 101 AND product_id = 1;
+ROLLBACK TRANSACTION;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。需要 SELECT 和相应写入权限。先核对第一条查询，最后回滚。表格对应第二次查询。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT qty
+FROM dbo.order_items WHERE order_id = 101 AND product_id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td colspan="1">0 行</td></tr>
+</tbody>
+</table></div>
+</div>
+<p>原数量为 2。删除后的查询为零行，最后回滚恢复该行。</p>
+
+<p class="sources"><a href="20-update-delete.html#quick-delete-one">相关笔记</a></p>
+</section>
+<section class="panel">
+<h2>做完后自测</h2>
+<p>本例一条订单明细由哪两列决定？写 UPDATE 时 WHERE 应包含什么？</p>
+<details><summary>核对答案</summary><p>order_id 和 product_id 组成复合主键。两个值都应写进 WHERE，才能定位一条明细。</p></details>
+<p>如果实际结果和笔记不同，记下数据库版本、SQL 和错误提示，再来问我。</p>
+<p class="sources"><span data-dialects="postgresql"><a href="https://www.postgresql.org/docs/current/sql.html">PostgreSQL 官方参考</a></span><span data-dialects="mysql"><a href="https://dev.mysql.com/doc/refman/8.4/en/sql-statements.html">MySQL 官方参考</a></span><span data-dialects="sqlserver"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-reference?view=sql-server-ver17">SQL Server 官方参考</a></span> · <a href="https://roadmap.sh/sql">原始 SQL 路线</a></p>
+</section>
+</article>
+<nav class="jump" aria-label="本阶段知识点"><strong>本阶段知识点</strong><ol><li><a href="#create-table">CREATE TABLE 新建临时表</a></li><li><a href="#alter-table">ALTER TABLE 添加列</a></li><li><a href="#truncate-table">TRUNCATE TABLE 清空表数据</a></li><li><a href="#drop-table">DROP TABLE 删除表</a></li><li><a href="#primary-key">PRIMARY KEY 唯一标识行</a></li><li><a href="#foreign-key">FOREIGN KEY 要求订单存在</a></li><li><a href="#unique">UNIQUE 防止重复值</a></li><li><a href="#not-null">NOT NULL 要求列有值</a></li><li><a href="#check">CHECK 校验数量范围</a></li><li><a href="#insert">INSERT 添加明细</a></li><li><a href="#update">UPDATE 修改指定明细</a></li><li><a href="#delete">DELETE 删除指定明细</a></li></ol></nav>
+</div>
+<nav class="pager" aria-label="学习阶段"><a href="sql-roadmap-01-basics.html">← 关系数据库与查询基础</a><a href="sql-roadmap.html">学习路径</a><a href="sql-roadmap-03-queries.html">汇总、子查询与联结 →</a></nav>
+</main>
+</body>
+</html>

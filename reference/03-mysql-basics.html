@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>使用MySQL · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 3 章 · 原书第 15–19 页</p>
+<h1>连接与对象元数据</h1>
+<p class="lead" data-dialects="mysql">连接以后先确认实例、当前数据库和表结构。明确库表名能避免在错的环境查数据。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在新会话按页顺序练习，到「列出和选择数据库」时切换到练习库。</p>
+<div class="layout"><article class="content" aria-label="知识点">
+<section class="point" id="quick-create-database" data-dialects="postgresql sqlserver mysql">
+<h2>建库</h2>
+<div data-dialects="postgresql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>连接到现有的 <code>postgres</code>。账号需有 <code>CREATEDB</code> 或超级用户权限。打开自动提交，在事务之外单独执行建库语句。 <code>quick_sql_demo</code> 是新空库名。若已存在，先换一个新名字，并同步修改核对查询中的名字。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>CREATE DATABASE quick_sql_demo;</code></pre></figure>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT datname AS database_name
+FROM pg_database WHERE datname = &#x27;quick_sql_demo&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT datname AS database_name
+FROM pg_database WHERE datname = &#x27;quick_sql_demo&#x27;;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">database_name</th></tr></thead>
+<tbody>
+<tr><td><code>quick_sql_demo</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>先执行第一段，再执行第二段。订单练习仍在原练习库，导入步骤见<a href="../lessons/0001-first-query.html#setup-postgresql">五分钟上手</a>。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-createdatabase.html">官方文档</a></p>
+</div>
+<div data-dialects="sqlserver">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>连接到 SQL Server 实例的 <code>master</code>。使用管理员授予建库权限的账号（例如具备 <code>CREATE ANY DATABASE</code> 的登录）。在自动提交模式下单独执行建库语句。 <code>quick_sql_demo</code> 是新空库名。若已存在，先换一个新名字，并同步修改核对查询中的名字。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>CREATE DATABASE quick_sql_demo;</code></pre></figure>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT name AS database_name
+FROM sys.databases WHERE name = &#x27;quick_sql_demo&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name AS database_name
+FROM sys.databases WHERE name = &#x27;quick_sql_demo&#x27;;</code><span class="sql-caption-context">预期结果 · 查询结果</span></span></caption>
+<thead><tr><th scope="col">database_name</th></tr></thead>
+<tbody>
+<tr><td><code>quick_sql_demo</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>先执行第一段，再执行第二段。订单练习仍在原练习库，导入步骤见<a href="../lessons/0001-first-query.html#setup-sqlserver">五分钟上手</a>。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-database-transact-sql?view=sql-server-ver17">官方文档</a></p>
+</div>
+<div data-dialects="mysql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>连接到 MySQL 实例即可开始。账号需对目标库有 <code>CREATE</code> 权限。建库会隐式提交，建议用没有待提交事务的新连接。 <code>quick_sql_demo</code> 是新空库名。若已存在，先换一个新名字，并同步修改核对查询中的名字。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>CREATE DATABASE quick_sql_demo;</code></pre></figure>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT SCHEMA_NAME AS database_name
+FROM information_schema.SCHEMATA
+WHERE SCHEMA_NAME = &#x27;quick_sql_demo&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT SCHEMA_NAME AS database_name
+FROM information_schema.SCHEMATA
+WHERE SCHEMA_NAME = &#x27;quick_sql_demo&#x27;;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">database_name</th></tr></thead>
+<tbody>
+<tr><td><code>quick_sql_demo</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>先执行第一段，再执行第二段。订单练习仍在原练习库，导入步骤见<a href="../lessons/0001-first-query.html#setup">五分钟上手</a>。</p>
+<p class="sources"><a href="https://dev.mysql.com/doc/refman/8.4/en/create-database.html">官方文档</a></p>
+</div>
+</section>
+<section class="point" id="quick-current-database" data-dialects="postgresql sqlserver mysql">
+<h2>查当前库</h2>
+<div data-dialects="postgresql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>登录后的账号即可查询。下表对应默认练习连接 <code>postgres</code> 已将 <code>search_path</code> 设为 <code>sql_notes_lab</code> 的会话。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT current_database() AS database_name,
+       current_schema() AS schema_name;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT current_database() AS database_name,
+       current_schema() AS schema_name;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">database_name</th><th scope="col">schema_name</th></tr></thead>
+<tbody>
+<tr><td><code>postgres</code></td><td><code>sql_notes_lab</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>数据库是连接的目标。schema（模式）是数据库内给表分组的命名空间，同一个数据库可有多个 schema。<code>current_schema()</code> 显示搜索路径中首个有效的 schema。新连接可能显示 <code>public</code>，按<a href="#quick-switch-database">切库小节</a>设置练习模式。</p>
+</div>
+<div data-dialects="sqlserver">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>登录后的账号即可查询。下表对应已选中的 <code>SQLNotesLab</code> 练习库。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT DB_NAME() AS database_name;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DB_NAME() AS database_name;</code><span class="sql-caption-context">预期结果 · 查询结果</span></span></caption>
+<thead><tr><th scope="col">database_name</th></tr></thead>
+<tbody>
+<tr><td><code>SQLNotesLab</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>如果显示 <code>master</code> 或其他库，按<a href="#quick-switch-database">切库小节</a>选中练习库。</p>
+</div>
+<div data-dialects="mysql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>登录后的账号即可查询。下表对应已选中的 <code>learn_sql_lab</code> 练习库。尚未选择时返回 <code>NULL</code>。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT DATABASE() AS database_name;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATABASE() AS database_name;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">database_name</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>可按<a href="#quick-switch-database">切库小节</a>选择练习库。</p>
+</div>
+</section>
+<section class="point" id="quick-switch-database" data-dialects="postgresql sqlserver mysql">
+<h2>切库</h2>
+<div data-dialects="postgresql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres</code>。账号需要目标数据库的 <code>CONNECT</code> 权限，以及练习模式的 <code>USAGE</code>。若导入到了其他库，把两条连接命令里的 <code>postgres</code> 换成实际库名。前两段任选一段，连接后再运行第三段。</p>
+<figure><figcaption>psql 客户端提示符 · 切换已有连接</figcaption><pre><code>\connect postgres</code></pre></figure>
+<figure><figcaption>系统终端 · 打开新连接</figcaption><pre><code>psql -d postgres</code></pre></figure>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SET search_path TO sql_notes_lab;
+SELECT current_database() AS database_name,
+       current_schema() AS schema_name;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT current_database() AS database_name,
+       current_schema() AS schema_name;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">database_name</th><th scope="col">schema_name</th></tr></thead>
+<tbody>
+<tr><td><code>postgres</code></td><td><code>sql_notes_lab</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>在 psql 中运行第一段，或在系统终端运行第二段打开新会话。系统终端示例默认用本机账号连接。使用其他主机或账号时补 <code>-h 主机 -U 用户</code>。使用图形客户端时，选择目标库后重连。连接成功后在该会话运行第三段设置模式并核对。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/app-psql.html">psql 命令参考</a></p>
+</div>
+<div data-dialects="sqlserver">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>。账号需有目标库的访问权限。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>USE SQLNotesLab;
+SELECT DB_NAME() AS database_name;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DB_NAME() AS database_name;</code><span class="sql-caption-context">预期结果 · 查询结果</span></span></caption>
+<thead><tr><th scope="col">database_name</th></tr></thead>
+<tbody>
+<tr><td><code>SQLNotesLab</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>在 SQL Server 实例的同一查询窗口运行这两句。使用 Azure SQL Database 时，在客户端选择目标库并重连。</p>
+</div>
+<div data-dialects="mysql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>。账号需有目标库或其中对象的权限。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>USE learn_sql_lab;
+SELECT DATABASE() AS database_name;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATABASE() AS database_name;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">database_name</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>后续未带库名的语句会使用当前库。换连接后需重新选库。</p>
+</div>
+</section>
+<section class="point" id="quick-list-tables" data-dialects="postgresql sqlserver mysql">
+<h2>列出表</h2>
+<div data-dialects="postgresql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres</code>。示例指定了 sql_notes_lab 模式。账号至少要能访问要列出的表。下表对应刚导入的五张练习表。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT TABLE_NAME AS table_name
+FROM INFORMATION_SCHEMA.TABLES
+WHERE table_schema = &#x27;sql_notes_lab&#x27; AND TABLE_TYPE = &#x27;BASE TABLE&#x27;
+ORDER BY TABLE_NAME;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT TABLE_NAME AS table_name
+FROM INFORMATION_SCHEMA.TABLES
+WHERE table_schema = &#x27;sql_notes_lab&#x27; AND TABLE_TYPE = &#x27;BASE TABLE&#x27;
+ORDER BY TABLE_NAME;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">table_name</th></tr></thead>
+<tbody>
+<tr><td><code>customers</code></td></tr>
+<tr><td><code>docs</code></td></tr>
+<tr><td><code>order_items</code></td></tr>
+<tr><td><code>orders</code></td></tr>
+<tr><td><code>products</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>运行过其他建表示例后，列表里也会出现新增的表。</p>
+</div>
+<div data-dialects="sqlserver">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。账号至少要能访问要列出的表。下表对应刚导入的五张练习表。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT TABLE_NAME AS table_name
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA = &#x27;dbo&#x27; AND TABLE_TYPE = &#x27;BASE TABLE&#x27;
+ORDER BY TABLE_NAME;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT TABLE_NAME AS table_name
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA = &#x27;dbo&#x27; AND TABLE_TYPE = &#x27;BASE TABLE&#x27;
+ORDER BY TABLE_NAME;</code><span class="sql-caption-context">预期结果 · 查询结果</span></span></caption>
+<thead><tr><th scope="col">table_name</th></tr></thead>
+<tbody>
+<tr><td><code>customers</code></td></tr>
+<tr><td><code>docs</code></td></tr>
+<tr><td><code>order_items</code></td></tr>
+<tr><td><code>orders</code></td></tr>
+<tr><td><code>products</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>运行过其他建表示例后，列表里也会出现新增的表。</p>
+</div>
+<div data-dialects="mysql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。账号至少要能访问要列出的表。下表对应刚导入的五张练习表。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SHOW TABLES;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SHOW TABLES;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">Tables_in_learn_sql_lab</th></tr></thead>
+<tbody>
+<tr><td><code>customers</code></td></tr>
+<tr><td><code>docs</code></td></tr>
+<tr><td><code>order_items</code></td></tr>
+<tr><td><code>orders</code></td></tr>
+<tr><td><code>products</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>运行过其他建表示例后，列表里也会出现新增的表。</p>
+</div>
+</section>
+<section class="point" id="quick-table-columns" data-dialects="postgresql sqlserver mysql">
+<h2>查看表结构</h2>
+<div data-dialects="postgresql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres</code>。示例指定了 sql_notes_lab 模式。账号需要有订单明细表的访问权限。把表名换成要检查的表时，也应核对它所在的模式或库。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT COLUMN_NAME AS column_name, DATA_TYPE AS data_type,
+       IS_NULLABLE AS is_nullable
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE table_schema = &#x27;sql_notes_lab&#x27; AND TABLE_NAME = &#x27;order_items&#x27;
+ORDER BY ORDINAL_POSITION;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COLUMN_NAME AS column_name, DATA_TYPE AS data_type,
+       IS_NULLABLE AS is_nullable
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE table_schema = &#x27;sql_notes_lab&#x27; AND TABLE_NAME = &#x27;order_items&#x27;
+ORDER BY ORDINAL_POSITION;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">column_name</th><th scope="col">data_type</th><th scope="col">is_nullable</th></tr></thead>
+<tbody>
+<tr><td><code>order_id</code></td><td><code>integer</code></td><td><code>NO</code></td></tr>
+<tr><td><code>product_id</code></td><td><code>integer</code></td><td><code>NO</code></td></tr>
+<tr><td><code>qty</code></td><td><code>integer</code></td><td><code>NO</code></td></tr>
+<tr><td><code>unit_price</code></td><td><code>numeric</code></td><td><code>NO</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>在 psql 提示符还可运行 <code>\d sql_notes_lab.order_items</code> 看完整字段、索引和约束。</p>
+</div>
+<div data-dialects="sqlserver">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。账号需要有订单明细表的访问权限。把表名换成要检查的表时，也应核对它所在的模式或库。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT COLUMN_NAME AS column_name, DATA_TYPE AS data_type,
+       IS_NULLABLE AS is_nullable
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = &#x27;dbo&#x27; AND TABLE_NAME = &#x27;order_items&#x27;
+ORDER BY ORDINAL_POSITION;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COLUMN_NAME AS column_name, DATA_TYPE AS data_type,
+       IS_NULLABLE AS is_nullable
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = &#x27;dbo&#x27; AND TABLE_NAME = &#x27;order_items&#x27;
+ORDER BY ORDINAL_POSITION;</code><span class="sql-caption-context">预期结果 · 查询结果</span></span></caption>
+<thead><tr><th scope="col">column_name</th><th scope="col">data_type</th><th scope="col">is_nullable</th></tr></thead>
+<tbody>
+<tr><td><code>order_id</code></td><td><code>int</code></td><td><code>NO</code></td></tr>
+<tr><td><code>product_id</code></td><td><code>int</code></td><td><code>NO</code></td></tr>
+<tr><td><code>qty</code></td><td><code>int</code></td><td><code>NO</code></td></tr>
+<tr><td><code>unit_price</code></td><td><code>decimal</code></td><td><code>NO</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>如需同时查看索引、约束等对象信息，可在 SQL 查询窗口运行 <code>EXEC sp_help N&#x27;dbo.order_items&#x27;;</code>。</p>
+</div>
+<div data-dialects="mysql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。账号需要有订单明细表的访问权限。把表名换成要检查的表时，也应核对它所在的模式或库。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SHOW COLUMNS FROM order_items;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SHOW COLUMNS FROM order_items;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Null</th><th scope="col">Key</th><th scope="col">Default</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td><code>order_id</code></td><td><code>int</code></td><td><code>NO</code></td><td><code>PRI</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>product_id</code></td><td><code>int</code></td><td><code>NO</code></td><td><code>PRI</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>qty</code></td><td><code>int</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>unit_price</code></td><td><code>decimal(8,2)</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>开头两个字段组成主键。也可运行 <code>DESCRIBE order_items;</code>。</p>
+</div>
+</section>
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-schema"><h2>连接参数与当前身份</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>命令里 <code>-h</code> 指定主机，<code>-P</code> 指定 TCP 端口，<code>-u</code> 指定用户名，<code>-p</code> 触发密码提示。下面是本地 TCP 示例，按实例信息和自己的账号调整。</p>
+<figure><figcaption>系统终端</figcaption><pre><code data-kind="bash">mysql -h 127.0.0.1 -P 3306 -u root -p</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　终端尚未连接，服务器在 <code>127.0.0.1:3306</code> 监听。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>mysql -h 127.0.0.1 -P 3306 -u root -p</code></span></caption>
+<thead><tr><th scope="col">连接目标</th><th scope="col">认证成功后</th></tr></thead>
+<tbody>
+<tr><td><code>127.0.0.1:3306</code></td><td><code>mysql&gt;</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　认证成功后，登录本地 TCP 会话并出现 <code>mysql&gt;</code>。</p>
+</details>
+</div>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT @@hostname AS server_host, @@port AS server_port,
+       CURRENT_USER() AS account;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　本次会话已成功连接。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT @@hostname AS server_host, @@port AS server_port, CURRENT_USER() AS account;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">server_host</th><th scope="col">server_port</th><th scope="col">account</th></tr></thead>
+<tbody>
+<tr><td><code>db-lab</code></td><td class="sql-number"><code>3306</code></td><td><code>root@localhost</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　例如 <code>server_host = db-lab</code>、<code>server_port = 3306</code>、<code>account = root@localhost</code>，以实例实值为准。</p>
+<p class="outcome">显示服务器主机、端口及授权账户，用于核对目标环境。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-schema"><h2>列出和选择数据库</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>SHOW DATABASES</code> 的可见范围取决于权限。<code>USE</code> 设置当前会话的默认数据库，重新连接时需重新选择或在连接命令里指定。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SHOW DATABASES WHERE `Database` = &#x27;learn_sql_lab&#x27;;
+USE learn_sql_lab;
+SELECT DATABASE();</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　练习库已导入，新会话尚未选默认库。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SHOW DATABASES WHERE `Database` = &#x27;learn_sql_lab&#x27;;</code></span></caption>
+<thead><tr><th scope="col">Database</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT DATABASE();</code></span></caption>
+<thead><tr><th scope="col">DATABASE()</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　显示练习库，<code>USE</code> 选中它。<code>DATABASE() = learn_sql_lab</code>。</p>
+<p class="outcome">已导入练习数据且账户可访问时，客户端执行 USE 时会提示 Database changed，SELECT 返回 <code>learn_sql_lab</code>。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-metadata"><h2>列出表并查看定义</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>SHOW TABLES</code> 看表名，<code>DESCRIBE</code> 或 <code>SHOW COLUMNS</code> 看列。需要确认引擎、主键和约束时查看实际建表语句。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SHOW TABLES;
+DESCRIBE products;
+SHOW COLUMNS FROM products LIKE &#x27;price&#x27;;
+SHOW CREATE TABLE products;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　已选练习库，基础数据有 5 张表。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SHOW TABLES;</code></span></caption>
+<thead><tr><th scope="col">Tables_in_learn_sql_lab</th></tr></thead>
+<tbody>
+<tr><td><code>customers</code></td></tr>
+<tr><td><code>docs</code></td></tr>
+<tr><td><code>order_items</code></td></tr>
+<tr><td><code>orders</code></td></tr>
+<tr><td><code>products</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>DESCRIBE products;</code></span></caption>
+<thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Null</th><th scope="col">Key</th><th scope="col">Default</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td><code>product_id</code></td><td><code>int</code></td><td><code>NO</code></td><td><code>PRI</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>name</code></td><td><code>varchar(60)</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>category</code></td><td><code>varchar(30)</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>price</code></td><td><code>decimal(8,2)</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>listed_on</code></td><td><code>date</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SHOW COLUMNS FROM products LIKE &#x27;price&#x27;;</code></span></caption>
+<thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Null</th><th scope="col">Key</th><th scope="col">Default</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td><code>price</code></td><td><code>decimal(8,2)</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>显示其余 1 个结果表</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 4" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">4 · </span><code>SHOW CREATE TABLE products;</code></span></caption>
+<thead><tr><th scope="col">Table</th><th scope="col">Create Table</th></tr></thead>
+<tbody>
+<tr><td><code>products</code></td><td><code>CREATE TABLE `products` (
+  `product_id` int NOT NULL,
+  `name` varchar(60) NOT NULL,
+  `category` varchar(30) NOT NULL,
+  `price` decimal(8,2) NOT NULL,
+  `listed_on` date NOT NULL,
+  PRIMARY KEY (`product_id`),
+  CONSTRAINT `ck_products_price` CHECK ((`price` &gt;= 0))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　得到五个表名。商品表的 <code>product_id</code> 标为 <code>PRI</code>，<code>price</code> 是 <code>decimal(8,2)</code>。完整定义还显示约束和引擎。</p>
+<p class="outcome">练习库初始有 5 张表，商品表的 <code>product_id</code> 为主键，<code>price</code> 为 <code>DECIMAL(8,2)</code>，建表语句显示 InnoDB 和价格约束。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-metadata"><h2>自增与信息模式</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>自增列可在写入时由服务器生成编号。<code>information_schema</code> 将库、表和列等元数据组织为可查询的表。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SHOW CREATE DATABASE learn_sql_lab;
+SHOW COLUMNS FROM docs LIKE &#x27;doc_id&#x27;;
+SELECT TABLE_NAME FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = &#x27;learn_sql_lab&#x27; AND TABLE_NAME = &#x27;products&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　练习库的建库、建表定义及元数据已写入。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SHOW CREATE DATABASE learn_sql_lab;</code></span></caption>
+<thead><tr><th scope="col">Database</th><th scope="col">Create Database</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab</code></td><td><code>CREATE DATABASE `learn_sql_lab` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION=&#x27;N&#x27; */</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SHOW COLUMNS FROM docs LIKE &#x27;doc_id&#x27;;</code></span></caption>
+<thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Null</th><th scope="col">Key</th><th scope="col">Default</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td><code>doc_id</code></td><td><code>int</code></td><td><code>NO</code></td><td><code>PRI</code></td><td class="sql-null"><code>NULL</code></td><td><code>auto_increment</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = &#x27;learn_sql_lab&#x27; AND TABLE_NAME = &#x27;products&#x27;;</code></span></caption>
+<thead><tr><th scope="col">TABLE_NAME</th></tr></thead>
+<tbody>
+<tr><td><code>products</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　库字符集 <code>utf8mb4</code>，<code>doc_id</code> 的 Extra 为 <code>auto_increment</code>，信息模式查询返回 <code>products</code>。</p>
+<p class="outcome">看到库的字符集、doc_id 的 auto_increment 属性和表名 products。</p>
+</details>
+</div></section>
+<section id="p5" class="point" data-dialects="mysql" data-alternate-anchor="dial-metadata"><h2>查看状态、警告和授权</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>SHOW STATUS</code> 看本次会话或实例的状态计数，例如 Questions 是已接收的客户端语句计数。紧接原语句执行 <code>SHOW WARNINGS</code> 可看诊断。用 <code>SHOW GRANTS</code> 查看当前账号的授权。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SHOW SESSION STATUS LIKE &#x27;Questions&#x27;;
+SELECT CAST(&#x27;12x&#x27; AS UNSIGNED);
+SHOW WARNINGS;
+SHOW GRANTS;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　新诊断针对当前会话。待转换的输入是 <code>12x</code>。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SHOW SESSION STATUS LIKE &#x27;Questions&#x27;;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Variable_name</th><th scope="col">Value</th></tr></thead>
+<tbody>
+<tr><td><code>Questions</code></td><td class="sql-number"><code>18</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT CAST(&#x27;12x&#x27; AS UNSIGNED);</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">CAST(&#x27;12x&#x27; AS UNSIGNED)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>12</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SHOW WARNINGS;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Level</th><th scope="col">Code</th><th scope="col">Message</th></tr></thead>
+<tbody>
+<tr><td><code>Warning</code></td><td class="sql-number"><code>1292</code></td><td><code>Truncated incorrect INTEGER value: &#x27;12x&#x27;</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>显示其余 1 个结果表</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SHOW GRANTS;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">对象</th><th scope="col">显示内容</th></tr></thead>
+<tbody>
+<tr><td><code>当前授权账户</code></td><td><code>授权语句随账号而变</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　先显示当前 Questions 计数，转换值为 <code>12</code>，产生警告 <code>1292</code>，最后列出账号的授权语句。</p>
+<p class="outcome">第二条转换为 12 并产生截断警告。最后一条列出当前账户的授权，结果随账户而异。</p>
+</details>
+</div></section>
+<section id="p6" class="point" data-dialects="mysql" data-alternate-anchor="dial-metadata"><h2>查看错误与语句帮助</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>当查询失败时，紧接着查看当前会话的错误详情。以下各行在 mysql 提示符逐条执行。</p>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code data-kind="sql-manual">SELECT * FROM ch03_missing_table;
+SHOW ERRORS;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　当前库没有 <code>ch03_missing_table</code>。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT * FROM ch03_missing_table;</code><span class="sql-caption-context">预期报错</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">错误原因</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1146</code></td><td><code>练习表 ch03_missing_table 不存在</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SHOW ERRORS;</code></span></caption>
+<thead><tr><th scope="col">Level</th><th scope="col">Code</th><th scope="col">Message</th></tr></thead>
+<tbody>
+<tr><td><code>Error</code></td><td class="sql-number"><code>1146</code></td><td><code>Table &#x27;learn_sql_lab.ch03_missing_table&#x27; doesn&#x27;t exist</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　SELECT 报 <code>1146</code>。紧接着执行 <code>SHOW ERRORS</code> 可看到该错误。</p>
+</details>
+</div>
+<figure><figcaption>mysql 客户端</figcaption><pre><code data-kind="mysql">HELP SHOW</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　服务器已加载帮助表，客户端已连接。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>HELP SHOW</code><span class="sql-caption-context">服务器帮助</span></span></caption>
+<thead><tr><th scope="col">主题</th><th scope="col">显示内容</th></tr></thead>
+<tbody>
+<tr><td><code>SHOW</code></td><td><code>帮助表已加载时显示 SHOW 语法</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　显示 <code>SHOW</code> 的语法帮助。</p>
+<p class="outcome">第一条预期 1146，错误列表包含该错误。加载了帮助表的服务器会显示 SHOW 条目。</p>
+</details>
+</div></section>
+<section id="w3-database" class="point" data-dialects="mysql" data-alternate-anchor="dial-schema"><h2>CREATE DATABASE 与 DROP DATABASE</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>数据库名先确定用途和归属。这里单独建一个空的 <code>w3_lesson_db</code> 演练，当前会话继续使用 <code>learn_sql_lab</code>。删除库会一并删除其对象和数据，只对确认无保留需求的练习库使用。建库和删库分别需要 <code>CREATE</code> 和 <code>DROP</code> 权限。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE DATABASE w3_lesson_db CHARACTER SET utf8mb4;
+SELECT SCHEMA_NAME, DEFAULT_CHARACTER_SET_NAME
+FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = &#x27;w3_lesson_db&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="建库前" tabindex="0">
+<table class="sql-result"><caption>建库前</caption>
+<thead><tr><th scope="col">SCHEMA_NAME</th></tr></thead>
+<tbody>
+<tr><td class="sql-no-rows" colspan="1">0 行</td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT SCHEMA_NAME, DEFAULT_CHARACTER_SET_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = &#x27;w3_lesson_db&#x27;;</code></span></caption>
+<thead><tr><th scope="col">SCHEMA_NAME</th><th scope="col">DEFAULT_CHARACTER_SET_NAME</th></tr></thead>
+<tbody>
+<tr><td><code>w3_lesson_db</code></td><td><code>utf8mb4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>确认上一段刚在当前实例建成了这个空库，再单独运行下方删除示例。</p>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code>DROP DATABASE w3_lesson_db;
+SELECT SCHEMA_NAME FROM information_schema.SCHEMATA
+WHERE SCHEMA_NAME = &#x27;w3_lesson_db&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = &#x27;w3_lesson_db&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">SCHEMA_NAME</th></tr></thead>
+<tbody>
+<tr><td class="sql-no-rows" colspan="1">0 行</td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="sources"><a href="https://www.w3schools.com/sql/sql_create_db.asp">W3Schools 建库</a> · <a href="https://www.w3schools.com/sql/sql_drop_db.asp">W3Schools 删库</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/drop-database.html">MySQL DROP DATABASE</a></p></section>
+<section id="w3-hosting" class="point" data-dialects="mysql" data-alternate-anchor="dial-schema"><h2>托管数据库的连接与 TLS</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>网站后端连托管实例前需要端点、端口、库名和数据库账号。账号最小授权见<a href="28-access-control.html#p3">第 28 章</a>。连接参数里的 <code>--ssl-mode=VERIFY_IDENTITY</code> 配合服务商提供的 CA 文件可以校验证书和主机名。替换下面的主机、账号和 CA 文件路径，再在终端运行。</p>
+<p><code>mysql -h db.example.com -P 3306 -u app_reader -p --ssl-mode=VERIFY_IDENTITY --ssl-ca=/path/to/provider-ca.pem -D learn_sql_lab</code></p>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code>SELECT DATABASE() AS current_db;
+SHOW SESSION STATUS LIKE &#x27;Ssl_cipher&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="连接配置示例" tabindex="0">
+<table class="sql-result"><caption>连接配置示例</caption>
+<thead><tr><th scope="col">host</th><th scope="col">port</th><th scope="col">database</th><th scope="col">ssl-mode</th></tr></thead>
+<tbody>
+<tr><td><code>db.example.com</code></td><td class="sql-number"><code>3306</code></td><td><code>learn_sql_lab</code></td><td><code>VERIFY_IDENTITY</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT DATABASE() AS current_db;</code><span class="sql-caption-context">已选练习库时</span></span></caption>
+<thead><tr><th scope="col">current_db</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SHOW SESSION STATUS LIKE &#x27;Ssl_cipher&#x27;;</code><span class="sql-caption-context">TLS 已建立时的示例</span></span></caption>
+<thead><tr><th scope="col">Variable_name</th><th scope="col">Value</th></tr></thead>
+<tbody>
+<tr><td><code>Ssl_cipher</code></td><td><code>TLS_AES_256_GCM_SHA384</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>Ssl_cipher 非空表示当前连接使用了 TLS。证书和主机名校验由连接选项决定。本机 socket 连接的 Ssl_cipher 可以为空。</p>
+<p class="sources"><a href="https://www.w3schools.com/sql/sql_hosting.asp">W3Schools SQL Hosting</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/connection-options.html">MySQL 加密连接选项</a></p></section>
+<section id="dial-schema" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>当前数据库、模式与连接</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>PostgreSQL 的模式位于某个数据库中，切库时由客户端重新连接。SQL Server 可以在已连接的实例里用 USE 切换数据库。</p>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SET search_path TO sql_notes_lab;
+SELECT current_schema() AS active_schema;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT current_schema() AS active_schema;</code></span></caption>
+<thead><tr><th scope="col">active_schema</th></tr></thead>
+<tbody>
+<tr><td><code>sql_notes_lab</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE SQLNotesLab;
+SELECT DB_NAME() AS active_database, SCHEMA_NAME() AS default_schema;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DB_NAME() AS active_database, SCHEMA_NAME() AS default_schema;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">active_database</th><th scope="col">default_schema</th></tr></thead>
+<tbody>
+<tr><td><code>SQLNotesLab</code></td><td><code>dbo</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/ddl-schemas.html">PostgreSQL 模式</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/use-transact-sql">SQL Server USE</a></p>
+</section>
+<section id="dial-metadata" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p3">
+<h2>列出练习表和字段定义</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>可用 INFORMATION_SCHEMA 查基础元数据。进一步查索引、序列与依赖关系时，使用 PostgreSQL 的 pg_catalog 或 SQL Server 的 sys 目录。</p>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT table_name FROM information_schema.tables
+WHERE table_schema=&#x27;sql_notes_lab&#x27; AND table_type=&#x27;BASE TABLE&#x27; ORDER BY table_name;
+SELECT column_name, data_type FROM information_schema.columns
+WHERE table_schema=&#x27;sql_notes_lab&#x27; AND table_name=&#x27;products&#x27; ORDER BY ordinal_position;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT table_name FROM information_schema.tables WHERE table_schema=&#x27;sql_notes_lab&#x27; AND table_type=&#x27;BASE TABLE&#x27; ORDER BY table_name;</code></span></caption>
+<thead><tr><th scope="col">table_name</th></tr></thead>
+<tbody>
+<tr><td><code>customers</code></td></tr>
+<tr><td><code>docs</code></td></tr>
+<tr><td><code>order_items</code></td></tr>
+<tr><td><code>orders</code></td></tr>
+<tr><td><code>products</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT column_name, data_type FROM information_schema.columns WHERE table_schema=&#x27;sql_notes_lab&#x27; AND table_name=&#x27;products&#x27; ORDER BY ordinal_position;</code></span></caption>
+<thead><tr><th scope="col">column_name</th><th scope="col">data_type</th></tr></thead>
+<tbody>
+<tr><td><code>product_id</code></td><td><code>integer</code></td></tr>
+<tr><td><code>name</code></td><td><code>character varying</code></td></tr>
+<tr><td><code>category</code></td><td><code>character varying</code></td></tr>
+<tr><td><code>price</code></td><td><code>numeric</code></td></tr>
+<tr><td><code>listed_on</code></td><td><code>date</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA=&#x27;dbo&#x27; AND TABLE_TYPE=&#x27;BASE TABLE&#x27; ORDER BY TABLE_NAME;
+SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA=&#x27;dbo&#x27; AND TABLE_NAME=&#x27;products&#x27; ORDER BY ORDINAL_POSITION;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=&#x27;dbo&#x27; AND TABLE_TYPE=&#x27;BASE TABLE&#x27; ORDER BY TABLE_NAME;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">TABLE_NAME</th></tr></thead>
+<tbody>
+<tr><td><code>customers</code></td></tr>
+<tr><td><code>docs</code></td></tr>
+<tr><td><code>order_items</code></td></tr>
+<tr><td><code>orders</code></td></tr>
+<tr><td><code>products</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=&#x27;dbo&#x27; AND TABLE_NAME=&#x27;products&#x27; ORDER BY ORDINAL_POSITION;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">COLUMN_NAME</th><th scope="col">DATA_TYPE</th></tr></thead>
+<tbody>
+<tr><td><code>product_id</code></td><td><code>int</code></td></tr>
+<tr><td><code>name</code></td><td><code>nvarchar</code></td></tr>
+<tr><td><code>category</code></td><td><code>varchar</code></td></tr>
+<tr><td><code>price</code></td><td><code>decimal</code></td></tr>
+<tr><td><code>listed_on</code></td><td><code>date</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/information-schema.html">PostgreSQL 信息模式</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-information-schema-views/system-information-schema-views-transact-sql">SQL Server 信息模式</a></p>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>如何确认自己选中了练习库，并找到商品表每列的类型？</p><details><summary>查看答案</summary><figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT DATABASE();
+DESCRIBE products;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　默认库为 <code>learn_sql_lab</code>，商品表已存在。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT DATABASE();</code></span></caption>
+<thead><tr><th scope="col">DATABASE()</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>DESCRIBE products;</code></span></caption>
+<thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Null</th><th scope="col">Key</th><th scope="col">Default</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td><code>product_id</code></td><td><code>int</code></td><td><code>NO</code></td><td><code>PRI</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>name</code></td><td><code>varchar(60)</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>category</code></td><td><code>varchar(30)</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>price</code></td><td><code>decimal(8,2)</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>listed_on</code></td><td><code>date</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　返回当前库名和五列定义，例如 <code>product_id: int/PRI</code>、<code>price: decimal(8,2)</code>。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/connecting.html">连接 MySQL</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/use.html">选择数据库</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/show.html">SHOW 语句</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#quick-create-database">建库</a></li><li><a href="#quick-current-database">查当前库</a></li><li><a href="#quick-switch-database">切库</a></li><li><a href="#quick-list-tables">列出表</a></li><li><a href="#quick-table-columns">看字段</a></li>
+<li data-dialects="mysql"><a href="#p1">用主机、端口和账号连接</a></li><li data-dialects="mysql"><a href="#p2">列出和选择数据库</a></li><li data-dialects="mysql"><a href="#p3">用 SHOW TABLES、DESCRIBE 查看表和列</a></li><li data-dialects="mysql"><a href="#p4">用 information_schema 查看自增列</a></li><li data-dialects="mysql"><a href="#p5">核对会话计数、警告和授权</a></li><li data-dialects="mysql"><a href="#p6">在客户端查报错和语法帮助</a></li><li data-dialects="mysql"><a href="#w3-database">CREATE / DROP DATABASE 创建和移除练习库</a></li><li data-dialects="mysql"><a href="#w3-hosting">使用 TLS 连接托管实例</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-schema">核对当前库、模式和切库方式</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-metadata">列出练习表和字段定义</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="02-mysql-overview.html">← MySQL简介</a><a href="../v1.html">章节目录</a><a rel="next" href="04-select.html">检索数据 →</a></nav>
+</main>
+</body></html>

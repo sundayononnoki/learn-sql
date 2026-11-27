@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>全球化和本地化 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 27 章 · 原书第 193–196 页</p>
+<h1>全球化和本地化</h1>
+<p class="lead" data-dialects="mysql">字符集定义字符及其表示。排序规则（原书称校对顺序）决定文本如何比较、分组和排序。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-encoding"><h2>字符集、字节与字符</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>utf8mb4 支持 Unicode 补充字符，例如 emoji。字符长度与实际存储字节数可不同。</p>
+<p class="version-note"><strong>过时 · 已弃用</strong> <code>utf8mb3</code> 及其旧别名 <code>utf8</code> 已弃用。新库和连接明确指定 <code>utf8mb4</code>。<a href="https://dev.mysql.com/doc/refman/26.10/en/charset-unicode.html">MySQL Unicode 字符集</a>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT CHARSET(_utf8mb4&#x27;汉🙂&#x27;) AS charset_name,
+       CHAR_LENGTH(_utf8mb4&#x27;汉🙂&#x27;) AS character_count,
+       LENGTH(_utf8mb4&#x27;汉🙂&#x27;) AS byte_count;
+SHOW CHARACTER SET WHERE Charset = &#x27;utf8mb4&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　输入为 utf8mb4 字符串 <code>汉🙂</code>。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT CHARSET(_utf8mb4&#x27;汉🙂&#x27;) AS charset_name, CHAR_LENGTH(_utf8mb4&#x27;汉🙂&#x27;) AS character_count, LENGTH(_utf8mb4&#x27;汉🙂&#x27;) AS byte_count;</code></span></caption>
+<thead><tr><th scope="col">charset_name</th><th scope="col">character_count</th><th scope="col">byte_count</th></tr></thead>
+<tbody>
+<tr><td><code>utf8mb4</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>7</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SHOW CHARACTER SET WHERE Charset = &#x27;utf8mb4&#x27;;</code></span></caption>
+<thead><tr><th scope="col">Charset</th><th scope="col">Description</th><th scope="col">Default collation</th><th scope="col">Maxlen</th></tr></thead>
+<tbody>
+<tr><td><code>utf8mb4</code></td><td><code>UTF-8 Unicode</code></td><td><code>utf8mb4_0900_ai_ci</code></td><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　<code>utf8mb4 | 2 个字符 | 7 字节</code>。SHOW 的 Maxlen 为 4。</p>
+<p class="outcome">字符集为 utf8mb4，两个字符共 7 字节。SHOW 的 Maxlen 为 4。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-encoding"><h2>排序规则与显式 COLLATE</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>ai_ci</code> 表示忽略重音和大小写。<code>as_cs</code> 表示区分重音和大小写。比较、DISTINCT 与 ORDER BY 都可能受排序规则影响。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT _utf8mb4&#x27;café&#x27; COLLATE utf8mb4_0900_ai_ci = _utf8mb4&#x27;CAFE&#x27; AS folded,
+       _utf8mb4&#x27;café&#x27; COLLATE utf8mb4_0900_as_cs = _utf8mb4&#x27;CAFE&#x27; AS exact_case;
+SHOW COLLATION WHERE Collation IN (&#x27;utf8mb4_0900_ai_ci&#x27;, &#x27;utf8mb4_0900_as_cs&#x27;);</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="字符串比较输入" tabindex="0">
+<table class="sql-result"><caption>字符串比较输入</caption>
+<thead><tr><th scope="col">左值</th><th scope="col">右值</th></tr></thead>
+<tbody>
+<tr><td><code>café</code></td><td><code>CAFE</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT _utf8mb4&#x27;café&#x27; COLLATE utf8mb4_0900_ai_ci = _utf8mb4&#x27;CAFE&#x27; AS folded, _utf8mb4&#x27;café&#x27; COLLATE utf8mb4_0900_as_cs = _utf8mb4&#x27;CAFE&#x27; AS exact_case;</code></span></caption>
+<thead><tr><th scope="col">folded</th><th scope="col">exact_case</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SHOW COLLATION WHERE Collation IN (&#x27;utf8mb4_0900_ai_ci&#x27;, &#x27;utf8mb4_0900_as_cs&#x27;);</code></span></caption>
+<thead><tr><th scope="col">Collation</th><th scope="col">Charset</th><th scope="col">Id</th><th scope="col">Default</th><th scope="col">Compiled</th><th scope="col">Sortlen</th><th scope="col">Pad_attribute</th></tr></thead>
+<tbody>
+<tr><td><code>utf8mb4_0900_ai_ci</code></td><td><code>utf8mb4</code></td><td class="sql-number"><code>255</code></td><td><code>Yes</code></td><td><code>Yes</code></td><td class="sql-number"><code>0</code></td><td><code>NO PAD</code></td></tr>
+<tr><td><code>utf8mb4_0900_as_cs</code></td><td><code>utf8mb4</code></td><td class="sql-number"><code>278</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td><code>Yes</code></td><td class="sql-number"><code>0</code></td><td><code>NO PAD</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　比较输入是 <code>café</code> 与 <code>CAFE</code>。</p><p><strong>执行后</strong>　忽略重音和大小写时得 <code>1</code>。都区分时得 <code>0</code>。SHOW 列出两个排序规则。</p>
+<p class="outcome">返回 1、0，SHOW 列出这两条规则。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-encoding"><h2>对比排序和去重</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>读业务结果时先明确是按自然语言规则还是按二进制规则比较。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">WITH words AS (SELECT _utf8mb4&#x27;a&#x27; AS word UNION ALL SELECT _utf8mb4&#x27;B&#x27;)
+SELECT word FROM words ORDER BY word COLLATE utf8mb4_0900_ai_ci;
+WITH words AS (SELECT _utf8mb4&#x27;a&#x27; AS word UNION ALL SELECT _utf8mb4&#x27;B&#x27;)
+SELECT word FROM words ORDER BY word COLLATE utf8mb4_bin;
+WITH words AS (SELECT _utf8mb4&#x27;a&#x27; AS word UNION ALL SELECT _utf8mb4&#x27;A&#x27;)
+SELECT COUNT(DISTINCT word COLLATE utf8mb4_0900_ai_ci),
+       COUNT(DISTINCT word COLLATE utf8mb4_0900_as_cs) FROM words;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　排序输入是 a、B。去重输入是 a、A。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>WITH words AS (SELECT _utf8mb4&#x27;a&#x27; AS word UNION ALL SELECT _utf8mb4&#x27;B&#x27;) SELECT word FROM words ORDER BY word COLLATE utf8mb4_0900_ai_ci;</code></span></caption>
+<thead><tr><th scope="col">word</th></tr></thead>
+<tbody>
+<tr><td><code>a</code></td></tr>
+<tr><td><code>B</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>WITH words AS (SELECT _utf8mb4&#x27;a&#x27; AS word UNION ALL SELECT _utf8mb4&#x27;B&#x27;) SELECT word FROM words ORDER BY word COLLATE utf8mb4_bin;</code></span></caption>
+<thead><tr><th scope="col">word</th></tr></thead>
+<tbody>
+<tr><td><code>B</code></td></tr>
+<tr><td><code>a</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>WITH words AS (SELECT _utf8mb4&#x27;a&#x27; AS word UNION ALL SELECT _utf8mb4&#x27;A&#x27;) SELECT COUNT(DISTINCT word COLLATE utf8mb4_0900_ai_ci), COUNT(DISTINCT word COLLATE utf8mb4_0900_as_cs) FROM words;</code></span></caption>
+<thead><tr><th scope="col">COUNT(DISTINCT word COLLATE utf8mb4_0900_ai_ci)</th><th scope="col">COUNT(DISTINCT word COLLATE utf8mb4_0900_as_cs)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　语言规则排序 <code>a,B</code>，二进制排序 <code>B,a</code>。不区分及区分大小写的去重计数为 <code>1,2</code>。</p>
+<p class="outcome">两种排序为 a、B 和 B、a。去重计数为 1、2。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-encoding"><h2>服务器、库、表、列与连接各有设置</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>新库、新表和新列在未明确声明时按层级继承默认值。连接另外决定客户端发来的文本如何解释、返回结果如何编码。改默认值后仍要检查既有列定义。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT @@character_set_server, @@collation_server,
+       @@character_set_database, @@collation_database;
+SELECT @@character_set_client, @@character_set_connection, @@character_set_results;
+SHOW CREATE DATABASE learn_sql_lab;
+SHOW FULL COLUMNS FROM customers WHERE Field = &#x27;name&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　练习库已建，连接和服务器也各有自己的默认设置。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT @@character_set_server, @@collation_server, @@character_set_database, @@collation_database;</code></span></caption>
+<thead><tr><th scope="col">@@character_set_server</th><th scope="col">@@collation_server</th><th scope="col">@@character_set_database</th><th scope="col">@@collation_database</th></tr></thead>
+<tbody>
+<tr><td><code>utf8mb4</code></td><td><code>utf8mb4_0900_ai_ci</code></td><td><code>utf8mb4</code></td><td><code>utf8mb4_0900_ai_ci</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT @@character_set_client, @@character_set_connection, @@character_set_results;</code></span></caption>
+<thead><tr><th scope="col">@@character_set_client</th><th scope="col">@@character_set_connection</th><th scope="col">@@character_set_results</th></tr></thead>
+<tbody>
+<tr><td><code>utf8mb4</code></td><td><code>utf8mb4</code></td><td><code>utf8mb4</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SHOW CREATE DATABASE learn_sql_lab;</code></span></caption>
+<thead><tr><th scope="col">Database</th><th scope="col">Create Database</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab</code></td><td><code>CREATE DATABASE `learn_sql_lab` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION=&#x27;N&#x27; */</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>显示其余 1 个结果表</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 4" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">4 · </span><code>SHOW FULL COLUMNS FROM customers WHERE Field = &#x27;name&#x27;;</code></span></caption>
+<thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Collation</th><th scope="col">Null</th><th scope="col">Key</th><th scope="col">Default</th><th scope="col">Extra</th><th scope="col">Privileges</th><th scope="col">Comment</th></tr></thead>
+<tbody>
+<tr><td><code>name</code></td><td><code>varchar(40)</code></td><td><code>utf8mb4_0900_ai_ci</code></td><td><code>NO</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td><code>select,insert,update,references</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　库及 customers.name 的排序规则为 <code>utf8mb4_0900_ai_ci</code>。连接变量按实际会话返回。</p>
+<p class="outcome">练习库默认 utf8mb4 / utf8mb4_0900_ai_ci，name 的排序规则也为 utf8mb4_0900_ai_ci。客户端设置随会话变化。</p>
+</details>
+</div></section>
+<section id="p5" class="point" data-dialects="mysql" data-alternate-anchor="dial-encoding"><h2>在表与列上显式制定比较规则</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>使用 CHARACTER SET 与 COLLATE 定义表默认值或针对列覆盖。表改变默认规则会影响未来列，转换已有文字列使用 CONVERT TO 并验证数据及唯一键。连接问题可从客户端的 <code>--default-character-set=utf8mb4</code> 参数查起。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch27_keys (
+  word VARCHAR(24) COLLATE utf8mb4_0900_as_cs
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+INSERT INTO ch27_keys VALUES (&#x27;SQL&#x27;);
+SELECT COUNT(*) FROM ch27_keys WHERE word = &#x27;sql&#x27;;
+SELECT COUNT(*) FROM ch27_keys WHERE word COLLATE utf8mb4_0900_ai_ci = &#x27;sql&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　当前会话尚无 <code>ch27_keys</code>。本段会建一列区分大小写的 word，并插入 <code>SQL</code>。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT COUNT(*) FROM ch27_keys WHERE word = &#x27;sql&#x27;;</code></span></caption>
+<thead><tr><th scope="col">COUNT(*)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT COUNT(*) FROM ch27_keys WHERE word COLLATE utf8mb4_0900_ai_ci = &#x27;sql&#x27;;</code></span></caption>
+<thead><tr><th scope="col">COUNT(*)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　查询小写 <code>sql</code> 得 <code>0</code>。显式覆盖为不区分大小写的规则后得 <code>1</code>。</p>
+<p class="outcome">按列声明比较得到 0，显式使用 ci 得到 1。</p>
+</details>
+</div></section>
+<section id="p6" class="point" data-dialects="mysql" data-alternate-anchor="dial-encoding"><h2>转换字符串的字符集</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>CONVERT 可以根据已知源字符集转码，使用 HEX 检查结果字节。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT CHARSET(CONVERT(_latin1 X&#x27;636166E9&#x27; USING utf8mb4)) AS target_charset,
+       HEX(CONVERT(_latin1 X&#x27;636166E9&#x27; USING utf8mb4)) AS encoded_bytes;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　<code>café</code> 以 latin1 字节 <code>63 61 66 E9</code> 表示。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CHARSET(CONVERT(_latin1 X&#x27;636166E9&#x27; USING utf8mb4)) AS target_charset, HEX(CONVERT(_latin1 X&#x27;636166E9&#x27; USING utf8mb4)) AS encoded_bytes;</code></span></caption>
+<thead><tr><th scope="col">target_charset</th><th scope="col">encoded_bytes</th></tr></thead>
+<tbody>
+<tr><td><code>utf8mb4</code></td><td><code>636166C3A9</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　目标字符集为 utf8mb4，字节变为 <code>63 61 66 C3 A9</code>。</p>
+<p class="outcome">转为 utf8mb4，café 的字节变为 636166C3A9。</p>
+</details>
+</div></section>
+<section id="dial-encoding" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>Unicode、字符数和排序规则</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>PostgreSQL 用数据库编码存储文本。SQL Server 用 N 前缀和 nvarchar 表达 Unicode 字符串。PostgreSQL 的示例使用 UTF8 数据库。大小写规则与字符编码是不同的属性。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入字面量" tabindex="0">
+<table class="sql-result"><caption>输入字面量</caption><thead><tr><th scope="col">用来统计长度</th><th scope="col">用来比较大小写</th></tr></thead>
+<tbody><tr><td><code>汉字</code></td><td><code>SQL 与 sql</code></td></tr></tbody></table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SHOW server_encoding;
+SELECT CHAR_LENGTH(&#x27;汉字&#x27;) AS chars,OCTET_LENGTH(&#x27;汉字&#x27;) AS bytes;
+SELECT CASE WHEN &#x27;SQL&#x27; ILIKE &#x27;sql&#x27; THEN 1 ELSE 0 END AS ignoring_case;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SHOW server_encoding;</code></span></caption>
+<thead><tr><th scope="col">server_encoding</th></tr></thead>
+<tbody>
+<tr><td><code>UTF8</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT CHAR_LENGTH(&#x27;汉字&#x27;) AS chars,OCTET_LENGTH(&#x27;汉字&#x27;) AS bytes;</code></span></caption>
+<thead><tr><th scope="col">chars</th><th scope="col">bytes</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>6</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT CASE WHEN &#x27;SQL&#x27; ILIKE &#x27;sql&#x27; THEN 1 ELSE 0 END AS ignoring_case;</code></span></caption>
+<thead><tr><th scope="col">ignoring_case</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT LEN(N&#x27;汉字&#x27;) AS chars,DATALENGTH(N&#x27;汉字&#x27;) AS bytes;
+SELECT CASE WHEN N&#x27;SQL&#x27; COLLATE Latin1_General_100_CI_AS=N&#x27;sql&#x27; THEN 1 ELSE 0 END AS ignoring_case;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT LEN(N&#x27;汉字&#x27;) AS chars,DATALENGTH(N&#x27;汉字&#x27;) AS bytes;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">chars</th><th scope="col">bytes</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT CASE WHEN N&#x27;SQL&#x27; COLLATE Latin1_General_100_CI_AS=N&#x27;sql&#x27; THEN 1 ELSE 0 END AS ignoring_case;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">ignoring_case</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/multibyte.html">PostgreSQL 字符集</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/collations/collation-and-unicode-support">SQL Server 排序规则与 Unicode</a></p>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>若要把新表的文本默认设置为 utf8mb4，应写在哪一层？</p><details><summary>查看答案</summary><p>在 CREATE TABLE 末尾设置表默认值。指定列规则时在列定义里写 COLLATE。</p></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/charset.html">字符集与排序规则</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/charset-connection.html">连接字符集</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/charset-collate.html">COLLATE</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="mysql"><a href="#p1">用字符数和字节数检查编码</a></li><li data-dialects="mysql"><a href="#p2">COLLATE 指定比较规则</a></li><li data-dialects="mysql"><a href="#p3">对比排序和去重</a></li><li data-dialects="mysql"><a href="#p4">定位各层的字符集和排序规则</a></li><li data-dialects="mysql"><a href="#p5">在表与列上显式制定比较规则</a></li><li data-dialects="mysql"><a href="#p6">转换字符串的字符集</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-encoding">Unicode、字符数和排序规则</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="26-transactions.html">← 管理事务处理</a><a href="../v1.html">章节目录</a><a rel="next" href="28-access-control.html">安全管理 →</a></nav>
+</main>
+</body></html>

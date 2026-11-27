@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>创建计算字段 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 10 章 · 原书第 62–67 页</p>
+<h1>创建计算字段</h1>
+<p class="lead" data-dialects="mysql">计算字段由查询当场生成。用表达式组合字符串、编写公式并给结果命名。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-computed"><h2>CONCAT、空白与 NULL</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>用 <code>CONCAT</code> 拼接，<code>LTRIM</code>、<code>RTRIM</code>、<code>TRIM</code> 清理左、右或两侧空格。任一参数是 NULL 时，CONCAT 返回 NULL。可用 <code>COALESCE</code> 代替缺失值。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT CONCAT(TRIM(&#x27; SQL &#x27;), &#x27; / &#x27;, RTRIM(&#x27;book  &#x27;)) AS label,
+       LENGTH(LTRIM(&#x27;  SQL&#x27;)) AS letters,
+       CONCAT(&#x27;城市 &#x27;, city) AS raw_label,
+       CONCAT(&#x27;城市 &#x27;, COALESCE(city, &#x27;未知&#x27;)) AS city_label
+FROM customers WHERE customer_id = 3;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="customers · 相关行" tabindex="0">
+<table class="sql-result"><caption>customers · 相关行</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CONCAT(TRIM(&#x27; SQL &#x27;), &#x27; / &#x27;, RTRIM(&#x27;book  &#x27;)) AS label, LENGTH(LTRIM(&#x27;  SQL&#x27;)) AS letters, CONCAT(&#x27;城市 &#x27;, city) AS raw_label, CONCAT(&#x27;城市 &#x27;, COALESCE(city, &#x27;未知&#x27;)) AS city_label FROM customers WHERE customer_id = 3;</code></span></caption>
+<thead><tr><th scope="col">label</th><th scope="col">letters</th><th scope="col">raw_label</th><th scope="col">city_label</th></tr></thead>
+<tbody>
+<tr><td><code>SQL / book</code></td><td class="sql-number"><code>3</code></td><td class="sql-null"><code>NULL</code></td><td><code>城市 未知</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　两个字符串带空格。客户 3 的 city 为 NULL。</p><p><strong>执行后</strong>　拼接标签 <code>SQL / book</code>，修剪后长度 <code>3</code>，直接拼城市得 <code>NULL</code>，使用缺省值得 <code>城市 未知</code>。</p>
+<p class="outcome">得到 SQL / book、3、NULL、城市 未知。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-computed"><h2>用 AS 命名结果</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>列别名为结果列提供名称，应用程序可按结果列名读取，保存到视图时也好引用。能在 <code>ORDER BY</code> 中使用，WHERE 在计算投影前过滤，常需复用表达式或先包一层查询。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT CONCAT(name, &#x27; / &#x27;, category) AS label
+FROM products ORDER BY label LIMIT 1;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CONCAT(name, &#x27; / &#x27;, category) AS label FROM products ORDER BY label LIMIT 1;</code></span></caption>
+<thead><tr><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>Notebook / stationery</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　5 件商品都参与标签排序，其中商品 3 的 name 为 <code>Notebook</code>，category 为 <code>stationery</code>。</p><p><strong>执行后</strong>　对标签排序后，首行 <code>label = Notebook / stationery</code>。</p>
+<p class="outcome">结果列名为 label，内容为 Notebook / stationery。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-computed"><h2>算术表达式与逐行计算</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>+</code>、<code>-</code>、<code>*</code>、<code>/</code> 可组合。括号表达计算意图。订单历史金额用明细的成交单价。测试常量表达式时可省略 FROM。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT qty, unit_price, qty * unit_price AS subtotal
+FROM order_items WHERE order_id = 101 AND product_id = 1;
+SELECT (2 + 3) * 4 AS total, 20 - 5 AS difference, 10 / 4 AS quotient;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="order_items · 相关行" tabindex="0">
+<table class="sql-result"><caption>order_items · 相关行</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>20.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT qty, unit_price, qty * unit_price AS subtotal FROM order_items WHERE order_id = 101 AND product_id = 1;</code></span></caption>
+<thead><tr><th scope="col">qty</th><th scope="col">unit_price</th><th scope="col">subtotal</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>20.00</code></td><td class="sql-number"><code>40.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT (2 + 3) * 4 AS total, 20 - 5 AS difference, 10 / 4 AS quotient;</code></span></caption>
+<thead><tr><th scope="col">total</th><th scope="col">difference</th><th scope="col">quotient</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>20</code></td><td class="sql-number"><code>15</code></td><td class="sql-number"><code>2.5000</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　订单 101、商品 1 的 qty 为 2、unit_price 为 20.00。</p><p><strong>执行后</strong>　明细查询输出 <code>qty=2, unit_price=20.00, subtotal=40.00</code>。常量运算得到 <code>20, 15, 2.5000</code>。</p>
+<p class="outcome">第一条返回 2、20.00、40.00。第二条的数值为 20、15、2.5。</p>
+</details>
+</div></section>
+<section id="w3-bitwise" class="point" data-dialects="mysql" data-alternate-anchor="dial-bitwise"><h2>位运算与整数除法</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>&amp;</code>、<code>|</code>、<code>^</code> 按位计算与、或、异或。对固定宽度掩码取反后可再次遮罩。<code>DIV</code> 取整数商，<code>%</code> 得余数。W3Schools 的 <code>+=</code> 等复合赋值示例属于 T-SQL，MySQL 更新列用 <code>SET 列 = 列 + 值</code>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT 6 &amp; 3 AS and_bits, 6 | 3 AS or_bits, 6 ^ 3 AS xor_bits,
+       (~6) &amp; 7 AS invert_low_three, 7 DIV 3 AS quotient, 7 % 3 AS remainder;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">a</th><th scope="col">b</th><th scope="col">二进制</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>6</code></td><td class="sql-number"><code>3</code></td><td><code>110 和 011</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT 6 &amp; 3 AS and_bits, 6 | 3 AS or_bits, 6 ^ 3 AS xor_bits, (~6) &amp; 7 AS invert_low_three, 7 DIV 3 AS quotient, 7 % 3 AS remainder;</code></span></caption>
+<thead><tr><th scope="col">and_bits</th><th scope="col">or_bits</th><th scope="col">xor_bits</th><th scope="col">invert_low_three</th><th scope="col">quotient</th><th scope="col">remainder</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>7</code></td><td class="sql-number"><code>5</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="sources"><a href="https://www.w3schools.com/sql/sql_operators.asp">W3Schools Operators</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/bit-functions.html">MySQL 位运算</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/add-equals-transact-sql">T-SQL 复合运算符</a></p></section>
+<section id="dial-computed" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>计算字段、拼接与小计</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>用 AS 命名计算输出。数值除法用 DECIMAL 显式确认精度。拼接先用 COALESCE 指定未知值的展示文字。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="order_items · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>order_items · 执行前练习数据</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>4</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>103</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>104</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT qty, unit_price, qty*unit_price AS subtotal
+FROM order_items WHERE order_id=101 AND product_id=1;
+SELECT CAST(CAST(7 AS decimal(8,2))/2 AS decimal(8,2)) AS quotient, CONCAT(&#x27;SQL&#x27;,&#x27; / &#x27;,&#x27;book&#x27;) AS label;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT qty, unit_price, qty*unit_price AS subtotal FROM order_items WHERE order_id=101 AND product_id=1;</code></span></caption>
+<thead><tr><th scope="col">qty</th><th scope="col">unit_price</th><th scope="col">subtotal</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>20.00</code></td><td class="sql-number"><code>40.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT CAST(CAST(7 AS decimal(8,2))/2 AS decimal(8,2)) AS quotient, CONCAT(&#x27;SQL&#x27;,&#x27; / &#x27;,&#x27;book&#x27;) AS label;</code></span></caption>
+<thead><tr><th scope="col">quotient</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3.50</code></td><td><code>SQL / book</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT qty, unit_price, qty*unit_price AS subtotal
+FROM order_items WHERE order_id=101 AND product_id=1;
+SELECT CAST(CAST(7 AS decimal(8,2))/2 AS decimal(8,2)) AS quotient, CONCAT(&#x27;SQL&#x27;,&#x27; / &#x27;,&#x27;book&#x27;) AS label;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT qty, unit_price, qty*unit_price AS subtotal FROM order_items WHERE order_id=101 AND product_id=1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th><th scope="col">unit_price</th><th scope="col">subtotal</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>20.00</code></td><td class="sql-number"><code>40.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT CAST(CAST(7 AS decimal(8,2))/2 AS decimal(8,2)) AS quotient, CONCAT(&#x27;SQL&#x27;,&#x27; / &#x27;,&#x27;book&#x27;) AS label;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">quotient</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3.50</code></td><td><code>SQL / book</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+</section>
+<section id="dial-bitwise" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="w3-bitwise">
+<h2>整数运算与位掩码</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>两个整数相除时，两种数据库都截断小数部分。% 求余。&amp; 和 | 按位计算与和或。</p>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT 7/3 AS quotient, 7%3 AS remainder, 6 &amp; 3 AS bit_and, 6 | 3 AS bit_or;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT 7/3 AS quotient, 7%3 AS remainder, 6 &amp; 3 AS bit_and, 6 | 3 AS bit_or;</code></span></caption>
+<thead><tr><th scope="col">quotient</th><th scope="col">remainder</th><th scope="col">bit_and</th><th scope="col">bit_or</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>7</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT 7/3 AS quotient, 7%3 AS remainder, 6 &amp; 3 AS bit_and, 6 | 3 AS bit_or;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT 7/3 AS quotient, 7%3 AS remainder, 6 &amp; 3 AS bit_and, 6 | 3 AS bit_or;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">quotient</th><th scope="col">remainder</th><th scope="col">bit_and</th><th scope="col">bit_or</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>7</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>给编号 1 的商品试算原价加 10% 的新价，名称叫 new_price。</p><details><summary>查看答案</summary><figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT ROUND(price * 1.10, 2) AS new_price FROM products WHERE product_id = 1;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 相关行" tabindex="0">
+<table class="sql-result"><caption>products · 相关行</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT ROUND(price * 1.10, 2) AS new_price FROM products WHERE product_id = 1;</code></span></caption>
+<thead><tr><th scope="col">new_price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>22.00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　商品 1 的原价为 20.00。</p><p><strong>执行后</strong>　试算涨价 10% 得 <code>new_price = 22.00</code>，表中的原价保持 20.00。</p>
+<p class="outcome">得到 22.00。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/string-functions.html">字符串函数</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/arithmetic-functions.html">算术运算</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/problems-with-alias.html">列别名</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="mysql"><a href="#p1">CONCAT 拼接文本并处理 NULL</a></li><li data-dialects="mysql"><a href="#p2">用 AS 命名结果</a></li><li data-dialects="mysql"><a href="#p3">用算术表达式逐行计算小计</a></li><li data-dialects="mysql"><a href="#w3-bitwise">检查位标记并做整数除法</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-computed">计算字段、拼接与小计</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-bitwise">整数运算与位掩码</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="09-regexp.html">← 用正则表达式进行搜索</a><a href="../v1.html">章节目录</a><a rel="next" href="11-functions.html">使用数据处理函数 →</a></nav>
+</main>
+</body></html>

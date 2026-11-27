@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>36 · SQL Server · 数据同步、OUTPUT 与事务 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 36 章 · 原生语法</p>
+<h1>SQL Server · 数据同步、OUTPUT 与事务</h1>
+<p class="lead">学习 T-SQL 批量同步、获取写入前后的值，以及捕获事务错误。每段都能单独执行。 临时表示例重复运行时请开新连接。</p>
+<div class="layout"><article class="content">
+<section id="merge" class="point" data-dialects="sqlserver">
+<h2>MERGE INTO · 同步库存并返回动作</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>ON 只负责用业务键配对。WHEN 控制写入动作。让来源每个键最多出现一次。MERGE 必须用分号结束。结果用 $action 区分更新与插入，再按 sku 排序。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="目标 · 原库存" tabindex="0">
+<table class="sql-result"><caption>目标 · 原库存</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="来源 · 变更清单" tabindex="0">
+<table class="sql-result"><caption>来源 · 变更清单</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>7</code></td></tr>
+<tr><td><code>3</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_inventory (sku int PRIMARY KEY, qty int);
+INSERT INTO #native_inventory VALUES (1, 5), (2, 8);
+DECLARE @changes TABLE (action_name nvarchar(10), sku int, qty int);
+
+MERGE INTO #native_inventory AS target
+USING (VALUES (1, 7), (3, 4)) AS source(sku, qty)
+ON target.sku = source.sku
+WHEN MATCHED THEN UPDATE SET qty = source.qty
+WHEN NOT MATCHED BY TARGET THEN INSERT (sku, qty) VALUES (source.sku, source.qty)
+OUTPUT $action, inserted.sku, inserted.qty INTO @changes;
+
+SELECT action_name, sku, qty FROM @changes ORDER BY sku;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT action_name, sku, qty FROM @changes ORDER BY sku;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">action_name</th><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>UPDATE</code></td><td><code>1</code></td><td><code>7</code></td></tr>
+<tr><td><code>INSERT</code></td><td><code>3</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">库存 2 不参与此批写入，数量仍是 8。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/merge-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="merge-source" class="point" data-dialects="sqlserver">
+<h2>WHEN NOT MATCHED BY SOURCE · 停用缺失目标行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>当来源是完整快照，可处理在目标中存在但来源已无的键。这里停用旧行并返回结果。如果来源只是增量，缺失键可能只是本次没变。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="同步前" tabindex="0">
+<table class="sql-result"><caption>同步前</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">active</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td></tr>
+<tr><td><code>2</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="来源 · 完整快照" tabindex="0">
+<table class="sql-result"><caption>来源 · 完整快照</caption>
+<thead><tr><th scope="col">sku</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_active (sku int PRIMARY KEY, active bit);
+INSERT INTO #native_active VALUES (1, 1), (2, 1);
+
+MERGE INTO #native_active AS target
+USING (VALUES (1)) AS source(sku)
+ON target.sku = source.sku
+WHEN NOT MATCHED BY SOURCE AND target.active = 1
+  THEN UPDATE SET active = 0
+OUTPUT $action AS action_name, inserted.sku, inserted.active;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>MERGE INTO #native_active AS target
+USING (VALUES (1)) AS source(sku)
+ON target.sku = source.sku
+WHEN NOT MATCHED BY SOURCE AND target.active = 1
+  THEN UPDATE SET active = 0
+OUTPUT $action AS action_name, inserted.sku, inserted.active;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">action_name</th><th scope="col">sku</th><th scope="col">active</th></tr></thead>
+<tbody>
+<tr><td><code>UPDATE</code></td><td><code>2</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/merge-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="output" class="point" data-dialects="sqlserver">
+<h2>OUTPUT · 在一次 UPDATE 中返回旧值和新值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>deleted 引用更新前的行，inserted 引用更新后的行。客户端在事务提交成功后再把结果当作已落地的变更。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="更新前" tabindex="0">
+<table class="sql-result"><caption>更新前</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_output (id int PRIMARY KEY, qty int);
+INSERT INTO #native_output VALUES (1, 5);
+
+UPDATE #native_output SET qty = qty + 2
+OUTPUT inserted.id, deleted.qty AS before_qty, inserted.qty AS after_qty
+WHERE id = 1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>UPDATE #native_output SET qty = qty + 2
+OUTPUT inserted.id, deleted.qty AS before_qty, inserted.qty AS after_qty
+WHERE id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">before_qty</th><th scope="col">after_qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/output-clause-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="try-catch" class="point" data-dialects="sqlserver">
+<h2>TRY…CATCH · 检查失败事务并回滚</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>在默认自动提交、无外层事务的新练习连接整段运行，完成后关闭连接。第二次插入触发主键冲突。在 XACT_ABORT ON 下，CATCH 中的 XACT_STATE() 为 −1，表示事务只能回滚。这里返回诊断便于练习，业务代码可在回滚后用 THROW 继续上报。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="事务开始前" tabindex="0">
+<table class="sql-result"><caption>事务开始前</caption>
+<thead><tr><th scope="col">表</th><th scope="col">行数</th></tr></thead>
+<tbody>
+<tr><td><code>#native_tx</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET XACT_ABORT ON;
+CREATE TABLE #native_tx (id int PRIMARY KEY);
+DECLARE @error_number int, @failed_state smallint;
+BEGIN TRY
+  BEGIN TRANSACTION;
+  INSERT INTO #native_tx VALUES (1);
+  INSERT INTO #native_tx VALUES (1);
+  COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+  SELECT @error_number = ERROR_NUMBER(), @failed_state = XACT_STATE();
+  IF XACT_STATE() &lt;&gt; 0 ROLLBACK TRANSACTION;
+END CATCH;
+
+SELECT @error_number AS error_number, @failed_state AS state_before_rollback,
+       COUNT(*) AS rows_after_rollback FROM #native_tx;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @error_number AS error_number, @failed_state AS state_before_rollback,
+       COUNT(*) AS rows_after_rollback FROM #native_tx;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">error_number</th><th scope="col">state_before_rollback</th><th scope="col">rows_after_rollback</th></tr></thead>
+<tbody>
+<tr><td><code>2627</code></td><td><code>-1</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/try-catch-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="merge-delete-output" class="point" data-dialects="sqlserver">
+<h2>MERGE · 条件匹配后删除并返回原值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>两个 WHEN MATCHED 可分别承担 UPDATE 和 DELETE。第一支需要 AND 条件。删除时用 deleted 读原值，inserted 对该行返回 NULL。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="同步前" tabindex="0">
+<table class="sql-result"><caption>同步前</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="来源记录" tabindex="0">
+<table class="sql-result"><caption>来源记录</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">retired</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>7</code></td><td><code>0</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_merge_rules(id int PRIMARY KEY,qty int);
+INSERT INTO #native_merge_rules VALUES (1,5),(2,8);
+DECLARE @changes TABLE (operation nvarchar(10),id int,old_qty int,new_qty int);
+MERGE INTO #native_merge_rules AS t
+USING (VALUES (1,7,0),(2,8,1)) AS s(id,qty,retired) ON s.id=t.id
+WHEN MATCHED AND s.retired=1 THEN DELETE
+WHEN MATCHED THEN UPDATE SET qty=s.qty
+OUTPUT $action,deleted.id,deleted.qty,inserted.qty INTO @changes;
+
+SELECT operation,id,old_qty,new_qty FROM @changes ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT operation,id,old_qty,new_qty FROM @changes ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">operation</th><th scope="col">id</th><th scope="col">old_qty</th><th scope="col">new_qty</th></tr></thead>
+<tbody>
+<tr><td><code>UPDATE</code></td><td><code>1</code></td><td><code>5</code></td><td><code>7</code></td></tr>
+<tr><td><code>DELETE</code></td><td><code>2</code></td><td><code>8</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/merge-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="merge-duplicates" class="point" data-dialects="sqlserver">
+<h2>MERGE · 捕获同一目标被更改两次</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>在无外层事务的练习连接执行。两个来源行都匹配同一个目标并要求更新，SQL Server 拒绝本次写入。正式同步前先按键去重或汇总。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="库存" tabindex="0">
+<table class="sql-result"><caption>库存</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="重复来源" tabindex="0">
+<table class="sql-result"><caption>重复来源</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>7</code></td></tr>
+<tr><td><code>1</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_duplicate_source(sku int PRIMARY KEY,qty int);
+INSERT INTO #native_duplicate_source VALUES (1,5);
+DECLARE @error int;
+BEGIN TRY
+  MERGE INTO #native_duplicate_source AS t
+  USING (VALUES (1,7),(1,8)) AS s(sku,qty) ON s.sku=t.sku
+  WHEN MATCHED THEN UPDATE SET qty=s.qty;
+END TRY
+BEGIN CATCH
+  SET @error=ERROR_NUMBER();
+END CATCH;
+
+SELECT @error AS error_number,qty FROM #native_duplicate_source;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @error AS error_number,qty FROM #native_duplicate_source;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">error_number</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>8672</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/merge-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="update-join" class="point" data-dialects="sqlserver">
+<h2>UPDATE FROM · 汇总来源后修改目标</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>先 GROUP BY 确保每个商品只有一个变更值。OUTPUT 返回此次写入读到的旧价与写后的新价。存在多条候选来源时更新结果没有可靠定义。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="当前价格" tabindex="0">
+<table class="sql-result"><caption>当前价格</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>20</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="调整" tabindex="0">
+<table class="sql-result"><caption>调整</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">delta</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td></tr>
+<tr><td><code>1</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_adjust_price(sku int PRIMARY KEY,price int);
+INSERT INTO #native_adjust_price VALUES (1,20);
+
+UPDATE p SET price=p.price+s.delta
+OUTPUT inserted.sku,deleted.price AS old_price,inserted.price AS new_price
+FROM #native_adjust_price AS p
+JOIN (SELECT sku,SUM(delta) AS delta FROM (VALUES (1,1),(1,2)) AS d(sku,delta)
+      GROUP BY sku) AS s ON p.sku=s.sku;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>UPDATE p SET price=p.price+s.delta
+OUTPUT inserted.sku,deleted.price AS old_price,inserted.price AS new_price
+FROM #native_adjust_price AS p
+JOIN (SELECT sku,SUM(delta) AS delta FROM (VALUES (1,1),(1,2)) AS d(sku,delta)
+      GROUP BY sku) AS s ON p.sku=s.sku;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">sku</th><th scope="col">old_price</th><th scope="col">new_price</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>20</code></td><td><code>23</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/update-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="delete-join" class="point" data-dialects="sqlserver">
+<h2>DELETE 目标别名 FROM · 删除匹配的队列项</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>第一个别名是实际修改对象，第二个 FROM 提供联结。OUTPUT 能直接取得被删除的记录。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="队列" tabindex="0">
+<table class="sql-result"><caption>队列</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>done</code></td></tr>
+<tr><td><code>2</code></td><td><code>open</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="选中的删除键" tabindex="0">
+<table class="sql-result"><caption>选中的删除键</caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_delete_queue(id int PRIMARY KEY,label varchar(10));
+INSERT INTO #native_delete_queue VALUES (1,&#x27;done&#x27;),(2,&#x27;open&#x27;);
+
+DELETE q OUTPUT deleted.id,deleted.label
+FROM #native_delete_queue AS q JOIN (VALUES (1)) AS picked(id) ON q.id=picked.id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>DELETE q OUTPUT deleted.id,deleted.label
+FROM #native_delete_queue AS q JOIN (VALUES (1)) AS picked(id) ON q.id=picked.id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>done</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/delete-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="ordered-update" class="point" data-dialects="sqlserver">
+<h2>DML TOP · 先定义顺序再分批写入</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>UPDATE TOP 自身没有指定行序。这里用可更新 CTE 按优先级选一条待办，编号打破并列，实际写入的编号从 OUTPUT 返回。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待办" tabindex="0">
+<table class="sql-result"><caption>待办</caption>
+<thead><tr><th scope="col">id</th><th scope="col">priority</th><th scope="col">done</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>7</code></td><td><code>0</code></td></tr>
+<tr><td><code>2</code></td><td><code>9</code></td><td><code>0</code></td></tr>
+<tr><td><code>3</code></td><td><code>9</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_work(id int PRIMARY KEY,priority int,done bit);
+INSERT INTO #native_work VALUES (1,7,0),(2,9,0),(3,9,0);
+
+;WITH batch AS (
+  SELECT TOP (1) id,priority,done FROM #native_work
+  WHERE done=0 ORDER BY priority DESC,id
+)
+UPDATE batch SET done=1 OUTPUT inserted.id,inserted.done;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>;WITH batch AS (
+  SELECT TOP (1) id,priority,done FROM #native_work
+  WHERE done=0 ORDER BY priority DESC,id
+)
+UPDATE batch SET done=1 OUTPUT inserted.id,inserted.done;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">done</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/top-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="insert-exec" class="point" data-dialects="sqlserver">
+<h2>INSERT … EXEC · 将过程结果追加到表</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>目标列按位置接收过程返回的结果集。目标列类型需兼容。这里用 sp_executesql 生成固定的两行，无需先创建自定义存储过程。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="将接收的行" tabindex="0">
+<table class="sql-result"><caption>将接收的行</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_capture(id int,qty int);
+INSERT INTO #native_capture(id,qty)
+EXEC sys.sp_executesql N&#x27;SELECT id,qty FROM (VALUES (1,5),(2,8)) AS src(id,qty);&#x27;;
+
+SELECT id,qty FROM #native_capture ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,qty FROM #native_capture ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/insert-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="identity-insert" class="point" data-dialects="sqlserver">
+<h2>SET IDENTITY_INSERT · 保留历史主键</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>每个会话同一时刻只允许一张表开启此选项。插入大于当前 identity 的显式值会推进计数。本例恢复 OFF 后再测试自动分配。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="准备迁移" tabindex="0">
+<table class="sql-result"><caption>准备迁移</caption>
+<thead><tr><th scope="col">historical_id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>50</code></td><td><code>migrated</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>new</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_move(id int IDENTITY(1,1) PRIMARY KEY,label varchar(10));
+SET IDENTITY_INSERT #native_move ON;
+INSERT INTO #native_move(id,label) VALUES (50,&#x27;migrated&#x27;);
+SET IDENTITY_INSERT #native_move OFF;
+INSERT INTO #native_move(label) VALUES (&#x27;new&#x27;);
+
+SELECT id,label FROM #native_move ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,label FROM #native_move ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>50</code></td><td><code>migrated</code></td></tr>
+<tr><td><code>51</code></td><td><code>new</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-identity-insert-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="select-into" class="point" data-dialects="sqlserver">
+<h2>SELECT INTO · 生成临时快照</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>用投影定义新表内容和推导的列类型。希望保留原表约束、索引或触发器时，需要再单独定义。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="来源" tabindex="0">
+<table class="sql-result"><caption>来源</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT id,qty INTO #native_selected FROM (VALUES (1,5),(2,8)) AS src(id,qty)
+WHERE qty&gt;=8;
+
+SELECT id,qty FROM #native_selected;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,qty FROM #native_selected;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-into-clause-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="bulk-csv" class="point" data-dialects="sqlserver">
+<h2>BULK INSERT · 从服务器可读的 CSV 装载</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2017+ · CSV 格式</span></p>
+<p>在专用练习实例准备表格所示的含一行表头与两条数据的 CSV。把路径换成服务器可读且调用者获 bulk load 权限的位置。这里只用 ASCII 字符，FIRSTROW 从第 2 行开始读取，跳过格式相同的表头，不检查标题名字。ERRORFILE 应使用未占用的文件名。需要逐批提交可配置 BATCHSIZE。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="文件内容 · id,label" tabindex="0">
+<table class="sql-result"><caption>文件内容 · id,label</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Ana</code></td></tr>
+<tr><td><code>2</code></td><td><code>Bo</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #native_bulk(id int,label varchar(20));
+BULK INSERT #native_bulk FROM &#x27;C:\sql-lab\native-import.csv&#x27;
+WITH (FORMAT=&#x27;CSV&#x27;,FIRSTROW=2);
+
+SELECT id,label FROM #native_bulk ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,label FROM #native_bulk ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Ana</code></td></tr>
+<tr><td><code>2</code></td><td><code>Bo</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/bulk-insert-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="bulk-single" class="point" data-dialects="sqlserver">
+<h2>OPENROWSET(BULK) · 将文本整文件作为一行读取</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>练习文件只有 SQL 文本三个 ASCII 字符，不含换行或 BOM。路径由服务端解释，需相应文件和批量访问权限。SINGLE_CLOB 产生 varchar(max)，二进制文件可使用 SINGLE_BLOB。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="服务器端文件内容" tabindex="0">
+<table class="sql-result"><caption>服务器端文件内容</caption>
+<thead><tr><th scope="col">text</th></tr></thead>
+<tbody>
+<tr><td><code>SQL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT BulkColumn AS file_text
+FROM OPENROWSET(BULK &#x27;C:\sql-lab\native-read.txt&#x27;, SINGLE_CLOB) AS f;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT BulkColumn AS file_text
+FROM OPENROWSET(BULK &#x27;C:\sql-lab\native-read.txt&#x27;, SINGLE_CLOB) AS f;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">file_text</th></tr></thead>
+<tbody>
+<tr><td><code>SQL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/openrowset-bulk-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="output-trigger" class="point" data-dialects="sqlserver">
+<h2>OUTPUT INTO · 区分写入镜像与触发器之后</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>使用 SSMS 或 sqlcmd，在 SQLNotesLab 的新连接整段运行。无 INTO 的 OUTPUT 不能用于已启用同类触发器的目标表。INTO 捕获 AFTER 触发器运行前的行镜像。成功取得结果后回滚演练对象。业务代码在提交成功后使用返回值。批次中途中断时，在同一连接先检查事务并回滚，再关闭练习连接。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="写入前" tabindex="0">
+<table class="sql-result"><caption>写入前</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">audited</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE SQLNotesLab;
+BEGIN TRANSACTION;
+CREATE TABLE dbo.native_output_trigger_check (id int PRIMARY KEY, qty int, audited bit);
+INSERT dbo.native_output_trigger_check VALUES (1,5,0);
+GO
+CREATE TRIGGER dbo.native_output_trigger_event
+ON dbo.native_output_trigger_check AFTER UPDATE AS
+BEGIN
+  SET NOCOUNT ON;
+  IF UPDATE(qty)
+    UPDATE t SET audited=1
+    FROM dbo.native_output_trigger_check AS t JOIN inserted AS i ON i.id=t.id;
+END;
+GO
+DECLARE @images TABLE (id int, audit_before_trigger bit);
+UPDATE dbo.native_output_trigger_check SET qty=7
+OUTPUT inserted.id,inserted.audited INTO @images
+WHERE id=1;
+
+SELECT i.id,i.audit_before_trigger, t.audited AS audit_after_trigger
+FROM @images AS i JOIN dbo.native_output_trigger_check AS t ON t.id=i.id;
+
+ROLLBACK TRANSACTION;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT i.id,i.audit_before_trigger, t.audited AS audit_after_trigger
+FROM @images AS i JOIN dbo.native_output_trigger_check AS t ON t.id=i.id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">audit_before_trigger</th><th scope="col">audit_after_trigger</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>0</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/output-clause-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="bcp-cli" class="point" data-dialects="sqlserver">
+<h2>bcp · 从客户端发起载入</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>SQL 先创建接收表。下一段在已安装 bcp 的 Windows 集成认证终端运行，文件位于客户端。将实例名和文件路径换成专用练习环境。示例用 ASCII 字符及无引号逗号分隔，-F 2 从第 2 行加载。固定结构文件可另按文档用 FORMATFILE 或 bcp -f 载入。文件内容为 id,label、1,Ana、2,Bo 三行，使用 ASCII 和 Windows CRLF，每行含换行。空接收表只导入一次。重跑时先检查目标表。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="文件内容 · 表头 id,label" tabindex="0">
+<table class="sql-result"><caption>文件内容 · 表头 id,label</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Ana</code></td></tr>
+<tr><td><code>2</code></td><td><code>Bo</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · 在练习库首次建表</figcaption><pre><code>USE SQLNotesLab;
+CREATE TABLE dbo.native_bcp_stage(id int,label varchar(10));</code></pre></figure>
+<figure><figcaption>Windows 终端 · 客户端执行</figcaption><pre><code>bcp SQLNotesLab.dbo.native_bcp_stage in &quot;C:\sql-lab\native-import.csv&quot; -S localhost -T -c -t, -F 2</code></pre></figure>
+<figure><figcaption>SQL · 切回练习库核对</figcaption><pre><code>SELECT id,label FROM dbo.native_bcp_stage ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,label FROM dbo.native_bcp_stage ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Ana</code></td></tr>
+<tr><td><code>2</code></td><td><code>Bo</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/tools/bcp-utility?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/import-export/use-a-format-file-to-bulk-import-data-sql-server?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#merge">MERGE INTO · 同步库存并返回动作</a></li>
+<li><a href="#merge-source">WHEN NOT MATCHED BY SOURCE · 停用缺失目标行</a></li>
+<li><a href="#output">OUTPUT 读取更新前后的值</a></li>
+<li><a href="#try-catch">TRY…CATCH · 检查失败事务并回滚</a></li>
+<li><a href="#merge-delete-output">MERGE · 条件匹配后删除并返回原值</a></li>
+<li><a href="#merge-duplicates">MERGE 检查重复来源导致的失败</a></li>
+<li><a href="#update-join">UPDATE FROM · 汇总来源后修改目标</a></li>
+<li><a href="#delete-join">DELETE 目标别名 FROM · 删除匹配的队列项</a></li>
+<li><a href="#ordered-update">DML TOP · 先定义顺序再分批写入</a></li>
+<li><a href="#insert-exec">INSERT … EXEC · 将过程结果追加到表</a></li>
+<li><a href="#identity-insert">SET IDENTITY_INSERT · 保留历史主键</a></li>
+<li><a href="#select-into">SELECT INTO · 生成临时快照</a></li>
+<li><a href="#bulk-csv">BULK INSERT · 从服务器可读的 CSV 装载</a></li>
+<li><a href="#bulk-single">OPENROWSET(BULK) · 将文本整文件作为一行读取</a></li>
+<li><a href="#output-trigger">OUTPUT INTO 保存触发器运行前的写入结果</a></li>
+<li><a href="#bcp-cli">bcp · 从客户端发起载入</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="32-modern-sql.html">← 现代 SQL 与工程实践</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="37-sqlserver-query.html">APPLY、行列转换与 JSON →</a></nav>
+</main>
+</body>
+</html>

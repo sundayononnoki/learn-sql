@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>使用数据处理函数 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 11 章 · 原书第 68–74 页</p>
+<h1>使用数据处理函数</h1>
+<p class="lead" data-dialects="mysql">函数把输入计算成一个值。先用常量验证语义，再套进查询。迁移到其他数据库时核对函数名、时区和返回类型。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-strings"><h2>文本切片、定位与规范化</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>LEFT、RIGHT 和 SUBSTRING 在这里以字符为单位，位置从 1 开始。LOCATE 找不到子串时返回 0。LENGTH 数字节，CHAR_LENGTH 数字符。LTRIM、RTRIM 清理空格，UPPER、LOWER 转换大小写。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT LEFT(&#x27;SQL&#x27;, 2), RIGHT(&#x27;SQL&#x27;, 2), SUBSTRING(&#x27;abcde&#x27;, 2, 2),
+       LOCATE(&#x27;QL&#x27;, &#x27;SQL&#x27;), LOCATE(&#x27;X&#x27;, &#x27;SQL&#x27;);
+SELECT LENGTH(_utf8mb4&#x27;汉&#x27;), CHAR_LENGTH(_utf8mb4&#x27;汉&#x27;),
+       UPPER(&#x27;sql&#x27;), LOWER(&#x27;SQL&#x27;), LTRIM(&#x27;  SQL&#x27;), RTRIM(&#x27;SQL  &#x27;);</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　输入包括 <code>SQL</code>、<code>abcde</code>、<code>汉</code> 及带边缘空格的文本。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT LEFT(&#x27;SQL&#x27;, 2), RIGHT(&#x27;SQL&#x27;, 2), SUBSTRING(&#x27;abcde&#x27;, 2, 2), LOCATE(&#x27;QL&#x27;, &#x27;SQL&#x27;), LOCATE(&#x27;X&#x27;, &#x27;SQL&#x27;);</code></span></caption>
+<thead><tr><th scope="col">LEFT(&#x27;SQL&#x27;, 2)</th><th scope="col">RIGHT(&#x27;SQL&#x27;, 2)</th><th scope="col">SUBSTRING(&#x27;abcde&#x27;, 2, 2)</th><th scope="col">LOCATE(&#x27;QL&#x27;, &#x27;SQL&#x27;)</th><th scope="col">LOCATE(&#x27;X&#x27;, &#x27;SQL&#x27;)</th></tr></thead>
+<tbody>
+<tr><td><code>SQ</code></td><td><code>QL</code></td><td><code>bc</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT LENGTH(_utf8mb4&#x27;汉&#x27;), CHAR_LENGTH(_utf8mb4&#x27;汉&#x27;), UPPER(&#x27;sql&#x27;), LOWER(&#x27;SQL&#x27;), LTRIM(&#x27;  SQL&#x27;), RTRIM(&#x27;SQL  &#x27;);</code></span></caption>
+<thead><tr><th scope="col">LENGTH(_utf8mb4&#x27;汉&#x27;)</th><th scope="col">CHAR_LENGTH(_utf8mb4&#x27;汉&#x27;)</th><th scope="col">UPPER(&#x27;sql&#x27;)</th><th scope="col">LOWER(&#x27;SQL&#x27;)</th><th scope="col">LTRIM(&#x27;  SQL&#x27;)</th><th scope="col">RTRIM(&#x27;SQL  &#x27;)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>1</code></td><td><code>SQL</code></td><td><code>sql</code></td><td><code>SQL</code></td><td><code>SQL</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　切片和定位为 <code>SQ, QL, bc, 2, 0</code>。字节、字符、大写、小写和两种去空格结果为 <code>3, 1, SQL, sql, SQL, SQL</code>。</p>
+<p class="outcome">第一条得到 SQ、QL、bc、2、0。第二条得到 3、1、SQL、sql、SQL、SQL。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-strings"><h2>SOUNDEX 粗略按英语发音比较</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>SOUNDEX 产生发音编码，适合了解拼法相近的人名检索，准确性受语言限制。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT SOUNDEX(&#x27;Smith&#x27;), SOUNDEX(&#x27;Smyth&#x27;),
+       SOUNDEX(&#x27;Smith&#x27;) = SOUNDEX(&#x27;Smyth&#x27;) AS same_sound;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="函数输入" tabindex="0">
+<table class="sql-result"><caption>函数输入</caption>
+<thead><tr><th scope="col">姓名</th></tr></thead>
+<tbody>
+<tr><td><code>Smith</code></td></tr>
+<tr><td><code>Smyth</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT SOUNDEX(&#x27;Smith&#x27;), SOUNDEX(&#x27;Smyth&#x27;), SOUNDEX(&#x27;Smith&#x27;) = SOUNDEX(&#x27;Smyth&#x27;) AS same_sound;</code></span></caption>
+<thead><tr><th scope="col">SOUNDEX(&#x27;Smith&#x27;)</th><th scope="col">SOUNDEX(&#x27;Smyth&#x27;)</th><th scope="col">same_sound</th></tr></thead>
+<tbody>
+<tr><td><code>S530</code></td><td><code>S530</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　英文姓名拼写为 <code>Smith</code>、<code>Smyth</code>。</p><p><strong>执行后</strong>　两个编码均为 <code>S530</code>，比较结果 <code>1</code>。</p>
+<p class="outcome">得到 S530、S530、1。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-dates"><h2>取日期和时间组成部分</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>DATE、TIME 拆分时间值。YEAR、MONTH、DAY、HOUR、MINUTE、SECOND 提取各单位，DAYOFWEEK 从周日为 1 开始计数。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SET @stamp = &#x27;2025-02-02 09:10:11&#x27;;
+SELECT DATE(@stamp), TIME(CAST(@stamp AS DATETIME)), YEAR(@stamp), MONTH(@stamp), DAY(@stamp),
+       HOUR(@stamp), MINUTE(@stamp), SECOND(@stamp), DAYOFWEEK(@stamp);</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="函数输入" tabindex="0">
+<table class="sql-result"><caption>函数输入</caption>
+<thead><tr><th scope="col">@stamp</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-02 09:10:11</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATE(@stamp), TIME(CAST(@stamp AS DATETIME)), YEAR(@stamp), MONTH(@stamp), DAY(@stamp), HOUR(@stamp), MINUTE(@stamp), SECOND(@stamp), DAYOFWEEK(@stamp);</code></span></caption>
+<thead><tr><th scope="col">DATE(@stamp)</th><th scope="col">TIME(CAST(@stamp AS DATETIME))</th><th scope="col">YEAR(@stamp)</th><th scope="col">MONTH(@stamp)</th><th scope="col">DAY(@stamp)</th><th scope="col">HOUR(@stamp)</th><th scope="col">MINUTE(@stamp)</th><th scope="col">SECOND(@stamp)</th><th scope="col">DAYOFWEEK(@stamp)</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-02</code></td><td><code>09:10:11</code></td><td class="sql-number"><code>2025</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>9</code></td><td class="sql-number"><code>10</code></td><td class="sql-number"><code>11</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　设置进会话变量的文本为 <code>2025-02-02 09:10:11</code>。</p><p><strong>执行后</strong>　日期 <code>2025-02-02</code>、时间 <code>09:10:11</code>。年、月、日、时、分、秒和星期编号为 <code>2025,2,2,9,10,11,1</code>。</p>
+<p class="outcome">得到 2025-02-02、09:10:11、2025、2、2、9、10、11、1。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-dates"><h2>日期运算、格式化与当前时间</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>DATE_ADD 和带 INTERVAL 的 ADDDATE 可以指定单位。ADDTIME 加时间间隔。DATEDIFF 只比较日期部分。DATE_FORMAT 生成显示文本。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT DATE_ADD(&#x27;2025-02-01&#x27;, INTERVAL 1 MONTH),
+       ADDDATE(&#x27;2025-02-01&#x27;, 7), ADDTIME(&#x27;09:00:00&#x27;, &#x27;01:30:00&#x27;),
+       DATEDIFF(&#x27;2025-02-05&#x27;, &#x27;2025-02-01&#x27;),
+       DATE_FORMAT(&#x27;2025-02-01&#x27;, &#x27;%Y/%m/%d&#x27;);
+SELECT CURDATE(), CURTIME(), NOW(), @@session.time_zone;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　起始日期为 <code>2025-02-01</code>、起始时间为 <code>09:00:00</code>。当前时钟由会话时区解释。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT DATE_ADD(&#x27;2025-02-01&#x27;, INTERVAL 1 MONTH), ADDDATE(&#x27;2025-02-01&#x27;, 7), ADDTIME(&#x27;09:00:00&#x27;, &#x27;01:30:00&#x27;), DATEDIFF(&#x27;2025-02-05&#x27;, &#x27;2025-02-01&#x27;), DATE_FORMAT(&#x27;2025-02-01&#x27;, &#x27;%Y/%m/%d&#x27;);</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">DATE_ADD(&#x27;2025-02-01&#x27;, INTERVAL 1 MONTH)</th><th scope="col">ADDDATE(&#x27;2025-02-01&#x27;, 7)</th><th scope="col">ADDTIME(&#x27;09:00:00&#x27;, &#x27;01:30:00&#x27;)</th><th scope="col">DATEDIFF(&#x27;2025-02-05&#x27;, &#x27;2025-02-01&#x27;)</th><th scope="col">DATE_FORMAT(&#x27;2025-02-01&#x27;, &#x27;%Y/%m/%d&#x27;)</th></tr></thead>
+<tbody>
+<tr><td><code>2025-03-01</code></td><td><code>2025-02-08</code></td><td><code>10:30:00</code></td><td class="sql-number"><code>4</code></td><td><code>2025/02/01</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT CURDATE(), CURTIME(), NOW(), @@session.time_zone;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">CURDATE()</th><th scope="col">CURTIME()</th><th scope="col">NOW()</th><th scope="col">@@session.time_zone</th></tr></thead>
+<tbody>
+<tr><td><code>2026-11-20</code></td><td><code>23:47:55</code></td><td><code>2026-11-20 23:47:55</code></td><td><code>SYSTEM</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　日期运算和格式化依次得 <code>2025-03-01, 2025-02-08, 10:30:00, 4, 2025/02/01</code>。后一条查询显示当前日期、时间、时间戳样式的日期时间和时区设置。</p>
+<p class="outcome">第一条得 2025-03-01、2025-02-08、10:30:00、4、2025/02/01。第二条显示会话时区下的当前日期、时间、当前日期时间和时区设置。</p>
+</details>
+</div></section>
+<section id="p5" class="point" data-dialects="mysql" data-alternate-anchor="dial-strings"><h2>系统函数与会话</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>系统函数可以返回实例和当前会话信息。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT CURRENT_USER(), VERSION();</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　连接已登录某个 MySQL 服务器。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CURRENT_USER(), VERSION();</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">CURRENT_USER()</th><th scope="col">VERSION()</th></tr></thead>
+<tbody>
+<tr><td><code>root@localhost</code></td><td><code>9.7.4</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　例如授权账户 <code>root@localhost</code>、版本 <code>9.7.4</code>。</p>
+<p class="outcome">得到授权账号和服务器版本。</p>
+</details>
+</div></section>
+<section id="p6" class="point" data-dialects="mysql" data-alternate-anchor="dial-dates"><h2>按时间段筛选</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>日期字面量习惯写成带四位年份的 YYYY-MM-DD。与带时间的 DATETIME 直接比等号只匹配同一时刻。用年、月函数能表达月份条件。对有时间成分的索引列通常优先用半开区间，以便优化器做范围访问。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT CAST(&#x27;2025-02-02 09:10:11&#x27; AS DATETIME) = &#x27;2025-02-02&#x27;,
+       DATE(&#x27;2025-02-02 09:10:11&#x27;) = &#x27;2025-02-02&#x27;;
+SELECT order_id FROM orders
+WHERE YEAR(ordered_on) = 2025 AND MONTH(ordered_on) = 2 ORDER BY order_id;
+SELECT order_id FROM orders
+WHERE ordered_on &gt;= &#x27;2025-02-01&#x27; AND ordered_on &lt; &#x27;2025-03-01&#x27; ORDER BY order_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="orders · 练习数据" tabindex="0">
+<table class="sql-result"><caption>orders · 练习数据</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">ordered_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>103</code></td><td><code>2025-02-02</code></td></tr>
+<tr><td class="sql-number"><code>104</code></td><td><code>2025-02-02</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT CAST(&#x27;2025-02-02 09:10:11&#x27; AS DATETIME) = &#x27;2025-02-02&#x27;, DATE(&#x27;2025-02-02 09:10:11&#x27;) = &#x27;2025-02-02&#x27;;</code></span></caption>
+<thead><tr><th scope="col">CAST(&#x27;2025-02-02 09:10:11&#x27; AS DATETIME) = &#x27;2025-02-02&#x27;</th><th scope="col">DATE(&#x27;2025-02-02 09:10:11&#x27;) = &#x27;2025-02-02&#x27;</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>0</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT order_id FROM orders WHERE YEAR(ordered_on) = 2025 AND MONTH(ordered_on) = 2 ORDER BY order_id;</code></span></caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>102</code></td></tr>
+<tr><td class="sql-number"><code>103</code></td></tr>
+<tr><td class="sql-number"><code>104</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT order_id FROM orders WHERE ordered_on &gt;= &#x27;2025-02-01&#x27; AND ordered_on &lt; &#x27;2025-03-01&#x27; ORDER BY order_id;</code></span></caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>102</code></td></tr>
+<tr><td class="sql-number"><code>103</code></td></tr>
+<tr><td class="sql-number"><code>104</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　带时刻的输入为 <code>2025-02-02 09:10:11</code>。订单 102–104 在当年 2 月。</p><p><strong>执行后</strong>　直接比较日期得 <code>0</code>，取 DATE 后得 <code>1</code>。两种月份筛选都得 <code>[102,103,104]</code>。</p>
+<p class="outcome">日期等值测试得到 0、1。后两条月份查询都得到 102、103、104。</p>
+</details>
+</div></section>
+<section id="p7" class="point" data-dialects="mysql" data-alternate-anchor="dial-strings"><h2>数值函数</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>ABS 取绝对值，MOD 取余，SQRT 开根，EXP 取自然指数，PI 返回圆周率，SIN、COS、TAN 接收弧度。RAND 返回大于等于 0 且小于 1 的随机数。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT ABS(-3), MOD(7, 3), SQRT(9), EXP(0), ROUND(PI(), 2),
+       SIN(0), COS(0), TAN(0), FLOOR(RAND() * 6) + 1 AS die;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　输入常量如 <code>-3</code>、<code>7 ÷ 3</code>、<code>√9</code>。RAND 提供一个区间值。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT ABS(-3), MOD(7, 3), SQRT(9), EXP(0), ROUND(PI(), 2), SIN(0), COS(0), TAN(0), FLOOR(RAND() * 6) + 1 AS die;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">ABS(-3)</th><th scope="col">MOD(7, 3)</th><th scope="col">SQRT(9)</th><th scope="col">EXP(0)</th><th scope="col">ROUND(PI(), 2)</th><th scope="col">SIN(0)</th><th scope="col">COS(0)</th><th scope="col">TAN(0)</th><th scope="col">die</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>3.14</code></td><td class="sql-number"><code>0</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>0</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　固定结果为 <code>3,1,3,1,3.14,0,1,0</code>。die 每次为 1–6 之一。</p>
+<p class="outcome">前八列为 3、1、3、1、3.14、0、1、0，末列为 1 至 6 的整数。</p>
+</details>
+</div></section>
+<section id="w3-null-functions" class="point" data-dialects="mysql" data-alternate-anchor="dial-null-fns"><h2>用函数处理 NULL</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>COALESCE</code> 返回第一个非空值，MySQL 的 <code>IFNULL(x, y)</code> 接收两个参数。<code>NULLIF(a, b)</code> 在两值相等时返回 NULL，可用于将零分母转换成 NULL。MySQL 的 <code>ISNULL(x)</code> 返回判断结果。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT customer_id, city,
+       COALESCE(city, &#x27;未知&#x27;) AS display_city,
+       IFNULL(city, &#x27;未登记&#x27;) AS registered_city,
+       ISNULL(city) AS missing
+FROM customers WHERE customer_id IN (2, 3) ORDER BY customer_id;
+
+SELECT NULLIF(0, 0) AS safe_denominator, 12 / NULLIF(0, 0) AS safe_ratio;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="customers · 相关行" tabindex="0">
+<table class="sql-result"><caption>customers · 相关行</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td><code>上海</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT customer_id, city, COALESCE(city, &#x27;未知&#x27;) AS display_city, IFNULL(city, &#x27;未登记&#x27;) AS registered_city, ISNULL(city) AS missing FROM customers WHERE customer_id IN (2, 3) ORDER BY customer_id;</code></span></caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">city</th><th scope="col">display_city</th><th scope="col">registered_city</th><th scope="col">missing</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td><code>上海</code></td><td><code>上海</code></td><td><code>上海</code></td><td class="sql-number"><code>0</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-null"><code>NULL</code></td><td><code>未知</code></td><td><code>未登记</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT NULLIF(0, 0) AS safe_denominator, 12 / NULLIF(0, 0) AS safe_ratio;</code></span></caption>
+<thead><tr><th scope="col">safe_denominator</th><th scope="col">safe_ratio</th></tr></thead>
+<tbody>
+<tr><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div class="sql-grid-viewport" role="region" aria-label="填补 NULL 的方言对照" tabindex="0">
+<table class="sql-result"><caption>填补 NULL 的方言对照</caption>
+<thead><tr><th scope="col">数据库</th><th scope="col">两参数写法</th><th scope="col">city 为 NULL 时</th></tr></thead>
+<tbody>
+<tr><td><code>MySQL</code></td><td><code>IFNULL(city, &#x27;未知&#x27;)</code></td><td><code>未知</code></td></tr>
+<tr><td><code>SQL Server</code></td><td><code>ISNULL(city, N&#x27;未知&#x27;)</code></td><td><code>未知</code></td></tr>
+<tr><td><code>Oracle</code></td><td><code>NVL(city, &#x27;未知&#x27;)</code></td><td><code>未知</code></td></tr>
+<tr><td><code>Access</code></td><td><code>IIf(IsNull(city), &#x27;未知&#x27;, city)</code></td><td><code>未知</code></td></tr>
+<tr><td><code>支持 COALESCE 的数据库</code></td><td><code>COALESCE(city, &#x27;未知&#x27;)</code></td><td><code>未知</code></td></tr>
+</tbody>
+</table></div>
+<p class="sources"><a href="https://www.w3schools.com/sql/sql_isnull.asp">W3Schools NULL 函数</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/flow-control-functions.html">MySQL 控制流函数</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/isnull-transact-sql">SQL Server ISNULL</a> · <a href="https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/NVL.html">Oracle NVL</a></p></section>
+<section id="w3-strings" class="point" data-dialects="mysql" data-alternate-anchor="dial-strings"><h2>分段、替换与格式化</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>用 <code>CONCAT_WS</code> 带分隔符拼接，它会跳过分隔符之后的 NULL 值。分隔符本身为 NULL 时返回 NULL，空字符串会保留。<code>SUBSTRING_INDEX</code> 可按分隔符截取；<code>FIELD</code> 返回参数中的位置，<code>FIND_IN_SET</code> 在逗号分隔字符串中查位置。<code>FORMAT</code> 的返回值是用于显示的字符串。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT CONCAT_WS(&#x27; / &#x27;, &#x27;SQL&#x27;, NULL, &#x27;book&#x27;) AS label,
+       SUBSTRING_INDEX(&#x27;SQL/2025/02&#x27;, &#x27;/&#x27;, -2) AS tail,
+       REPLACE(&#x27;SQL basics&#x27;, &#x27;basics&#x27;, &#x27;练习&#x27;) AS replaced,
+       LPAD(&#x27;7&#x27;, 3, &#x27;0&#x27;) AS code, INSTR(&#x27;SQL Basics&#x27;, &#x27;Basics&#x27;) AS start_at;
+
+SELECT FIELD(&#x27;book&#x27;, &#x27;pen&#x27;, &#x27;book&#x27;) AS field_pos,
+       FIND_IN_SET(&#x27;book&#x27;, &#x27;pen,book&#x27;) AS set_pos,
+       FORMAT(1200.5, 2, &#x27;en_US&#x27;) AS formatted_text,
+       ASCII(&#x27;A&#x27;) AS ascii_code, REVERSE(&#x27;SQL&#x27;) AS reversed;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待处理的值" tabindex="0">
+<table class="sql-result"><caption>待处理的值</caption>
+<thead><tr><th scope="col">值</th><th scope="col">用途</th></tr></thead>
+<tbody>
+<tr><td><code>SQL/2025/02</code></td><td><code>分段</code></td></tr>
+<tr><td><code>1200.5</code></td><td><code>格式化</code></td></tr>
+<tr><td><code>book</code></td><td><code>查位置</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT CONCAT_WS(&#x27; / &#x27;, &#x27;SQL&#x27;, NULL, &#x27;book&#x27;) AS label, SUBSTRING_INDEX(&#x27;SQL/2025/02&#x27;, &#x27;/&#x27;, -2) AS tail, REPLACE(&#x27;SQL basics&#x27;, &#x27;basics&#x27;, &#x27;练习&#x27;) AS replaced, LPAD(&#x27;7&#x27;, 3, &#x27;0&#x27;) AS code, INSTR(&#x27;SQL Basics&#x27;, &#x27;Basics&#x27;) AS start_at;</code></span></caption>
+<thead><tr><th scope="col">label</th><th scope="col">tail</th><th scope="col">replaced</th><th scope="col">code</th><th scope="col">start_at</th></tr></thead>
+<tbody>
+<tr><td><code>SQL / book</code></td><td><code>2025/02</code></td><td><code>SQL 练习</code></td><td class="sql-number"><code>007</code></td><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT FIELD(&#x27;book&#x27;, &#x27;pen&#x27;, &#x27;book&#x27;) AS field_pos, FIND_IN_SET(&#x27;book&#x27;, &#x27;pen,book&#x27;) AS set_pos, FORMAT(1200.5, 2, &#x27;en_US&#x27;) AS formatted_text, ASCII(&#x27;A&#x27;) AS ascii_code, REVERSE(&#x27;SQL&#x27;) AS reversed;</code></span></caption>
+<thead><tr><th scope="col">field_pos</th><th scope="col">set_pos</th><th scope="col">formatted_text</th><th scope="col">ascii_code</th><th scope="col">reversed</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>2</code></td><td><code>1,200.50</code></td><td class="sql-number"><code>65</code></td><td><code>LQS</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="sources"><a href="https://www.w3schools.com/sql/sql_ref_mysql.asp">W3Schools MySQL 函数</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/string-functions.html">MySQL 字符串函数</a></p></section>
+<section id="w3-number-date" class="point" data-dialects="mysql" data-alternate-anchor="dial-dates"><h2>数值取整与日期边界函数</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>显示金额可用 <code>ROUND</code>，<code>TRUNCATE(x,d)</code> 截断数值。<code>STR_TO_DATE</code> 按指定格式解析，<code>LAST_DAY</code> 给该月最后一天，<code>WEEKDAY</code> 从星期一为 0 开始编号。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT CEILING(2.1) AS ceil_value, FLOOR(-2.1) AS floor_value,
+       ROUND(12.345, 2) AS rounded,
+       TRUNCATE(12.345, 2) AS truncated, POWER(2, 3) AS cubed;
+
+SELECT STR_TO_DATE(&#x27;14/02/2025&#x27;, &#x27;%d/%m/%Y&#x27;) AS parsed,
+       LAST_DAY(&#x27;2025-02-14&#x27;) AS month_end,
+       DATE_SUB(&#x27;2025-03-01&#x27;, INTERVAL 1 DAY) AS previous_day,
+       QUARTER(&#x27;2025-02-14&#x27;) AS qtr, WEEKDAY(&#x27;2025-02-14&#x27;) AS weekday_index;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">decimal_value</th><th scope="col">text_date</th><th scope="col">date_value</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>12.345</code></td><td><code>14/02/2025</code></td><td><code>2025-02-14</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT CEILING(2.1) AS ceil_value, FLOOR(-2.1) AS floor_value, ROUND(12.345, 2) AS rounded, TRUNCATE(12.345, 2) AS truncated, POWER(2, 3) AS cubed;</code></span></caption>
+<thead><tr><th scope="col">ceil_value</th><th scope="col">floor_value</th><th scope="col">rounded</th><th scope="col">truncated</th><th scope="col">cubed</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>-3</code></td><td class="sql-number"><code>12.35</code></td><td class="sql-number"><code>12.34</code></td><td class="sql-number"><code>8</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT STR_TO_DATE(&#x27;14/02/2025&#x27;, &#x27;%d/%m/%Y&#x27;) AS parsed, LAST_DAY(&#x27;2025-02-14&#x27;) AS month_end, DATE_SUB(&#x27;2025-03-01&#x27;, INTERVAL 1 DAY) AS previous_day, QUARTER(&#x27;2025-02-14&#x27;) AS qtr, WEEKDAY(&#x27;2025-02-14&#x27;) AS weekday_index;</code></span></caption>
+<thead><tr><th scope="col">parsed</th><th scope="col">month_end</th><th scope="col">previous_day</th><th scope="col">qtr</th><th scope="col">weekday_index</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-14</code></td><td><code>2025-02-28</code></td><td><code>2025-02-28</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="sources"><a href="https://www.w3schools.com/sql/sql_ref_mysql.asp">W3Schools MySQL 函数</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/mathematical-functions.html">MySQL 数学函数</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/date-and-time-functions.html">MySQL 日期与时间函数</a></p></section>
+<section id="dial-strings" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>字符串长度、定位和条件取值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>PostgreSQL 的 length 数字符，octet_length 数字节。SQL Server 的 LEN 忽略尾随空格。DATALENGTH 可观察存储字节长度。</p>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT LENGTH(&#x27;SQL &#x27;) AS chars, OCTET_LENGTH(&#x27;SQL &#x27;) AS bytes,
+       POSITION(&#x27;Q&#x27; IN &#x27;SQL&#x27;) AS found_at, COALESCE(NULL,&#x27;unknown&#x27;) AS fallback;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT LENGTH(&#x27;SQL &#x27;) AS chars, OCTET_LENGTH(&#x27;SQL &#x27;) AS bytes, POSITION(&#x27;Q&#x27; IN &#x27;SQL&#x27;) AS found_at, COALESCE(NULL,&#x27;unknown&#x27;) AS fallback;</code></span></caption>
+<thead><tr><th scope="col">chars</th><th scope="col">bytes</th><th scope="col">found_at</th><th scope="col">fallback</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>4</code></td><td class="sql-number"><code>2</code></td><td><code>unknown</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT LEN(N&#x27;SQL &#x27;) AS chars, DATALENGTH(N&#x27;SQL &#x27;) AS bytes,
+       CHARINDEX(N&#x27;Q&#x27;,N&#x27;SQL&#x27;) AS found_at, COALESCE(NULL,N&#x27;unknown&#x27;) AS fallback;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT LEN(N&#x27;SQL &#x27;) AS chars, DATALENGTH(N&#x27;SQL &#x27;) AS bytes, CHARINDEX(N&#x27;Q&#x27;,N&#x27;SQL&#x27;) AS found_at, COALESCE(NULL,N&#x27;unknown&#x27;) AS fallback;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">chars</th><th scope="col">bytes</th><th scope="col">found_at</th><th scope="col">fallback</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>8</code></td><td class="sql-number"><code>2</code></td><td><code>unknown</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/functions-string.html">PostgreSQL 字符串函数</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/string-functions-transact-sql">SQL Server 字符串函数</a></p>
+</section>
+<section id="dial-dates" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p3">
+<h2>日期加减、差值与月份边界</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>PostgreSQL 可用日期或 INTERVAL 运算。SQL Server 用 DATEADD 和 DATEDIFF，DATEDIFF 数的是指定时间单位跨过的边界。</p>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT DATE &#x27;2025-02-01&#x27; + 7 AS next_day,
+       DATE &#x27;2025-02-08&#x27; - DATE &#x27;2025-02-01&#x27; AS days_between,
+       date_trunc(&#x27;month&#x27;, TIMESTAMP &#x27;2025-02-14 09:00:00&#x27;)::date AS month_start;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATE &#x27;2025-02-01&#x27; + 7 AS next_day, DATE &#x27;2025-02-08&#x27; - DATE &#x27;2025-02-01&#x27; AS days_between, date_trunc(&#x27;month&#x27;, TIMESTAMP &#x27;2025-02-14 09:00:00&#x27;)::date AS month_start;</code></span></caption>
+<thead><tr><th scope="col">next_day</th><th scope="col">days_between</th><th scope="col">month_start</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-08</code></td><td class="sql-number"><code>7</code></td><td><code>2025-02-01</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT DATEADD(day,7,CAST(&#x27;20250201&#x27; AS date)) AS next_day,
+       DATEDIFF(day,&#x27;20250201&#x27;,&#x27;20250208&#x27;) AS days_between,
+       DATEFROMPARTS(2025,2,1) AS month_start;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATEADD(day,7,CAST(&#x27;20250201&#x27; AS date)) AS next_day, DATEDIFF(day,&#x27;20250201&#x27;,&#x27;20250208&#x27;) AS days_between, DATEFROMPARTS(2025,2,1) AS month_start;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">next_day</th><th scope="col">days_between</th><th scope="col">month_start</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-08</code></td><td class="sql-number"><code>7</code></td><td><code>2025-02-01</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/functions-datetime.html">PostgreSQL 日期函数</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/dateadd-transact-sql">SQL Server DATEADD</a></p>
+</section>
+<section id="dial-null-fns" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="w3-null-functions">
+<h2>COALESCE、NULLIF 与数值函数</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>COALESCE 选第一个有值的表达式。NULLIF 把等于零的分母变为 NULL。取整和舍入之前先明确数据类型。</p>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT COALESCE(12,0) AS present_value,
+       12/NULLIF(0,0) AS safe_division,
+       ABS(-3) AS positive, CAST(FLOOR(-2.1) AS int) AS floor_value,
+       CAST(ROUND(CAST(12.345 AS decimal(8,3)),2) AS decimal(8,2)) AS rounded;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COALESCE(12,0) AS present_value, 12/NULLIF(0,0) AS safe_division, ABS(-3) AS positive, CAST(FLOOR(-2.1) AS int) AS floor_value, CAST(ROUND(CAST(12.345 AS decimal(8,3)),2) AS decimal(8,2)) AS rounded;</code></span></caption>
+<thead><tr><th scope="col">present_value</th><th scope="col">safe_division</th><th scope="col">positive</th><th scope="col">floor_value</th><th scope="col">rounded</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>12</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>-3</code></td><td class="sql-number"><code>12.35</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT COALESCE(12,0) AS present_value,
+       12/NULLIF(0,0) AS safe_division,
+       ABS(-3) AS positive, CAST(FLOOR(-2.1) AS int) AS floor_value,
+       CAST(ROUND(CAST(12.345 AS decimal(8,3)),2) AS decimal(8,2)) AS rounded;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COALESCE(12,0) AS present_value, 12/NULLIF(0,0) AS safe_division, ABS(-3) AS positive, CAST(FLOOR(-2.1) AS int) AS floor_value, CAST(ROUND(CAST(12.345 AS decimal(8,3)),2) AS decimal(8,2)) AS rounded;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">present_value</th><th scope="col">safe_division</th><th scope="col">positive</th><th scope="col">floor_value</th><th scope="col">rounded</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>12</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>-3</code></td><td class="sql-number"><code>12.35</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>如何用函数验证一段文本含 2 个字符、6 个 UTF-8 字节？</p><details><summary>查看答案</summary><figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT CHAR_LENGTH(_utf8mb4&#x27;你好&#x27;), LENGTH(_utf8mb4&#x27;你好&#x27;);</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="函数输入" tabindex="0">
+<table class="sql-result"><caption>函数输入</caption>
+<thead><tr><th scope="col">文本</th><th scope="col">字符集</th></tr></thead>
+<tbody>
+<tr><td><code>你好</code></td><td><code>utf8mb4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CHAR_LENGTH(_utf8mb4&#x27;你好&#x27;), LENGTH(_utf8mb4&#x27;你好&#x27;);</code></span></caption>
+<thead><tr><th scope="col">CHAR_LENGTH(_utf8mb4&#x27;你好&#x27;)</th><th scope="col">LENGTH(_utf8mb4&#x27;你好&#x27;)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>6</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　文本 <code>你好</code> 使用 utf8mb4。</p><p><strong>执行后</strong>　字符数 <code>2</code>、字节数 <code>6</code>。</p>
+<p class="outcome">得到 2、6。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/string-functions.html">文本</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/date-and-time-functions.html">日期与时间</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/mathematical-functions.html">数学</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="mysql"><a href="#p1">文本切片、定位与规范化</a></li><li data-dialects="mysql"><a href="#p2">SOUNDEX 粗略按英语发音比较</a></li><li data-dialects="mysql"><a href="#p3">取日期和时间组成部分</a></li><li data-dialects="mysql"><a href="#p4">日期运算、格式化与当前时间</a></li><li data-dialects="mysql"><a href="#p5">查询实例和当前会话</a></li><li data-dialects="mysql"><a href="#p6">按时间段筛选</a></li><li data-dialects="mysql"><a href="#p7">数值函数 求绝对值、余数和平方根</a></li><li data-dialects="mysql"><a href="#w3-null-functions">用函数处理 NULL</a></li><li data-dialects="mysql"><a href="#w3-strings">按分隔符拆分、拼接或替换文本</a></li><li data-dialects="mysql"><a href="#w3-number-date">数值取整与日期边界函数</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-strings">字符串长度、定位和条件取值</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-dates">日期加减、差值与月份边界</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-null-fns">补缺失值、避开零分母和数值取整</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="10-calculated-fields.html">← 创建计算字段</a><a href="../v1.html">章节目录</a><a rel="next" href="12-aggregates.html">汇总数据 →</a></nav>
+</main>
+</body></html>

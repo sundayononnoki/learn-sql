@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>W3Schools SQL 对照 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<h1>W3Schools SQL 对照</h1>
+<p class="lead">按 W3Schools 的主题找本地示例。目录来自原站。跟随对应笔记链接时，保持页首选中的数据库方言。</p>
+<p class="entry-links"><a href="https://www.w3schools.com/sql/">W3Schools SQL 教程</a>
+<a href="https://www.w3schools.com/sql/sql_examples.asp">原站示例</a>
+<a href="https://www.w3schools.com/sql/sql_exercises.asp">原站练习</a>
+<a href="https://www.w3schools.com/sql/sql_editor.asp">原站在线编辑器</a>
+<a href="https://www.w3schools.com/sql/sql_quiz.asp">原站测验</a>
+<a href="https://www.w3schools.com/sql/sql_challenges.asp">原站编程题</a></p>
+<div class="layout">
+<article class="content" aria-label="主题对照">
+<section id="query" class="point" data-dialects="postgresql sqlserver mysql"><h2>查询基础</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><table><thead><tr><th scope="col">W3Schools 主题</th><th scope="col">对应笔记</th></tr></thead><tbody>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_intro.asp">SQL 简介</a></th><td><a href="01-understand-sql.html#p1">01 · 数据库、数据库管理系统与表</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_syntax.asp">SQL 语法</a></th><td><a href="04-select.html#p1">04 · 查询一列、数列及全部列</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_select.asp">SELECT</a></th><td><a href="04-select.html#p1">04 · 查询一列、数列及全部列</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_distinct.asp">SELECT DISTINCT</a></th><td><a href="04-select.html#p2">04 · DISTINCT 对整行投影去重</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_where.asp">WHERE</a></th><td><a href="06-where.html#p1">06 · WHERE 与比较运算符</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_orderby.asp">ORDER BY</a></th><td><a href="05-order-by.html#p1">05 · 按单列排序</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_and.asp">AND</a></th><td><a href="07-combined-filters.html#p1">07 · AND 和 OR</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_or.asp">OR</a></th><td><a href="07-combined-filters.html#p1">07 · AND 和 OR</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_not.asp">NOT</a></th><td><a href="07-combined-filters.html#p4">07 · NOT 反转条件与三值逻辑</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_null_values.asp">NULL 值</a></th><td><a href="06-where.html#p4">06 · IS NULL 判断缺失值</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_top.asp">TOP、LIMIT、FETCH FIRST</a></th><td><a href="04-select.html#w3-top">04 · 取前 N 行与并列</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_like.asp">LIKE</a></th><td><a href="08-like.html#p1">08 · % 匹配零到多个字符</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_wildcards.asp">通配符</a></th><td><a href="08-like.html#p3">08 · ESCAPE 匹配字面量</a><br><a href="08-like.html#w3-brackets">08 · 方括号通配符的方言差异</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_in.asp">IN</a></th><td><a href="07-combined-filters.html#p3">07 · IN 枚举候选值</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_between.asp">BETWEEN</a></th><td><a href="06-where.html#p3">06 · BETWEEN 包含两端</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_alias.asp">别名 AS</a></th><td><a href="10-calculated-fields.html#p2">10 · 用 AS 命名结果</a><br><a href="16-advanced-joins.html#p1">16 · 表别名与自联结</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_comments.asp">注释</a></th><td><a href="04-select.html#w3-comments">04 · 单行注释与块注释</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_operators.asp">运算符</a></th><td><a href="06-where.html#p1">06 · WHERE 与比较运算符</a><br><a href="07-combined-filters.html#p1">07 · AND 和 OR</a><br><a href="10-calculated-fields.html#w3-bitwise">10 · 位运算与整数除法</a></td></tr></tbody></table></section>
+<section id="analysis" class="point" data-dialects="postgresql sqlserver mysql"><h2>汇总、组合与联结</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><table><thead><tr><th scope="col">W3Schools 主题</th><th scope="col">对应笔记</th></tr></thead><tbody>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_aggregate_functions.asp">聚合函数</a></th><td><a href="12-aggregates.html#p1">12 · AVG、SUM、MIN 和 MAX</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_min_max.asp">MIN</a></th><td><a href="12-aggregates.html#p1">12 · AVG、SUM、MIN 和 MAX</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_max.asp">MAX</a></th><td><a href="12-aggregates.html#p1">12 · AVG、SUM、MIN 和 MAX</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_count.asp">COUNT</a></th><td><a href="12-aggregates.html#p2">12 · COUNT(*) 与 COUNT(列)</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_sum.asp">SUM</a></th><td><a href="12-aggregates.html#p1">12 · AVG、SUM、MIN 和 MAX</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_avg.asp">AVG</a></th><td><a href="12-aggregates.html#p1">12 · AVG、SUM、MIN 和 MAX</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_groupby.asp">GROUP BY</a></th><td><a href="13-group-by.html#p1">13 · GROUP BY 决定每行代表什么</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_having.asp">HAVING</a></th><td><a href="13-group-by.html#p3">13 · WHERE 筛行，HAVING 筛组</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_join.asp">联结概览</a></th><td><a href="15-joins.html#p1">15 · 关系表、主键与外键</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_join_inner.asp">INNER JOIN</a></th><td><a href="15-joins.html#p3">15 · INNER JOIN 与联结条件</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_join_left.asp">LEFT JOIN</a></th><td><a href="16-advanced-joins.html#p3">16 · LEFT JOIN、RIGHT JOIN 与 NULL 扩展</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_join_right.asp">RIGHT JOIN</a></th><td><a href="16-advanced-joins.html#p3">16 · LEFT JOIN、RIGHT JOIN 与 NULL 扩展</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_join_full.asp">FULL OUTER JOIN</a></th><td><a href="16-advanced-joins.html#w3-full-join">16 · FULL OUTER JOIN 的 MySQL 写法</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_join_self.asp">自联结</a></th><td><a href="16-advanced-joins.html#p1">16 · 表别名与自联结</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_union.asp">UNION</a></th><td><a href="17-set-operations.html#p1">17 · UNION 合并并去重</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_union_all.asp">UNION ALL</a></th><td><a href="17-set-operations.html#p2">17 · UNION ALL 保留分支的每一行</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_exists.asp">EXISTS</a></th><td><a href="14-subqueries.html#w3-exists">14 · 用 EXISTS 保留有匹配的行</a><br><a href="14-subqueries.html#p4">14 · EXISTS 判断行是否存在</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_any_all.asp">ANY 与 SOME</a></th><td><a href="14-subqueries.html#w3-any-all">14 · ANY、SOME 与 ALL</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_all.asp">ALL</a></th><td><a href="14-subqueries.html#w3-any-all">14 · ANY、SOME 与 ALL</a></td></tr></tbody></table></section>
+<section id="write" class="point" data-dialects="postgresql sqlserver mysql"><h2>写入与结构</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><table><thead><tr><th scope="col">W3Schools 主题</th><th scope="col">对应笔记</th></tr></thead><tbody>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_insert.asp">INSERT INTO</a></th><td><a href="19-insert.html#p1">19 · 插入完整一行</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_update.asp">UPDATE</a></th><td><a href="20-update-delete.html#p1">20 · UPDATE 修改一列或多列</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_delete.asp">DELETE</a></th><td><a href="20-update-delete.html#p3">20 · DELETE 删除行</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_select_into.asp">SELECT INTO 新表</a></th><td><a href="19-insert.html#w3-select-into">19 · 把查询结果复制到新表</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_insert_into_select.asp">INSERT INTO SELECT</a></th><td><a href="19-insert.html#p4">19 · INSERT SELECT 从查询批量导入</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_create_db.asp">CREATE DATABASE</a></th><td><a href="03-mysql-basics.html#w3-database">03 · CREATE DATABASE 与 DROP DATABASE</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_drop_db.asp">DROP DATABASE</a></th><td><a href="03-mysql-basics.html#w3-database">03 · CREATE DATABASE 与 DROP DATABASE</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_create_table.asp">CREATE TABLE</a></th><td><a href="21-tables.html#p1">21 · 建表、默认值与自增</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_drop_table.asp">DROP TABLE 与 TRUNCATE</a></th><td><a href="21-tables.html#p5">21 · 重命名与删除练习对象</a><br><a href="20-update-delete.html#p5">20 · 清空表与事务</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_alter.asp">ALTER TABLE</a></th><td><a href="21-tables.html#p4">21 · ALTER TABLE 修改结构</a><br><a href="21-tables.html#w3-alter-constraints">21 · 修改默认值与增删唯一索引</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_constraints.asp">约束总览</a></th><td><a href="21-tables.html#p1">21 · 建表、默认值与自增</a><br><a href="21-tables.html#w3-unique-check">21 · UNIQUE 与 CHECK 约束</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_notnull.asp">NOT NULL</a></th><td><a href="21-tables.html#p1">21 · 建表、默认值与自增</a><br><a href="21-tables.html#w3-unique-check">21 · UNIQUE 与 CHECK 约束</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_unique.asp">UNIQUE</a></th><td><a href="21-tables.html#w3-unique-check">21 · UNIQUE 与 CHECK 约束</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_primarykey.asp">PRIMARY KEY</a></th><td><a href="01-understand-sql.html#p3">01 · 单列主键与组合主键</a><br><a href="21-tables.html#p2">21 · 表级主键与外键</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_foreignkey.asp">FOREIGN KEY</a></th><td><a href="21-tables.html#p2">21 · 表级主键与外键</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_check.asp">CHECK</a></th><td><a href="21-tables.html#w3-unique-check">21 · UNIQUE 与 CHECK 约束</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_default.asp">DEFAULT</a></th><td><a href="21-tables.html#p1">21 · 建表、默认值与自增</a><br><a href="21-tables.html#w3-alter-constraints">21 · 修改默认值与增删唯一索引</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_create_index.asp">CREATE INDEX</a></th><td><a href="30-performance.html#p4">30 · 复合索引、列顺序与可搜索条件</a><br><a href="21-tables.html#w3-alter-constraints">21 · 修改默认值与增删唯一索引</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_autoincrement.asp">AUTO_INCREMENT</a></th><td><a href="21-tables.html#w3-auto-increment">21 · 自动编号与各数据库的标识列写法</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_view.asp">视图</a></th><td><a href="22-views.html#p1">22 · 通过视图复用联结</a><br><a href="22-views.html#w3-alter-view">22 · ALTER VIEW 更新视图定义</a></td></tr></tbody></table></section>
+<section id="application" class="point" data-dialects="postgresql sqlserver mysql"><h2>函数、应用与管理</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><table><thead><tr><th scope="col">W3Schools 主题</th><th scope="col">对应笔记</th></tr></thead><tbody>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_case.asp">CASE</a></th><td><a href="32-modern-sql.html#p1">32 · CASE、COALESCE 与条件聚合</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_isnull.asp">NULL 函数</a></th><td><a href="11-functions.html#w3-null-functions">11 · 用函数处理 NULL</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_dates.asp">日期和时间</a></th><td><a href="11-functions.html#p6">11 · 按时间段筛选</a><br><a href="11-functions.html#w3-number-date">11 · 数值取整与日期边界函数</a><br><a href="31-appendices.html#p7">31 · 附录 D · 日期、时间与时区</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_stored_procedures.asp">存储过程</a></th><td><a href="23-procedures.html#p1">23 · 创建和调用无参过程</a><br><a href="23-procedures.html#p2">23 · IN、OUT、INOUT 与 DELIMITER</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_backup_db.asp">备份数据库</a></th><td><a href="29-maintenance.html#p1">29 · 逻辑备份和恢复演练</a><br><a href="29-maintenance.html#w3-backup-dialect">29 · BACKUP DATABASE 的方言对照</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_injection.asp">防范 SQL 注入</a></th><td><a href="32-modern-sql.html#p9">32 · 绑定参数与动态查询</a><br><a href="32-modern-sql.html#w3-parameters">32 · 绑定字符串与重复执行</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_parameterized_queries.asp">参数化 SQL</a></th><td><a href="32-modern-sql.html#w3-parameters">32 · 绑定字符串与重复执行</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_prepared_statements.asp">预处理语句</a></th><td><a href="32-modern-sql.html#w3-parameters">32 · 绑定字符串与重复执行</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_hosting.asp">数据库托管</a></th><td><a href="03-mysql-basics.html#w3-hosting">03 · 托管数据库的连接与 TLS</a></td></tr></tbody></table></section>
+<section id="reference" class="point" data-dialects="postgresql sqlserver mysql"><h2>关键字、数据类型与函数参考</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>本地演练使用常用的 MySQL 函数。逐函数和关键字条目可在原站索引中查看，其中也有 SQL Server 和 Access 的独立参考。</p><table><thead><tr><th scope="col">W3Schools 主题</th><th scope="col">对应笔记</th></tr></thead><tbody>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_datatypes.asp">SQL 数据类型</a></th><td><a href="31-appendices.html#p5">31 · 附录 D · 字符串、二进制与枚举</a><br><a href="31-appendices.html#p6">31 · 附录 D · 数值与精度</a><br><a href="31-appendices.html#p7">31 · 附录 D · 日期、时间与时区</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_ref_keywords.asp">SQL 关键字索引</a></th><td><a href="31-appendices.html#p8">31 · 附录 E · 关键字和标识符</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_quickref.asp">SQL 快速参考</a></th><td><a href="31-appendices.html#p3">31 · 附录 C · 查询与写入模板</a><br><a href="31-appendices.html#p4">31 · 附录 C · 事务、表结构与对象入口</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_ref_mysql.asp">MySQL 函数索引</a></th><td><a href="11-functions.html#w3-strings">11 · 分段、替换与格式化</a><br><a href="11-functions.html#w3-number-date">11 · 数值取整与日期边界函数</a><br><a href="11-functions.html#w3-null-functions">11 · 用函数处理 NULL</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_ref_sqlserver.asp">SQL Server 函数索引</a></th><td><a href="11-functions.html#w3-null-functions">11 · 用函数处理 NULL</a></td></tr>
+<tr><th scope="row"><a href="https://www.w3schools.com/sql/sql_ref_msaccess.asp">MS Access 函数索引</a></th><td>原站参考</td></tr></tbody></table></section>
+</article>
+<nav class="jump" aria-label="本页主题"><strong>主题导航</strong><ol><li><a href="#query">查找读取、过滤和排序示例</a></li><li><a href="#analysis">查找汇总与多表查询示例</a></li><li><a href="#write">查找写入、建表和改表示例</a></li><li><a href="#application">查找内置函数和管理操作</a></li><li><a href="#reference">查找关键字、类型和函数定义</a></li></ol></nav>
+</div>
+<nav class="pager" aria-label="返回目录"><a href="../v1.html">← 章节目录</a></nav>
+</main>
+</body>
+</html>

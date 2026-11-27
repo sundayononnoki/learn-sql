@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>47 · PostgreSQL · 事务、锁、权限与会话 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 47 章 · 原生语法</p>
+<h1>PostgreSQL · 事务、锁、权限与会话</h1>
+<p class="lead">在 PostgreSQL 里控制可见性和锁的等待，从两个会话中观察冲突。把安全角色与连接、事务的状态分开验证。</p>
+<div class="layout"><article class="content">
+<section id="set-transaction" class="point" data-dialects="postgresql">
+<h2>在事务开头指定隔离级别与访问模式</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>SET TRANSACTION 在该事务的第一个查询或数据修改前执行。READ COMMITTED 每条命令取自己的快照。REPEATABLE READ 与 SERIALIZABLE 复用事务快照。SERIALIZABLE READ ONLY DEFERRABLE 可能先等待安全快照，适合长时间只读核对。READ UNCOMMITTED 在 PostgreSQL 按 READ COMMITTED 处理。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="显式要求" tabindex="0">
+<table class="sql-result"><caption>显式要求</caption>
+<thead><tr><th scope="col">隔离</th><th scope="col">访问</th><th scope="col">可延迟</th></tr></thead>
+<tbody>
+<tr><td><code>serializable</code></td><td><code>read only</code></td><td><code>deferrable</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ ONLY, DEFERRABLE;
+
+SELECT current_setting(&#x27;transaction_isolation&#x27;) AS isolation,
+       current_setting(&#x27;transaction_read_only&#x27;) AS read_only,
+       current_setting(&#x27;transaction_deferrable&#x27;) AS deferrable;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT current_setting(&#x27;transaction_isolation&#x27;) AS isolation,
+       current_setting(&#x27;transaction_read_only&#x27;) AS read_only,
+       current_setting(&#x27;transaction_deferrable&#x27;) AS deferrable;</code></span></caption>
+<thead><tr><th scope="col">isolation</th><th scope="col">read_only</th><th scope="col">deferrable</th></tr></thead>
+<tbody>
+<tr><td><code>serializable</code></td><td><code>on</code></td><td><code>on</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">读到结果后执行 ROLLBACK，结束本节事务。SESSION CHARACTERISTICS 可设未来事务的默认值。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-set-transaction.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="snapshot" class="point" data-dialects="postgresql">
+<h2>用两个连接导出和导入同一快照</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>按注释标注的会话分段运行，两边连接同一数据库。保存会话 A 查询返回的两列，在 psql 的会话 B 按提示分别输入原值。先执行 SET TRANSACTION SNAPSHOT，再执行其他查询。保持 A 事务开启到 B 导入完成。请按面板顺序在指定连接分别执行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个会话" tabindex="0">
+<table class="sql-result"><caption>两个会话</caption>
+<thead><tr><th scope="col">A</th><th scope="col">B</th></tr></thead>
+<tbody>
+<tr><td><code>REPEATABLE READ，导出快照</code></td><td><code>REPEATABLE READ，导入 A 的快照</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>A：运行这两条，保持事务开启。</figcaption><pre><code>BEGIN ISOLATION LEVEL REPEATABLE READ;
+SELECT pg_export_snapshot() AS snapshot_id,
+       pg_current_snapshot()::text AS snapshot_value;</code></pre></figure>
+<figure><figcaption>B：以下两个输入提示是 psql 客户端命令。</figcaption><pre><code>\prompt &#x27;输入 A 的 snapshot_id: &#x27; snapshot_id
+\prompt &#x27;输入 A 的 snapshot_value: &#x27; snapshot_value
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+SET TRANSACTION SNAPSHOT :&#x27;snapshot_id&#x27;;
+
+SELECT pg_current_snapshot()::text = :&#x27;snapshot_value&#x27; AS same_snapshot;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT pg_current_snapshot()::text = :&#x27;snapshot_value&#x27; AS same_snapshot;</code></span></caption>
+<thead><tr><th scope="col">same_snapshot</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">在 B 执行最后一条，预期快照相同。随后在 B 和 A 各自执行 COMMIT。快照标识及其文本随试验变化。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-SNAPSHOT-SYNCHRONIZATION">PostgreSQL 官方文档</a></p>
+</section>
+<section id="serializable-retry" class="point" data-dialects="postgresql">
+<h2>处理可序列化冲突并重试整个事务</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>只在独立练习库运行。A、B 指两个连接，按编号交替操作。B 的第一个事务已读到旧值，A 随后提交同一行的更新。B 的 UPDATE 预期收到 SQLSTATE 40001。应用应回滚，再重新读取、判断并重试整笔业务事务。请按面板顺序在指定连接分别执行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="起始共享测试行" tabindex="0">
+<table class="sql-result"><caption>起始共享测试行</caption>
+<thead><tr><th scope="col">id</th><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>1 · A，自动提交下建练习表并插值。</figcaption><pre><code>CREATE TABLE sql_notes_lab.pg47_retry (id integer PRIMARY KEY, n integer);
+INSERT INTO sql_notes_lab.pg47_retry VALUES (1, 0);</code></pre></figure>
+<figure><figcaption>2 · B，开启事务并读到 n = 0。</figcaption><pre><code>BEGIN ISOLATION LEVEL SERIALIZABLE;
+SELECT n FROM sql_notes_lab.pg47_retry WHERE id = 1;</code></pre></figure>
+<figure><figcaption>3 · A，自动提交一次加 1。</figcaption><pre><code>UPDATE sql_notes_lab.pg47_retry SET n = n + 1 WHERE id = 1;</code></pre></figure>
+<figure><figcaption>4 · B，预期 40001，报错后继续单独执行 ROLLBACK。</figcaption><pre><code>UPDATE sql_notes_lab.pg47_retry SET n = n + 1 WHERE id = 1;
+ROLLBACK;</code></pre></figure>
+<figure><figcaption>5 · B，从头重试，读到 n = 1，写入并提交。</figcaption><pre><code>BEGIN ISOLATION LEVEL SERIALIZABLE;
+SELECT n FROM sql_notes_lab.pg47_retry WHERE id = 1;
+UPDATE sql_notes_lab.pg47_retry SET n = n + 1 WHERE id = 1;
+COMMIT;
+
+SELECT n FROM sql_notes_lab.pg47_retry WHERE id = 1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT n FROM sql_notes_lab.pg47_retry WHERE id = 1;</code></span></caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">在 B 查看提交值。重做时给专用练习表换一个新名字。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/transaction-iso.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="row-lock-modes" class="point" data-dialects="postgresql">
+<h2>选择四种行锁强度</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>FOR UPDATE 最强。FOR NO KEY UPDATE 允许别的事务取 KEY SHARE。FOR SHARE 为共享锁，会阻止数据更新。FOR KEY SHARE 阻止删除和修改可用于外键的键，却可与不改变键的普通 UPDATE 并存。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="四条语句使用同一行" tabindex="0">
+<table class="sql-result"><caption>四条语句使用同一行</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+SELECT product_id FROM sql_notes_lab.products WHERE product_id = 1 FOR UPDATE;
+SELECT product_id FROM sql_notes_lab.products WHERE product_id = 1 FOR NO KEY UPDATE;
+SELECT product_id FROM sql_notes_lab.products WHERE product_id = 1 FOR SHARE;
+
+SELECT product_id FROM sql_notes_lab.products WHERE product_id = 1 FOR KEY SHARE;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id FROM sql_notes_lab.products WHERE product_id = 1 FOR KEY SHARE;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">四条查询均返回编号 1。锁一直保留到事务结束。这里依次获取锁只演示语法，检查不同锁的冲突要使用两个会话。最后执行 ROLLBACK。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/explicit-locking.html#LOCKING-ROWS">PostgreSQL 官方文档</a></p>
+</section>
+<section id="skip-locked" class="point" data-dialects="postgresql">
+<h2>NOWAIT 立即失败，SKIP LOCKED 跳过被锁行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>在同一练习库打开 A、B。A 保持事务开启。B 保持自动提交，先运行预期失败的 NOWAIT，再运行 SKIP LOCKED。后者适合多个工作进程取待办任务，所得行集受锁影响。请按面板顺序在指定连接分别执行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="候选顺序" tabindex="0">
+<table class="sql-result"><caption>候选顺序</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">会话 A</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>已锁定</code></td></tr>
+<tr><td><code>2</code></td><td><code>未锁定</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>A：先锁第 1 行。</figcaption><pre><code>BEGIN;
+SELECT product_id FROM sql_notes_lab.products WHERE product_id = 1 FOR UPDATE;</code></pre></figure>
+<figure><figcaption>B：立即报 55P03；自动提交下可继续执行本页的下一条查询。</figcaption><pre><code>SELECT product_id FROM sql_notes_lab.products WHERE product_id = 1 FOR UPDATE NOWAIT;
+
+SELECT product_id FROM sql_notes_lab.products
+WHERE product_id IN (1, 2)
+ORDER BY product_id LIMIT 1 FOR UPDATE SKIP LOCKED;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id FROM sql_notes_lab.products
+WHERE product_id IN (1, 2)
+ORDER BY product_id LIMIT 1 FOR UPDATE SKIP LOCKED;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">B 取到 2 后，在 A 执行 ROLLBACK。需要处理任务时，让 B 的锁定查询与更新处于同一个短事务。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-select.html#SQL-FOR-UPDATE-SHARE">PostgreSQL 官方文档</a></p>
+</section>
+<section id="lock-table" class="point" data-dialects="postgresql">
+<h2>LOCK TABLE 保护整张表</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>在显式事务里请求表锁。SHARE ROW EXCLUSIVE 会阻止其他事务的普通写入，仍容许普通读取。多表操作按一致顺序取锁。NOWAIT 让冲突立即返回 55P03。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="请求的锁" tabindex="0">
+<table class="sql-result"><caption>请求的锁</caption>
+<thead><tr><th scope="col">对象</th><th scope="col">模式</th></tr></thead>
+<tbody>
+<tr><td><code>products</code></td><td><code>ShareRowExclusiveLock</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+LOCK TABLE sql_notes_lab.products IN SHARE ROW EXCLUSIVE MODE NOWAIT;
+
+SELECT mode, granted FROM pg_locks
+WHERE pid = pg_backend_pid()
+  AND relation = &#x27;sql_notes_lab.products&#x27;::regclass
+  AND mode = &#x27;ShareRowExclusiveLock&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT mode, granted FROM pg_locks
+WHERE pid = pg_backend_pid()
+  AND relation = &#x27;sql_notes_lab.products&#x27;::regclass
+  AND mode = &#x27;ShareRowExclusiveLock&#x27;;</code></span></caption>
+<thead><tr><th scope="col">mode</th><th scope="col">granted</th></tr></thead>
+<tbody>
+<tr><td><code>ShareRowExclusiveLock</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">运行完立即 ROLLBACK，释放练习表锁。使用自己有相应权限的独立练习库。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-lock.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="advisory" class="point" data-dialects="postgresql">
+<h2>会话锁与事务级 advisory lock</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>advisory lock 由应用自行约定键，数据库不会自动把它跟数据行关联。A 对两个测试键分别取事务级锁和会话级锁。A 提交以后，B 可以取得前者，后者仍由 A 保持。A 与 B 连接同一数据库。请按面板顺序在指定连接分别执行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="A 获取的锁" tabindex="0">
+<table class="sql-result"><caption>A 获取的锁</caption>
+<thead><tr><th scope="col">键</th><th scope="col">范围</th></tr></thead>
+<tbody>
+<tr><td><code>(4701, 1)</code></td><td><code>事务</code></td></tr>
+<tr><td><code>(4701, 2)</code></td><td><code>会话</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>A：确认当前练习实例未使用这两个应用锁键。</figcaption><pre><code>BEGIN;
+SELECT pg_advisory_xact_lock(4701, 1);
+SELECT pg_advisory_lock(4701, 2);
+COMMIT;</code></pre></figure>
+<figure><figcaption>B：在另一个连接运行最后的 SELECT。</figcaption><pre><code>SELECT pg_try_advisory_xact_lock(4701, 1) AS transaction_key_available,
+       pg_try_advisory_xact_lock(4701, 2) AS session_key_available;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT pg_try_advisory_xact_lock(4701, 1) AS transaction_key_available,
+       pg_try_advisory_xact_lock(4701, 2) AS session_key_available;</code></span></caption>
+<thead><tr><th scope="col">transaction_key_available</th><th scope="col">session_key_available</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>false</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">B 的尝试应在自动提交下执行。验证后，在 A 执行 SELECT pg_advisory_unlock(4701, 2)，退出 A 也会释放其会话锁。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-ADVISORY-LOCKS">PostgreSQL 官方文档</a></p>
+</section>
+<section id="two-phase" class="point" data-dialects="postgresql">
+<h2>两阶段提交与已准备事务</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>只在专用实例、管理员已把 max_prepared_transactions 配置为正数时演练。全局事务 ID 在实例范围内须唯一。PREPARE TRANSACTION 结束本连接中的事务并保存其状态，事务的锁可继续持有。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="练习输入" tabindex="0">
+<table class="sql-result"><caption>练习输入</caption>
+<thead><tr><th scope="col">gid</th><th scope="col">业务写入</th></tr></thead>
+<tbody>
+<tr><td><code>sql-notes-47-2pc</code></td><td><code>无</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+SELECT 1;
+PREPARE TRANSACTION &#x27;sql-notes-47-2pc&#x27;;
+
+SELECT gid FROM pg_prepared_xacts WHERE gid = &#x27;sql-notes-47-2pc&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT gid FROM pg_prepared_xacts WHERE gid = &#x27;sql-notes-47-2pc&#x27;;</code></span></caption>
+<thead><tr><th scope="col">gid</th></tr></thead>
+<tbody>
+<tr><td><code>sql-notes-47-2pc</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">确认后，在事务块外执行 ROLLBACK PREPARED &#x27;sql-notes-47-2pc&#x27;。外部分布式协调器要提交已准备的事务时改用 COMMIT PREPARED，并负责恢复悬挂事务。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-prepare-transaction.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="listen-notify" class="point" data-dialects="postgresql">
+<h2>在提交时发出通知</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>A、B 连到同一个数据库。A 在自动提交下注册频道。B 在事务中发通知，接收端在 B 提交后才会看到消息。在 psql 中，异步通知通常随下一次客户端操作显示。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="通知" tabindex="0">
+<table class="sql-result"><caption>通知</caption>
+<thead><tr><th scope="col">频道</th><th scope="col">payload</th></tr></thead>
+<tbody>
+<tr><td><code>pg47_events</code></td><td><code>ready</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>-- A，开启监听。
+LISTEN pg47_events;
+
+-- B，发出通知并提交。
+BEGIN;
+NOTIFY pg47_events, &#x27;ready&#x27;;
+COMMIT;
+
+-- A，运行最后的 SELECT。
+
+SELECT channel FROM pg_listening_channels() AS ls(channel)
+WHERE channel = &#x27;pg47_events&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT channel FROM pg_listening_channels() AS ls(channel)
+WHERE channel = &#x27;pg47_events&#x27;;</code></span></caption>
+<thead><tr><th scope="col">channel</th></tr></thead>
+<tbody>
+<tr><td><code>pg47_events</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">A 还会收到一条独立于结果集的异步消息，频道是 pg47_events，载荷是 ready，进程号视实例而定。观察后在 A 执行 UNLISTEN pg47_events。需要可重放的消息时，用持久表保存数据。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-notify.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="session-settings" class="point" data-dialects="postgresql">
+<h2>SET LOCAL 与 SQL 级预处理语句</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>SET LOCAL 的范围是当前事务。PREPARE 的范围是连接，EXECUTE 可以多次传入值。本节同时查看事务内的应用名和参数化查询的结果。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">application_name</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>pg47-local</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+SET LOCAL application_name = &#x27;pg47-local&#x27;;
+PREPARE pg47_lookup(integer) AS
+SELECT name, current_setting(&#x27;application_name&#x27;) AS app
+FROM sql_notes_lab.products WHERE product_id = $1;
+
+EXECUTE pg47_lookup(1);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXECUTE pg47_lookup(1);</code></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">app</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Basics</code></td><td><code>pg47-local</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">看完结果运行 DEALLOCATE pg47_lookup 和 ROLLBACK。事务结束恢复原有 application_name。应用驱动使用自己的绑定接口。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-prepare.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="roles-default-privileges" class="point" data-dialects="postgresql">
+<h2>角色继承和默认权限</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 16+ 的成员 INHERIT / SET 选项</span></p>
+<p>本节在独立实例以练习管理员运行。角色定义在整个集群，两个名字须未使用。成员一侧的 INHERIT 允许直接使用被授予的权限，SET 允许切换到被授予的角色。ALTER DEFAULT PRIVILEGES 影响该创建者以后创建的对象。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个表的创建顺序" tabindex="0">
+<table class="sql-result"><caption>两个表的创建顺序</caption>
+<thead><tr><th scope="col">表</th><th scope="col">相对规则</th></tr></thead>
+<tbody>
+<tr><td><code>pg47_old_acl</code></td><td><code>之前</code></td></tr>
+<tr><td><code>pg47_new_acl</code></td><td><code>之后</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+CREATE ROLE pg47_acl_member NOLOGIN;
+CREATE ROLE pg47_acl_reader NOLOGIN;
+CREATE TABLE sql_notes_lab.pg47_old_acl (id integer);
+GRANT pg47_acl_reader TO pg47_acl_member WITH INHERIT TRUE, SET TRUE;
+GRANT USAGE ON SCHEMA sql_notes_lab TO pg47_acl_reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA sql_notes_lab
+  GRANT SELECT ON TABLES TO pg47_acl_reader;
+CREATE TABLE sql_notes_lab.pg47_new_acl (id integer);
+
+SELECT has_table_privilege(&#x27;pg47_acl_member&#x27;, &#x27;sql_notes_lab.pg47_old_acl&#x27;, &#x27;SELECT&#x27;) AS old_read,
+       has_table_privilege(&#x27;pg47_acl_member&#x27;, &#x27;sql_notes_lab.pg47_new_acl&#x27;, &#x27;SELECT&#x27;) AS new_read;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT has_table_privilege(&#x27;pg47_acl_member&#x27;, &#x27;sql_notes_lab.pg47_old_acl&#x27;, &#x27;SELECT&#x27;) AS old_read,
+       has_table_privilege(&#x27;pg47_acl_member&#x27;, &#x27;sql_notes_lab.pg47_new_acl&#x27;, &#x27;SELECT&#x27;) AS new_read;</code></span></caption>
+<thead><tr><th scope="col">old_read</th><th scope="col">new_read</th></tr></thead>
+<tbody>
+<tr><td><code>false</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">在默认练习授权下得到 false、true。最后执行 ROLLBACK 还原角色、默认授权和测试表。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-alterdefaultprivileges.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="rls" class="point" data-dialects="postgresql">
+<h2>行级安全用 USING 和 WITH CHECK</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>在独立实例以练习管理员运行。USING 限制哪些既有行可见，WITH CHECK 限制可写入的新值。没有适用策略时默认不见行。表所有者通常绕过 RLS，可用 FORCE ROW LEVEL SECURITY 让表所有者也受策略约束。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="行级过滤前" tabindex="0">
+<table class="sql-result"><caption>行级过滤前</caption>
+<thead><tr><th scope="col">id</th><th scope="col">owner_name</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>pg47_rls_reader</code></td></tr>
+<tr><td><code>2</code></td><td><code>other</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+CREATE ROLE pg47_rls_reader NOLOGIN;
+CREATE TABLE sql_notes_lab.pg47_rls_data (id integer, owner_name name);
+INSERT INTO sql_notes_lab.pg47_rls_data VALUES (1, &#x27;pg47_rls_reader&#x27;), (2, &#x27;other&#x27;);
+GRANT USAGE ON SCHEMA sql_notes_lab TO pg47_rls_reader;
+GRANT SELECT, UPDATE ON sql_notes_lab.pg47_rls_data TO pg47_rls_reader;
+ALTER TABLE sql_notes_lab.pg47_rls_data ENABLE ROW LEVEL SECURITY;
+CREATE POLICY pg47_owner_rows ON sql_notes_lab.pg47_rls_data
+  TO pg47_rls_reader USING (owner_name = current_user)
+  WITH CHECK (owner_name = current_user);
+SET LOCAL ROLE pg47_rls_reader;
+
+SELECT id, owner_name FROM sql_notes_lab.pg47_rls_data ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, owner_name FROM sql_notes_lab.pg47_rls_data ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">owner_name</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>pg47_rls_reader</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">若要验证写入，在新一轮同样事务里尝试把第 1 行 owner_name 改成 &#x27;other&#x27;，预期 42501，随后 ROLLBACK。普通查看完也执行 ROLLBACK。具 BYPASSRLS 权限的角色始终绕过 RLS。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/ddl-rowsecurity.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="security-definer" class="point" data-dialects="postgresql">
+<h2>SECURITY DEFINER 与安全的名称解析</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>在独立实例以练习管理员运行。将函数所有者限定为受信任的角色，函数内对业务表使用限定名，固定可信 search_path 并将 pg_temp 放在末尾。在创建函数的同一事务收回 PUBLIC 的默认 EXECUTE。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="权限设计" tabindex="0">
+<table class="sql-result"><caption>权限设计</caption>
+<thead><tr><th scope="col">调用角色</th><th scope="col">表 SELECT</th><th scope="col">函数 EXECUTE</th></tr></thead>
+<tbody>
+<tr><td><code>pg47_call_reader</code></td><td><code>无</code></td><td><code>有</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+CREATE ROLE pg47_call_reader NOLOGIN;
+CREATE TABLE sql_notes_lab.pg47_private (id integer);
+INSERT INTO sql_notes_lab.pg47_private VALUES (1), (2);
+CREATE FUNCTION sql_notes_lab.pg47_read_count() RETURNS bigint
+LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog, pg_temp
+AS $$ SELECT count(*) FROM sql_notes_lab.pg47_private $$;
+REVOKE ALL ON FUNCTION sql_notes_lab.pg47_read_count() FROM PUBLIC;
+GRANT USAGE ON SCHEMA sql_notes_lab TO pg47_call_reader;
+GRANT EXECUTE ON FUNCTION sql_notes_lab.pg47_read_count() TO pg47_call_reader;
+SET LOCAL ROLE pg47_call_reader;
+
+SELECT has_table_privilege(current_user, &#x27;sql_notes_lab.pg47_private&#x27;, &#x27;SELECT&#x27;) AS direct_read,
+       sql_notes_lab.pg47_read_count() AS allowed_count;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT has_table_privilege(current_user, &#x27;sql_notes_lab.pg47_private&#x27;, &#x27;SELECT&#x27;) AS direct_read,
+       sql_notes_lab.pg47_read_count() AS allowed_count;</code></span></caption>
+<thead><tr><th scope="col">direct_read</th><th scope="col">allowed_count</th></tr></thead>
+<tbody>
+<tr><td><code>false</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">调用者能得到受限的统计值。观察后 ROLLBACK。部署时用专用低权限所有者，并保护函数所在模式的 CREATE 权限。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY">PostgreSQL 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#set-transaction">在事务开头指定隔离级别与访问模式</a></li>
+<li><a href="#snapshot">用两个连接导出和导入同一快照</a></li>
+<li><a href="#serializable-retry">处理可序列化冲突并重试整个事务</a></li>
+<li><a href="#row-lock-modes">选择四种行锁强度</a></li>
+<li><a href="#skip-locked">NOWAIT 立即失败，SKIP LOCKED 跳过被锁行</a></li>
+<li><a href="#lock-table">LOCK TABLE 保护整张表</a></li>
+<li><a href="#advisory">选择随会话或事务释放的建议锁</a></li>
+<li><a href="#two-phase">准备事务后再决定提交或回滚</a></li>
+<li><a href="#listen-notify">在提交时发出通知</a></li>
+<li><a href="#session-settings">SET LOCAL 与 SQL 级预处理语句</a></li>
+<li><a href="#roles-default-privileges">继承角色授权并设置新对象默认权限</a></li>
+<li><a href="#rls">用行级策略限制可见行和可写值</a></li>
+<li><a href="#security-definer">SECURITY DEFINER 与安全的名称解析</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="46-postgresql-routines.html">← 例程、触发器与自定义对象</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="48-postgresql-administration.html">管理、系统对象、复制与扩展 →</a></nav>
+</main>
+</body>
+</html>

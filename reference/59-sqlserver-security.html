@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>59 · SQL Server · 权限、加密和审计 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 59 章 · 原生语法</p>
+<h1>SQL Server · 权限、加密和审计</h1>
+<p class="lead">区分身份、授权、行列保护和审计。用隔离实例核对治理对象，再逐步验证低权限调用者实际看到的数据。 使用专用练习库及能处理 GO 的客户端，遇错即停，例如 sqlcmd -b。建库对象和审计目标名须未被使用。</p>
+<div class="layout"><article class="content">
+<section id="login-user" class="point" data-dialects="sqlserver">
+<h2>实例登录名与数据库用户</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">独立 SQL Server 实例；需有创建、禁用登录名及创建数据库用户的权限</span></p>
+<p>登录名用于实例认证，数据库用户用于库内授权。FOR LOGIN 建立 SID 映射。以具有对应权限的管理员在本地练习实例执行，示例临时密码只用于建立演示对象，创建后立即禁用登录名。日常应用按部署选择认证类型和最小权限。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="预先规划的主体" tabindex="0">
+<table class="sql-result"><caption>预先规划的主体</caption>
+<thead><tr><th scope="col">实例登录名</th><th scope="col">数据库用户</th><th scope="col">默认模式</th></tr></thead>
+<tbody>
+<tr><td><code>ch59_lab_login</code></td><td><code>ch59_lab_user</code></td><td><code>dbo</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE master;
+CREATE LOGIN ch59_lab_login WITH PASSWORD = &#x27;OnlyLocal_CH59!d8wR&#x27;, CHECK_POLICY = ON;
+ALTER LOGIN ch59_lab_login DISABLE;
+GO
+USE SQLNotesLab;
+CREATE USER ch59_lab_user FOR LOGIN ch59_lab_login WITH DEFAULT_SCHEMA = dbo;
+
+SELECT s.name AS login_name, s.is_disabled, d.name AS user_name, d.default_schema_name
+FROM sys.server_principals AS s
+JOIN sys.database_principals AS d ON d.sid = s.sid
+WHERE s.name = N&#x27;ch59_lab_login&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT s.name AS login_name, s.is_disabled, d.name AS user_name, d.default_schema_name
+FROM sys.server_principals AS s
+JOIN sys.database_principals AS d ON d.sid = s.sid
+WHERE s.name = N&#x27;ch59_lab_login&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">login_name</th><th scope="col">is_disabled</th><th scope="col">user_name</th><th scope="col">default_schema_name</th></tr></thead>
+<tbody>
+<tr><td><code>ch59_lab_login</code></td><td><code>1</code></td><td><code>ch59_lab_user</code></td><td><code>dbo</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-login-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="contained" class="point" data-dialects="sqlserver">
+<h2>Contained user：由目标数据库认证</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+，实例须已允许 contained database authentication。有建库和创建用户权限。</span></p>
+<p>使用具备管理权限的本地实例，此卡先检查管理员是否已经启用 contained database authentication。包含用户可带自己的数据库密码且不依赖实例登录名，连接时需指定目标数据库。示例用新专用库与随机密码，密码不打印。启用包含认证是实例级改动，按环境设计决定。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="目标库与数据库主体" tabindex="0">
+<table class="sql-result"><caption>目标库与数据库主体</caption>
+<thead><tr><th scope="col">database</th><th scope="col">containment</th><th scope="col">user_name</th></tr></thead>
+<tbody>
+<tr><td><code>SQLNotesCh59Contained</code></td><td><code>PARTIAL</code></td><td><code>ch59_contained</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE master;
+IF NOT EXISTS (
+  SELECT 1 FROM sys.configurations
+  WHERE name = N&#x27;contained database authentication&#x27; AND value_in_use = 1
+)
+  THROW 50059, N&#x27;This instance must already allow contained database authentication.&#x27;, 1;
+EXEC (N&#x27;CREATE DATABASE SQLNotesCh59Contained CONTAINMENT = PARTIAL;&#x27;);
+GO
+USE SQLNotesCh59Contained;
+DECLARE @password sysname = CONVERT(nvarchar(36), NEWID()) + N&#x27;Aa!9&#x27;;
+DECLARE @command nvarchar(max) =
+  N&#x27;CREATE USER ch59_contained WITH PASSWORD = &#x27; + QUOTENAME(@password, N&#x27;&#x27;&#x27;&#x27;) + N&#x27;;&#x27;;
+EXEC sys.sp_executesql @command;
+
+SELECT name, authentication_type_desc
+FROM sys.database_principals WHERE name = N&#x27;ch59_contained&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, authentication_type_desc
+FROM sys.database_principals WHERE name = N&#x27;ch59_contained&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">authentication_type_desc</th></tr></thead>
+<tbody>
+<tr><td><code>ch59_contained</code></td><td><code>DATABASE</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-user-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="roles" class="point" data-dialects="sqlserver">
+<h2>服务器角色和数据库角色</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+ 自定义服务器角色及 ADD MEMBER。承接本章登录名卡。</span></p>
+<p>实例角色由 ALTER SERVER ROLE 管理，添加的是登录名。库角色用 ALTER ROLE，添加的是数据库用户。成员身份与具体权限分开验证。承接登录名卡，此处创建两个未授予特权的角色。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两种角色的计划成员" tabindex="0">
+<table class="sql-result"><caption>两种角色的计划成员</caption>
+<thead><tr><th scope="col">scope</th><th scope="col">role_name</th><th scope="col">member</th></tr></thead>
+<tbody>
+<tr><td><code>SERVER</code></td><td><code>ch59_instance_reporters</code></td><td><code>ch59_lab_login</code></td></tr>
+<tr><td><code>DATABASE</code></td><td><code>ch59_db_reporters</code></td><td><code>ch59_lab_user</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE master;
+CREATE SERVER ROLE ch59_instance_reporters;
+ALTER SERVER ROLE ch59_instance_reporters ADD MEMBER ch59_lab_login;
+GO
+USE SQLNotesLab;
+CREATE ROLE ch59_db_reporters;
+ALTER ROLE ch59_db_reporters ADD MEMBER ch59_lab_user;
+
+SELECT N&#x27;SERVER&#x27; AS scope_name, r.name AS role_name, m.name AS member_name
+FROM sys.server_role_members AS rm
+JOIN sys.server_principals AS r ON r.principal_id = rm.role_principal_id
+JOIN sys.server_principals AS m ON m.principal_id = rm.member_principal_id
+WHERE r.name = N&#x27;ch59_instance_reporters&#x27;
+UNION ALL
+SELECT N&#x27;DATABASE&#x27;, r.name, m.name
+FROM sys.database_role_members AS rm
+JOIN sys.database_principals AS r ON r.principal_id = rm.role_principal_id
+JOIN sys.database_principals AS m ON m.principal_id = rm.member_principal_id
+WHERE r.name = N&#x27;ch59_db_reporters&#x27;
+ORDER BY scope_name;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT N&#x27;SERVER&#x27; AS scope_name, r.name AS role_name, m.name AS member_name
+FROM sys.server_role_members AS rm
+JOIN sys.server_principals AS r ON r.principal_id = rm.role_principal_id
+JOIN sys.server_principals AS m ON m.principal_id = rm.member_principal_id
+WHERE r.name = N&#x27;ch59_instance_reporters&#x27;
+UNION ALL
+SELECT N&#x27;DATABASE&#x27;, r.name, m.name
+FROM sys.database_role_members AS rm
+JOIN sys.database_principals AS r ON r.principal_id = rm.role_principal_id
+JOIN sys.database_principals AS m ON m.principal_id = rm.member_principal_id
+WHERE r.name = N&#x27;ch59_db_reporters&#x27;
+ORDER BY scope_name;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">scope_name</th><th scope="col">role_name</th><th scope="col">member_name</th></tr></thead>
+<tbody>
+<tr><td><code>DATABASE</code></td><td><code>ch59_db_reporters</code></td><td><code>ch59_lab_user</code></td></tr>
+<tr><td><code>SERVER</code></td><td><code>ch59_instance_reporters</code></td><td><code>ch59_lab_login</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-server-role-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="grant-deny" class="point" data-dialects="sqlserver">
+<h2>GRANT、DENY、REVOKE 与实际有效权限</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>通过角色授予对象读取，随后对用户施加对象层 DENY。REVOKE 撤销该显式拒绝，角色授予再次生效。表级拒绝覆盖大多数直接或间接授予，另有列级 GRANT 兼容性例外。这里授予 VIEW DEFINITION 便于授权主体观察同一个对象。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="演练前的对象层授权" tabindex="0">
+<table class="sql-result"><caption>演练前的对象层授权</caption>
+<thead><tr><th scope="col">主体</th><th scope="col">SELECT</th><th scope="col">VIEW DEFINITION</th></tr></thead>
+<tbody>
+<tr><td><code>ch59_acl_role</code></td><td><code>GRANT</code></td><td><code></code></td></tr>
+<tr><td><code>ch59_acl_user</code></td><td><code>继承角色</code></td><td><code>GRANT</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE SQLNotesLab;
+CREATE TABLE dbo.ch59_acl (id int PRIMARY KEY);
+CREATE USER ch59_acl_user WITHOUT LOGIN;
+CREATE ROLE ch59_acl_role;
+ALTER ROLE ch59_acl_role ADD MEMBER ch59_acl_user;
+GRANT SELECT ON OBJECT::dbo.ch59_acl TO ch59_acl_role;
+GRANT VIEW DEFINITION ON OBJECT::dbo.ch59_acl TO ch59_acl_user;
+
+DECLARE @inherited int, @denied int, @revoked int;
+EXECUTE AS USER = &#x27;ch59_acl_user&#x27;;
+SET @inherited = HAS_PERMS_BY_NAME(&#x27;dbo.ch59_acl&#x27;,&#x27;OBJECT&#x27;,&#x27;SELECT&#x27;);
+REVERT;
+DENY SELECT ON OBJECT::dbo.ch59_acl TO ch59_acl_user;
+EXECUTE AS USER = &#x27;ch59_acl_user&#x27;;
+SET @denied = HAS_PERMS_BY_NAME(&#x27;dbo.ch59_acl&#x27;,&#x27;OBJECT&#x27;,&#x27;SELECT&#x27;);
+REVERT;
+REVOKE SELECT ON OBJECT::dbo.ch59_acl FROM ch59_acl_user;
+EXECUTE AS USER = &#x27;ch59_acl_user&#x27;;
+SET @revoked = HAS_PERMS_BY_NAME(&#x27;dbo.ch59_acl&#x27;,&#x27;OBJECT&#x27;,&#x27;SELECT&#x27;);
+REVERT;
+SELECT @inherited AS via_role, @denied AS with_deny, @revoked AS after_revoke;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @inherited AS via_role, @denied AS with_deny, @revoked AS after_revoke;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">via_role</th><th scope="col">with_deny</th><th scope="col">after_revoke</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>0</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="ownership-chain" class="point" data-dialects="sqlserver">
+<h2>EXECUTE AS、REVERT 与所有权链</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">CREATE OR ALTER PROCEDURE：SQL Server 2016 SP1+</span></p>
+<p>以无登录名的库用户试验，EXECUTE AS USER 切换执行主体，REVERT 恢复。两个 dbo 对象同属一个所有者，过程中的静态读取沿所有权链执行，调用者仅获过程 EXECUTE。动态 SQL 通常打断普通所有权链，另见模块签名。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="表内容与调用权限" tabindex="0">
+<table class="sql-result"><caption>表内容与调用权限</caption>
+<thead><tr><th scope="col">table_note</th><th scope="col">调用者直接 SELECT</th><th scope="col">过程 EXECUTE</th></tr></thead>
+<tbody>
+<tr><td><code>summary ready</code></td><td><code>0</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE SQLNotesLab;
+CREATE TABLE dbo.ch59_source (note nvarchar(40));
+INSERT INTO dbo.ch59_source VALUES (N&#x27;summary ready&#x27;);
+CREATE USER ch59_chain_reader WITHOUT LOGIN;
+GO
+CREATE OR ALTER PROCEDURE dbo.ch59_chain_proc WITH EXECUTE AS CALLER
+AS
+SELECT USER_NAME() AS active_user, note FROM dbo.ch59_source;
+GO
+GRANT EXECUTE ON OBJECT::dbo.ch59_chain_proc TO ch59_chain_reader;
+
+EXECUTE AS USER = &#x27;ch59_chain_reader&#x27;;
+EXEC dbo.ch59_chain_proc;
+REVERT;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXEC dbo.ch59_chain_proc;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">active_user</th><th scope="col">note</th></tr></thead>
+<tbody>
+<tr><td><code>ch59_chain_reader</code></td><td><code>summary ready</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/tutorial-ownership-chains-and-context-switching?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="module-signing" class="point" data-dialects="sqlserver">
+<h2>证书签名向模块临时添加权限</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">模块签名需已有证书和改变模块权限。CREATE OR ALTER PROCEDURE：SQL Server 2016 SP1+</span></p>
+<p>证书映射为无登录名用户。只给证书用户表的 SELECT，只给调用者过程 EXECUTE。动态读取使用签名补入的权限。修改过程会清除签名，部署后重新签名。演示证书私钥由教学密码保护，生产用专门的密钥管理。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="授权分配和演示数据" tabindex="0">
+<table class="sql-result"><caption>授权分配和演示数据</caption>
+<thead><tr><th scope="col">调用者</th><th scope="col">证书主体</th><th scope="col">源数据</th></tr></thead>
+<tbody>
+<tr><td><code>EXECUTE</code></td><td><code>SELECT</code></td><td><code>signed result</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE SQLNotesLab;
+CREATE TABLE dbo.ch59_signed_data (note nvarchar(40));
+INSERT INTO dbo.ch59_signed_data VALUES (N&#x27;signed result&#x27;);
+CREATE USER ch59_signed_caller WITHOUT LOGIN;
+CREATE CERTIFICATE ch59_signer
+  ENCRYPTION BY PASSWORD = &#x27;Local_Ch59!Signer8&#x27;
+  WITH SUBJECT = &#x27;SQL notes: module signing&#x27;;
+CREATE USER ch59_cert_user FOR CERTIFICATE ch59_signer;
+GRANT SELECT ON OBJECT::dbo.ch59_signed_data TO ch59_cert_user;
+GO
+CREATE OR ALTER PROCEDURE dbo.ch59_signed_reader
+AS
+EXEC sys.sp_executesql N&#x27;SELECT note FROM dbo.ch59_signed_data;&#x27;;
+GO
+ADD SIGNATURE TO OBJECT::dbo.ch59_signed_reader
+  BY CERTIFICATE ch59_signer WITH PASSWORD = &#x27;Local_Ch59!Signer8&#x27;;
+GRANT EXECUTE ON OBJECT::dbo.ch59_signed_reader TO ch59_signed_caller;
+
+EXECUTE AS USER = &#x27;ch59_signed_caller&#x27;;
+EXEC dbo.ch59_signed_reader;
+REVERT;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXEC dbo.ch59_signed_reader;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">note</th></tr></thead>
+<tbody>
+<tr><td><code>signed result</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/add-signature-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="session-context" class="point" data-dialects="sqlserver">
+<h2>SESSION_CONTEXT 保存连接内业务上下文</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+</span></p>
+<p>sp_set_session_context 保存键值，SESSION_CONTEXT 读取 sql_variant。以 NULL 清除可修改的键，@read_only = 1 可使键在该逻辑连接剩余期间只读。值可由连接中的用户设置，自报上下文在可信边界之外不得单独当作登录身份。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="要设置的键值" tabindex="0">
+<table class="sql-result"><caption>要设置的键值</caption>
+<thead><tr><th scope="col">key</th><th scope="col">value</th><th scope="col">read_only</th></tr></thead>
+<tbody>
+<tr><td><code>ch59_request</code></td><td><code>42</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>EXEC sys.sp_set_session_context @key = N&#x27;ch59_request&#x27;, @value = 42;
+DECLARE @before_clear int = CONVERT(int, SESSION_CONTEXT(N&#x27;ch59_request&#x27;));
+EXEC sys.sp_set_session_context @key = N&#x27;ch59_request&#x27;, @value = NULL;
+SELECT @before_clear AS set_value, SESSION_CONTEXT(N&#x27;ch59_request&#x27;) AS cleared_value;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @before_clear AS set_value, SESSION_CONTEXT(N&#x27;ch59_request&#x27;) AS cleared_value;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">set_value</th><th scope="col">cleared_value</th></tr></thead>
+<tbody>
+<tr><td><code>42</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/session-context-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="rls" class="point" data-dialects="sqlserver">
+<h2>RLS 筛选谓词与阻止谓词</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+，需要创建函数和安全策略。当前连接应无未提交事务。</span></p>
+<p>FILTER 谓词隐藏另外租户的行，AFTER INSERT 的 BLOCK 谓词阻止越界新行。这里用会话值演示两种谓词，生产需由可信层绑定身份并评估谁可直接执行 SQL、改上下文或改策略。策略与表都只用于练习。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="策略启用前 dbo.ch59_tenant_items" tabindex="0">
+<table class="sql-result"><caption>策略启用前 dbo.ch59_tenant_items</caption>
+<thead><tr><th scope="col">id</th><th scope="col">tenant_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>1</code></td></tr>
+<tr><td><code>202</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE SQLNotesLab;
+CREATE TABLE dbo.ch59_tenant_items (id int PRIMARY KEY, tenant_id int NOT NULL);
+INSERT INTO dbo.ch59_tenant_items VALUES (101, 1), (202, 2);
+GO
+CREATE FUNCTION dbo.ch59_only_tenant(@tenant_id int)
+RETURNS TABLE WITH SCHEMABINDING
+AS RETURN (
+  SELECT 1 AS allowed
+  WHERE @tenant_id = TRY_CONVERT(int, SESSION_CONTEXT(N&#x27;ch59_tenant&#x27;))
+);
+GO
+CREATE SECURITY POLICY dbo.ch59_tenant_policy
+ADD FILTER PREDICATE dbo.ch59_only_tenant(tenant_id) ON dbo.ch59_tenant_items,
+ADD BLOCK PREDICATE dbo.ch59_only_tenant(tenant_id) ON dbo.ch59_tenant_items AFTER INSERT
+WITH (STATE = ON, SCHEMABINDING = ON);
+
+EXEC sys.sp_set_session_context @key = N&#x27;ch59_tenant&#x27;, @value = 1;
+DECLARE @blocked int;
+BEGIN TRY
+  INSERT INTO dbo.ch59_tenant_items VALUES (303, 2);
+END TRY
+BEGIN CATCH
+  SET @blocked = ERROR_NUMBER();
+END CATCH;
+SELECT id AS visible_id, @blocked AS insert_error
+FROM dbo.ch59_tenant_items ORDER BY id;
+EXEC sys.sp_set_session_context @key = N&#x27;ch59_tenant&#x27;, @value = NULL;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXEC sys.sp_set_session_context @key = N&#x27;ch59_tenant&#x27;, @value = NULL;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">visible_id</th><th scope="col">insert_error</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>33504</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-security-policy-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="masking" class="point" data-dialects="sqlserver">
+<h2>动态数据掩码与 UNMASK</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">动态数据掩码：SQL Server 2016+；细粒度 UNMASK：2022+</span></p>
+<p>掩码改变无 UNMASK 用户收到的列显示。掩码不是加密，推断查询仍可能泄露信息，应与访问控制一起设计。SQL Server 2022 起支持更细粒度的 UNMASK。本例只授予 SELECT。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="真实列值和遮盖函数" tabindex="0">
+<table class="sql-result"><caption>真实列值和遮盖函数</caption>
+<thead><tr><th scope="col">contact</th><th scope="col">function</th></tr></thead>
+<tbody>
+<tr><td><code>axxxz</code></td><td><code>partial(1,&quot;***&quot;,1)</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE SQLNotesLab;
+CREATE TABLE dbo.ch59_contacts (
+  id int PRIMARY KEY,
+  contact varchar(20) MASKED WITH (FUNCTION = &#x27;partial(1,&quot;***&quot;,1)&#x27;)
+);
+INSERT INTO dbo.ch59_contacts VALUES (1, &#x27;axxxz&#x27;);
+CREATE USER ch59_mask_reader WITHOUT LOGIN;
+GRANT SELECT ON OBJECT::dbo.ch59_contacts TO ch59_mask_reader;
+
+EXECUTE AS USER = &#x27;ch59_mask_reader&#x27;;
+SELECT id, contact FROM dbo.ch59_contacts WHERE id = 1;
+REVERT;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, contact FROM dbo.ch59_contacts WHERE id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">contact</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>a***z</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/security/dynamic-data-masking?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="encryption" class="point" data-dialects="sqlserver">
+<h2>证书保护对称密钥，密钥加密列值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 实例课程。要求证书、对称密钥和表的相应权限。同一连接完成打开、读和关闭。</span></p>
+<p>证书保护 AES_256 对称密钥。本连接打开密钥后用 EncryptByKey 写入密文，用 DecryptByKey 还原并关闭。演练保存的是密文字节，结果只核对存在和解密文本。Always Encrypted 由支持的客户端驱动使用外部密钥，属于另一套模型。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待加密的示例数据" tabindex="0">
+<table class="sql-result"><caption>待加密的示例数据</caption>
+<thead><tr><th scope="col">id</th><th scope="col">原值</th><th scope="col">算法</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>demo text</code></td><td><code>AES_256</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE SQLNotesLab;
+CREATE CERTIFICATE ch59_data_cert
+  ENCRYPTION BY PASSWORD = &#x27;Local_Ch59!Data8&#x27;
+  WITH SUBJECT = &#x27;SQL notes: symmetric key protection&#x27;;
+CREATE SYMMETRIC KEY ch59_data_key WITH ALGORITHM = AES_256
+  ENCRYPTION BY CERTIFICATE ch59_data_cert;
+CREATE TABLE dbo.ch59_cipher (id int PRIMARY KEY, cipher varbinary(8000) NOT NULL);
+OPEN SYMMETRIC KEY ch59_data_key DECRYPTION BY CERTIFICATE ch59_data_cert
+  WITH PASSWORD = &#x27;Local_Ch59!Data8&#x27;;
+INSERT INTO dbo.ch59_cipher VALUES (1, ENCRYPTBYKEY(KEY_GUID(&#x27;ch59_data_key&#x27;), N&#x27;demo text&#x27;));
+
+SELECT id, CASE WHEN DATALENGTH(cipher) &gt; 0 THEN 1 ELSE 0 END AS has_cipher,
+       CONVERT(nvarchar(30), DECRYPTBYKEY(cipher)) AS restored_note
+FROM dbo.ch59_cipher WHERE id = 1;
+CLOSE SYMMETRIC KEY ch59_data_key;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, CASE WHEN DATALENGTH(cipher) &gt; 0 THEN 1 ELSE 0 END AS has_cipher,
+       CONVERT(nvarchar(30), DECRYPTBYKEY(cipher)) AS restored_note
+FROM dbo.ch59_cipher WHERE id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">has_cipher</th><th scope="col">restored_note</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td><td><code>demo text</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/encryptbykey-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="audit" class="point" data-dialects="sqlserver">
+<h2>审计对象、数据库审计规范与审计文件</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">独立 SQL Server 实例。管理审计及读文件需相应服务器／数据库权限；SQL Server 2022+ 可授予 VIEW SERVER SECURITY AUDIT 读取权限。</span></p>
+<p>在独立 SQL Server 实例，用管理员账号配置服务器审计与数据库审计规范。使用实例错误日志所在目录以获得服务器可写的现成路径。生产应另设受控的审计路径。同步记录一次对练习表的 SELECT，随后停用本卡创建的两个审计对象。succeeded 表示权限检查是否通过。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待审计的事件" tabindex="0">
+<table class="sql-result"><caption>待审计的事件</caption>
+<thead><tr><th scope="col">action</th><th scope="col">object_name</th><th scope="col">principal</th></tr></thead>
+<tbody>
+<tr><td><code>SELECT</code></td><td><code>ch59_audit_target</code></td><td><code>public</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE master;
+DECLARE @errorlog nvarchar(4000) = CONVERT(nvarchar(4000), SERVERPROPERTY(&#x27;ErrorLogFileName&#x27;));
+DECLARE @sep nchar(1) = CASE WHEN CHARINDEX(N&#x27;/&#x27;, @errorlog) &gt; 0 THEN N&#x27;/&#x27; ELSE NCHAR(92) END;
+DECLARE @folder nvarchar(4000) = LEFT(@errorlog, LEN(@errorlog) - CHARINDEX(@sep, REVERSE(@errorlog)) + 1);
+DECLARE @command nvarchar(max) =
+  N&#x27;CREATE SERVER AUDIT ch59_audit_demo TO FILE (FILEPATH = &#x27;&#x27;&#x27;
+  + REPLACE(@folder, N&#x27;&#x27;&#x27;&#x27;, N&#x27;&#x27;&#x27;&#x27;&#x27;&#x27;) + N&#x27;&#x27;&#x27;) WITH (QUEUE_DELAY = 0, ON_FAILURE = CONTINUE);&#x27;;
+EXEC sys.sp_executesql @command;
+ALTER SERVER AUDIT ch59_audit_demo WITH (STATE = ON);
+GO
+USE SQLNotesLab;
+CREATE TABLE dbo.ch59_audit_target (id int PRIMARY KEY);
+INSERT INTO dbo.ch59_audit_target VALUES (1);
+CREATE DATABASE AUDIT SPECIFICATION ch59_audit_spec
+FOR SERVER AUDIT ch59_audit_demo
+ADD (SELECT ON OBJECT::dbo.ch59_audit_target BY public)
+WITH (STATE = ON);
+GO
+DECLARE @probe int;
+SELECT @probe = id FROM dbo.ch59_audit_target WHERE id = 1;
+ALTER DATABASE AUDIT SPECIFICATION ch59_audit_spec WITH (STATE = OFF);
+ALTER SERVER AUDIT ch59_audit_demo WITH (STATE = OFF);
+
+DECLARE @audit_file nvarchar(260);
+SELECT @audit_file = audit_file_path
+FROM sys.dm_server_audit_status WHERE name = N&#x27;ch59_audit_demo&#x27;;
+IF @audit_file IS NULL THROW 50059, N&#x27;The audit file target is not active.&#x27;, 1;
+SELECT TOP (1) object_name, succeeded
+FROM sys.fn_get_audit_file(@audit_file, DEFAULT, DEFAULT)
+WHERE database_name = N&#x27;SQLNotesLab&#x27; AND object_name = N&#x27;ch59_audit_target&#x27; AND action_id = &#x27;SL&#x27;
+ORDER BY event_time DESC;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT TOP (1) object_name, succeeded
+FROM sys.fn_get_audit_file(@audit_file, DEFAULT, DEFAULT)
+WHERE database_name = N&#x27;SQLNotesLab&#x27; AND object_name = N&#x27;ch59_audit_target&#x27; AND action_id = &#x27;SL&#x27;
+ORDER BY event_time DESC;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">object_name</th><th scope="col">succeeded</th></tr></thead>
+<tbody>
+<tr><td><code>ch59_audit_target</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-database-audit-specification-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="classification" class="point" data-dialects="sqlserver">
+<h2>为列登记敏感度标签</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2019+，需要相应的修改与查看敏感度分类权限</span></p>
+<p>分类为治理工具提供产品元数据。ADD SENSITIVITY CLASSIFICATION 写入标签、信息类型和等级，再用 sys.sensitivity_classifications 核查。数据访问权限由独立的授权设置。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="分类目标和策略" tabindex="0">
+<table class="sql-result"><caption>分类目标和策略</caption>
+<thead><tr><th scope="col">列</th><th scope="col">标签</th><th scope="col">信息类型</th><th scope="col">级别</th></tr></thead>
+<tbody>
+<tr><td><code>email</code></td><td><code>Confidential</code></td><td><code>Contact Info</code></td><td><code>MEDIUM</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE SQLNotesLab;
+CREATE TABLE dbo.ch59_classified (id int PRIMARY KEY, email nvarchar(80));
+ADD SENSITIVITY CLASSIFICATION TO dbo.ch59_classified.email
+  WITH (LABEL = &#x27;Confidential&#x27;, INFORMATION_TYPE = &#x27;Contact Info&#x27;, RANK = MEDIUM);
+
+SELECT c.name AS column_name, sc.label, sc.information_type, sc.rank_desc
+FROM sys.sensitivity_classifications AS sc
+JOIN sys.columns AS c ON c.object_id = sc.major_id AND c.column_id = sc.minor_id
+WHERE sc.major_id = OBJECT_ID(N&#x27;dbo.ch59_classified&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT c.name AS column_name, sc.label, sc.information_type, sc.rank_desc
+FROM sys.sensitivity_classifications AS sc
+JOIN sys.columns AS c ON c.object_id = sc.major_id AND c.column_id = sc.minor_id
+WHERE sc.major_id = OBJECT_ID(N&#x27;dbo.ch59_classified&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">column_name</th><th scope="col">label</th><th scope="col">information_type</th><th scope="col">rank_desc</th></tr></thead>
+<tbody>
+<tr><td><code>email</code></td><td><code>Confidential</code></td><td><code>Contact Info</code></td><td><code>MEDIUM</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/add-sensitivity-classification-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#login-user">将实例登录名映射到库内用户</a></li>
+<li><a href="#contained">Contained user：由目标数据库认证</a></li>
+<li><a href="#roles">按实例或数据库分配角色</a></li>
+<li><a href="#grant-deny">授予、拒绝或撤销访问并验证结果</a></li>
+<li><a href="#ownership-chain">切换执行身份并核对授权链</a></li>
+<li><a href="#module-signing">证书签名向模块临时添加权限</a></li>
+<li><a href="#session-context">SESSION_CONTEXT 保存连接内业务上下文</a></li>
+<li><a href="#rls">限制用户能读取和写入的行</a></li>
+<li><a href="#masking">控制敏感列是否显示原值</a></li>
+<li><a href="#encryption">证书保护对称密钥，密钥加密列值</a></li>
+<li><a href="#audit">审计对象、数据库审计规范与审计文件</a></li>
+<li><a href="#classification">为列登记敏感度标签</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="58-sqlserver-transactions.html">← 事务、隔离和错误处理</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="60-sqlserver-administration.html">实例、备份、系统对象和外部数据 →</a></nav>
+</main>
+</body>
+</html>

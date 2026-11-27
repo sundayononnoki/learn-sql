@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>使用游标 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 24 章 · 原书第 174–180 页</p>
+<h1>使用游标</h1>
+<p class="lead" data-dialects="mysql">游标在存储程序里逐行读取结果。学会处理「读完了」，再判断需求是否能用一条集合查询完成。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-cursor"><h2>声明、打开、读取与关闭</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>存储程序的 MySQL 游标只读、只能前进，服务器可选择是否拷贝查询结果。DECLARE 定义查询，OPEN 时执行。CLOSE 后可再次打开，退出声明的 BEGIN…END 时也会自动关闭。先声明变量，再声明游标，最后声明处理器。FETCH 的目标变量和查询列数要对应。</p>
+<figure><figcaption>mysql 客户端</figcaption><pre><code data-kind="mysql">DELIMITER $$
+CREATE PROCEDURE ch24_sum(IN p_order INT, OUT p_total INT)
+BEGIN
+  DECLARE done BOOLEAN DEFAULT FALSE;
+  DECLARE item_qty INT;
+  DECLARE item_cursor CURSOR FOR
+    SELECT qty FROM order_items WHERE order_id = p_order ORDER BY product_id;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+  SET p_total = 0;
+  OPEN item_cursor;
+  read_loop: LOOP
+    FETCH item_cursor INTO item_qty;
+    IF done THEN LEAVE read_loop; END IF;
+    SET p_total = p_total + item_qty;
+  END LOOP;
+  CLOSE item_cursor;
+END$$
+DELIMITER ;
+CALL ch24_sum(101, @total);
+SELECT @total;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="累加过程" tabindex="0">
+<table class="sql-result"><caption>累加过程</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">FETCH 的 qty</th><th scope="col">p_total</th></tr></thead>
+<tbody>
+<tr><td><code>初始化</code></td><td class="sql-na"><span aria-label="不适用">—</span></td><td class="sql-number"><code>0</code></td></tr>
+<tr><td><code>第 1 行</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>2</code></td></tr>
+<tr><td><code>第 2 行</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>3</code></td></tr>
+<tr><td><code>读尽后</code></td><td class="sql-na"><span aria-label="不适用">—</span></td><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @total;</code></span></caption>
+<thead><tr><th scope="col">@total</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　订单 101 的两条明细数量为 2、1。过程初始累加值为 0。</p><p><strong>执行后</strong>　FETCH 取 2 和 1，读尽后关闭游标，<code>@total = 3</code>。</p>
+<p class="outcome">OPEN 后逐行得到数量 2、1。下一次 FETCH 触发 NOT FOUND，处理器置位，跳出并关闭游标，@total 得 3。必须先判断 done 再处理数据。无行的 SELECT INTO 也可能触发 NOT FOUND，复杂过程应限制处理器作用域。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-cursor"><h2>在循环中调用过程并保存结果</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>逐行取得订单编号，再调用上一卡的数量过程并写入结果表。这里的程序可独立于<a href="23-procedures.html">第 23 章</a>运行。</p>
+<figure><figcaption>mysql 客户端</figcaption><pre><code data-kind="mysql">CREATE TABLE ch24_result (order_id INT PRIMARY KEY, total_qty INT);
+DELIMITER $$
+CREATE PROCEDURE ch24_collect()
+BEGIN
+  DECLARE done BOOLEAN DEFAULT FALSE;
+  DECLARE current_order INT;
+  DECLARE total_qty INT;
+  DECLARE order_cursor CURSOR FOR
+    SELECT order_id FROM orders WHERE order_id IN (101, 102) ORDER BY order_id;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+  OPEN order_cursor;
+  read_orders: LOOP
+    FETCH order_cursor INTO current_order;
+    IF done THEN LEAVE read_orders; END IF;
+    CALL ch24_sum(current_order, total_qty);
+    INSERT INTO ch24_result VALUES (current_order, total_qty);
+  END LOOP;
+  CLOSE order_cursor;
+END$$
+DELIMITER ;
+CALL ch24_collect();
+SELECT * FROM ch24_result ORDER BY order_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="order_items · 相关行" tabindex="0">
+<table class="sql-result"><caption>order_items · 相关行</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT * FROM ch24_result ORDER BY order_id;</code></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">total_qty</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>3</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　<code>ch24_sum</code> 已存在，结果表与收集过程尚未建立。代码先建空结果表，再遍历订单 101 和 102。</p><p><strong>执行后</strong>　结果表新增 <code>(101,3)</code>、<code>(102,1)</code>。</p>
+<p class="outcome">首次运行返回 (101,3)、(102,1)。若重复调用，应先确定结果表重跑策略，重复主键会报错。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-cursor"><h2>用集合运算替代常见游标需求</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>能用聚合、联结或窗口函数完成时，通常先尝试一次处理多行的 SQL。游标适合确实需要逐行控制的服务器端逻辑。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT COALESCE(SUM(qty), 0) AS total FROM order_items WHERE order_id = 101;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="order_items · 相关行" tabindex="0">
+<table class="sql-result"><caption>order_items · 相关行</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COALESCE(SUM(qty), 0) AS total FROM order_items WHERE order_id = 101;</code></span></caption>
+<thead><tr><th scope="col">total</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　订单 101 的数量输入为 2 和 1。</p><p><strong>执行后</strong>　SUM 单条查询返回 <code>total = 3</code>。</p>
+<p class="outcome">同样返回 3，且一条查询即可执行。</p>
+</details>
+</div></section>
+<section id="dial-cursor" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>游标的声明、读取与释放</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>游标按行取查询结果。PostgreSQL 的 SQL 游标默认使用 WITHOUT HOLD，应在同一事务内打开和读取。SQL Server 的 FETCH NEXT 可把一行写入变量，循环时读完检查 @@FETCH_STATUS。集合查询通常更简洁。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 执行前练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+DECLARE pg_notes_cursor CURSOR FOR SELECT product_id FROM products ORDER BY product_id;
+FETCH NEXT FROM pg_notes_cursor;
+CLOSE pg_notes_cursor;
+COMMIT;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>FETCH NEXT FROM pg_notes_cursor;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @first_id int;
+DECLARE notes_cursor CURSOR LOCAL FAST_FORWARD FOR SELECT product_id FROM products ORDER BY product_id;
+OPEN notes_cursor;
+FETCH NEXT FROM notes_cursor INTO @first_id;
+CLOSE notes_cursor;
+DEALLOCATE notes_cursor;
+SELECT @first_id AS product_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @first_id AS product_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-declare.html">PostgreSQL DECLARE</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/declare-cursor-transact-sql">SQL Server DECLARE CURSOR</a></p>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>过滤条件没有匹配行时，游标循环该在哪一步结束？</p><details><summary>查看答案</summary><p>OPEN 后首个 FETCH 就会触发 NOT FOUND。随后从 done 检查处跳出并 CLOSE，初始的总量 0 得以保留。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CALL ch24_sum(999, @empty_total);
+SELECT @empty_total;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="order_items · 相关行" tabindex="0">
+<table class="sql-result"><caption>order_items · 相关行</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td class="sql-no-rows" colspan="2">0 行</td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @empty_total;</code></span></caption>
+<thead><tr><th scope="col">@empty_total</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　订单 999 没有明细。</p><p><strong>执行后</strong>　第一次 FETCH 即结束，<code>@empty_total = 0</code>。</p>
+<p class="outcome">游标过程返回 0。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/cursors.html">游标</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/declare-handler.html">条件处理器</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="mysql"><a href="#p1">用游标逐行读取结果</a></li><li data-dialects="mysql"><a href="#p2">在循环中调用过程并保存结果</a></li><li data-dialects="mysql"><a href="#p3">用集合运算替代常见游标需求</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-cursor">声明游标、逐行读取并释放</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="23-procedures.html">← 使用存储过程</a><a href="../v1.html">章节目录</a><a rel="next" href="25-triggers.html">使用触发器 →</a></nav>
+</main>
+</body></html>

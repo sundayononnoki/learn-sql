@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>现代 SQL 与工程实践 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">进阶补充</p>
+<h1>现代 SQL 与工程实践</h1>
+<p class="lead" data-dialects="mysql">掌握旧书之后，用现代 MySQL 表达分段统计、层级遍历、分析查询、并发写入和更可靠的数据模型。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="postgresql sqlserver mysql" data-alternate-anchor="dial-analytic"><h2>CASE、COALESCE 与条件聚合</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>CASE 将业务条件映射为值，也能在聚合前把命中标为 1。COALESCE 取第一个非 NULL 值，适合为空集合定义返回 0 的业务约定。</p>
+<figure><figcaption>SQL · 通用写法</figcaption><pre><code data-kind="sql">SELECT COUNT(*) AS all_orders,
+       COALESCE(SUM(CASE WHEN status = &#x27;paid&#x27; THEN 1 ELSE 0 END), 0) AS paid_orders
+FROM orders;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="orders · 练习数据" tabindex="0">
+<table class="sql-result"><caption>orders · 练习数据</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td><td><code>paid</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td class="sql-number"><code>2</code></td><td><code>pending</code></td></tr>
+<tr><td class="sql-number"><code>103</code></td><td class="sql-number"><code>1</code></td><td><code>paid</code></td></tr>
+<tr><td class="sql-number"><code>104</code></td><td class="sql-number"><code>3</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS all_orders, COALESCE(SUM(CASE WHEN status = &#x27;paid&#x27; THEN 1 ELSE 0 END), 0) AS paid_orders FROM orders;</code></span></caption>
+<thead><tr><th scope="col">all_orders</th><th scope="col">paid_orders</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　订单状态依次为 paid、pending、paid、paid。</p><p><strong>执行后</strong>　聚合返回 <code>all_orders=4, paid_orders=3</code>。</p>
+<p class="outcome">共 4 单，已付款 3 单。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-analytic"><h2>WITH 给中间结果命名</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>普通 CTE 在单条语句范围内定义查询。可以先把明细汇总为一行一单，再接客户信息。派生表 <code>FROM (SELECT ...) AS t</code> 也可表达独立中间结果。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">WITH totals AS (
+  SELECT order_id, SUM(qty * unit_price) AS total FROM order_items GROUP BY order_id
+)
+SELECT o.order_id, c.name, t.total
+FROM totals AS t JOIN orders AS o USING (order_id)
+JOIN customers AS c USING (customer_id)
+WHERE t.total &gt;= 40;
+SELECT t.n FROM (SELECT COUNT(*) AS n FROM orders) AS t;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="order_items · 练习数据" tabindex="0">
+<table class="sql-result"><caption>order_items · 练习数据</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>4</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>103</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>104</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>WITH totals AS ( SELECT order_id, SUM(qty * unit_price) AS total FROM order_items GROUP BY order_id ) SELECT o.order_id, c.name, t.total FROM totals AS t JOIN orders AS o USING (order_id) JOIN customers AS c USING (customer_id) WHERE t.total &gt;= 40;</code></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">name</th><th scope="col">total</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td><code>Ana</code></td><td class="sql-number"><code>45.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT t.n FROM (SELECT COUNT(*) AS n FROM orders) AS t;</code></span></caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　明细先聚成订单金额 <code>101:45,102:30,103:30,104:20</code>。</p><p><strong>执行后</strong>　条件至少 40 的联结结果为 <code>101 | Ana | 45.00</code>。派生表订单计数为 <code>4</code>。</p>
+<p class="outcome">第一条得到 101、Ana、45.00。第二条得到 4。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-recursive"><h2>递归 CTE 逐层展开</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>锚点产生首批值，递归项基于上一层产生下一层。给递归项设停止条件，真实层级还需处理环。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">WITH RECURSIVE steps AS (
+  SELECT 1 AS n
+  UNION ALL
+  SELECT n + 1 FROM steps WHERE n &lt; 3
+)
+SELECT n FROM steps ORDER BY n;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="递归锚点" tabindex="0">
+<table class="sql-result"><caption>递归锚点</caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH RECURSIVE steps AS ( SELECT 1 AS n UNION ALL SELECT n + 1 FROM steps WHERE n &lt; 3 ) SELECT n FROM steps ORDER BY n;</code></span></caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　锚点只有 <code>n=1</code>，每层小于 3 时产生下一值。</p><p><strong>执行后</strong>　展开并排序得到 <code>[1,2,3]</code>。</p>
+<p class="outcome">输出 1、2、3。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="postgresql sqlserver mysql" data-alternate-anchor="dial-analytic"><h2>窗口排名和每组前 N</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>窗口函数保留明细行。<code>PARTITION BY</code> 划分窗口，窗口 ORDER BY 决定排名规则。ROW_NUMBER 给每行唯一序号，RANK 并列后留缺口，DENSE_RANK 并列后接连续排名。按窗口结果过滤需包一层查询。</p>
+<figure><figcaption>SQL · 通用写法</figcaption><pre><code data-kind="sql">WITH ranked AS (
+  SELECT product_id, category, price,
+         ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC, product_id) AS rn,
+         RANK() OVER (PARTITION BY category ORDER BY price DESC) AS price_rank,
+         DENSE_RANK() OVER (PARTITION BY category ORDER BY price DESC) AS dense_price_rank
+  FROM products
+)
+SELECT product_id, rn, price_rank, dense_price_rank
+FROM ranked WHERE category = &#x27;book&#x27; AND rn &lt;= 3 ORDER BY rn;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">category</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH ranked AS ( SELECT product_id, category, price, ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC, product_id) AS rn, RANK() OVER (PARTITION BY category ORDER BY price DESC) AS price_rank, DENSE_RANK() OVER (PARTITION BY category ORDER BY price DESC) AS dense_price_rank FROM products ) SELECT product_id, rn, price_rank, dense_price_rank FROM ranked WHERE category = &#x27;book&#x27; AND rn &lt;= 3 ORDER BY rn;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">rn</th><th scope="col">price_rank</th><th scope="col">dense_price_rank</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　book 内价格为 <code>2:30</code>、<code>5:30</code>、<code>1:20</code>。</p><p><strong>执行后</strong>　按 <code>编号 / ROW_NUMBER / RANK / DENSE_RANK</code> 得 <code>2/1/1/1</code>、<code>5/2/1/1</code>、<code>1/3/3/2</code>。</p>
+<p class="outcome">book 依次得到 (2,1,1,1)、(5,2,1,1)、(1,3,3,2)。下例对每组保留最多两行。</p>
+</details>
+</div>
+<figure><figcaption>SQL · 通用写法</figcaption><pre><code data-kind="sql">WITH ranked AS (
+  SELECT product_id, category,
+         ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC, product_id) AS rn
+  FROM products
+)
+SELECT category, product_id, rn FROM ranked WHERE rn &lt;= 2 ORDER BY category, rn;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">category</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH ranked AS ( SELECT product_id, category, ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC, product_id) AS rn FROM products ) SELECT category, product_id, rn FROM ranked WHERE rn &lt;= 2 ORDER BY category, rn;</code></span></caption>
+<thead><tr><th scope="col">category</th><th scope="col">product_id</th><th scope="col">rn</th></tr></thead>
+<tbody>
+<tr><td><code>book</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>1</code></td></tr>
+<tr><td><code>book</code></td><td class="sql-number"><code>5</code></td><td class="sql-number"><code>2</code></td></tr>
+<tr><td><code>stationery</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>1</code></td></tr>
+<tr><td><code>stationery</code></td><td class="sql-number"><code>4</code></td><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　book 有三件，stationery 有两件。组内按价格降序、编号升序。</p><p><strong>执行后</strong>　两组的前二编号分别为 <code>book:[2,5]</code> 和 <code>stationery:[3,4]</code>。</p>
+<p class="outcome">图书组得到 2、5，文具组得到 3、4。</p>
+</details>
+</div></section>
+<section id="p5" class="point" data-dialects="postgresql sqlserver mysql" data-alternate-anchor="dial-analytic"><h2>累计窗口与 LAG</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>显式 ROWS 帧逐行累计。LAG 读窗口排序里的上一行，第一行返回 NULL。</p>
+<figure><figcaption>SQL · 通用写法</figcaption><pre><code data-kind="sql">WITH totals AS (
+  SELECT order_id, SUM(qty * unit_price) AS total FROM order_items GROUP BY order_id
+)
+SELECT order_id, total, LAG(total) OVER (ORDER BY order_id) AS previous_total,
+       SUM(total) OVER (ORDER BY order_id ROWS UNBOUNDED PRECEDING) AS cumulative_total
+FROM totals ORDER BY order_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="order_items · 练习数据" tabindex="0">
+<table class="sql-result"><caption>order_items · 练习数据</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>103</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>104</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH totals AS ( SELECT order_id, SUM(qty * unit_price) AS total FROM order_items GROUP BY order_id ) SELECT order_id, total, LAG(total) OVER (ORDER BY order_id) AS previous_total, SUM(total) OVER (ORDER BY order_id ROWS UNBOUNDED PRECEDING) AS cumulative_total FROM totals ORDER BY order_id;</code></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">total</th><th scope="col">previous_total</th><th scope="col">cumulative_total</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>45.00</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>45.00</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td class="sql-number"><code>30.00</code></td><td class="sql-number"><code>45.00</code></td><td class="sql-number"><code>75.00</code></td></tr>
+<tr><td class="sql-number"><code>103</code></td><td class="sql-number"><code>30.00</code></td><td class="sql-number"><code>30.00</code></td><td class="sql-number"><code>105.00</code></td></tr>
+<tr><td class="sql-number"><code>104</code></td><td class="sql-number"><code>20.00</code></td><td class="sql-number"><code>30.00</code></td><td class="sql-number"><code>125.00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　订单 101 至 104 的金额分别是 <code>45,30,30,20</code>。</p><p><strong>执行后</strong>　LAG 为 <code>NULL,45,30,30</code>。累计金额为 <code>45,75,105,125</code>。</p>
+<p class="outcome">订单 101–104 的金额是 45、30、30、20。上单金额依次为 NULL、45、30、30，累计额是 45、75、105、125。</p>
+</details>
+</div></section>
+<section id="p6" class="point" data-dialects="postgresql sqlserver mysql" data-alternate-anchor="dial-analytic"><h2>INTERSECT 与 EXCEPT</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>交集保留同时出现的行，差集保留左边有而右边没有的行。默认对结果去重。</p>
+<figure><figcaption>SQL · 通用写法</figcaption><pre><code data-kind="sql">SELECT product_id FROM products WHERE category = &#x27;book&#x27;
+EXCEPT
+SELECT product_id FROM order_items ORDER BY product_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">category</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>book</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>book</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>stationery</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>stationery</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>book</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="order_items · 练习数据" tabindex="0">
+<table class="sql-result"><caption>order_items · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id FROM products WHERE category = &#x27;book&#x27; EXCEPT SELECT product_id FROM order_items ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　图书编号为 <code>[1,2,5]</code>。明细里有商品 <code>[1,2,3,4]</code>。</p><p><strong>执行后</strong>　左侧差集为 <code>[5]</code>。</p>
+<p class="outcome">查出未售出的图书商品 5。交集写法见<a href="17-set-operations.html">第 17 章</a>自测。</p>
+</details>
+</div></section>
+<section id="p7" class="point" data-dialects="mysql" data-alternate-anchor="dial-conflict"><h2>唯一键、UPSERT 与重试</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>INSERT 的唯一键冲突可走 ON DUPLICATE KEY UPDATE。重试安全取决于写入语义，重复设置同一状态通常比重复递增更容易控制。多个唯一键可能匹配不同目标，设计时先确定冲突键。</p>
+<p class="version-note"><strong>过时 · 已弃用</strong> 更新子句内的 <code>VALUES(列)</code> 在 26.10.0 仍能解析，并给出警告 1287。例子已采用行别名 <code>incoming.status</code>。用于给出待插入数据的 <code>INSERT … VALUES (...)</code> 仍可正常使用。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch32_events (event_id INT PRIMARY KEY, status VARCHAR(12));
+INSERT INTO ch32_events VALUES (1, &#x27;new&#x27;);
+INSERT INTO ch32_events VALUES (1, &#x27;done&#x27;) AS incoming
+ON DUPLICATE KEY UPDATE status = incoming.status;
+SELECT event_id, status FROM ch32_events;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="数据变化 · ch32_events" tabindex="0">
+<table class="sql-result"><caption>数据变化 · ch32_events</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">event_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>第一次插入后</code></td><td class="sql-number"><code>1</code></td><td><code>new</code></td></tr>
+<tr><td><code>相同主键 UPSERT 后</code></td><td class="sql-number"><code>1</code></td><td><code>done</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT event_id, status FROM ch32_events;</code></span></caption>
+<thead><tr><th scope="col">event_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>done</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　当前会话还没有临时事件表。代码先建表并插入 <code>1 | new</code>，再用同一个键插入 done。</p><p><strong>执行后</strong>　冲突走更新分支，最终只有 <code>1 | done</code>。</p>
+<p class="outcome">仍只有一行，状态更新为 done。用行别名获取插入值。</p>
+</details>
+</div></section>
+<section id="p8" class="point" data-dialects="mysql" data-alternate-anchor="dial-json-engine"><h2>JSON 字段及生成列索引</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>JSON 类型验证 JSON 语法，数字等标量也是合法 JSON。业务结构需要额外约束或应用校验。频繁筛选的一项可以抽成有明确类型的生成列并建索引，作为关系字段使用。新版还支持<a href="mysql-versions.html#json-duality">从关系表读取 JSON 二元视图</a>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch32_attrs (
+  id INT PRIMARY KEY, attrs JSON NOT NULL,
+  color VARCHAR(24) GENERATED ALWAYS AS
+    (JSON_UNQUOTE(JSON_EXTRACT(attrs, &#x27;$.color&#x27;))) STORED,
+  INDEX idx_color (color)
+);
+INSERT INTO ch32_attrs (id, attrs) VALUES (1, JSON_OBJECT(&#x27;color&#x27;, &#x27;blue&#x27;));
+SELECT id, color FROM ch32_attrs WHERE color = &#x27;blue&#x27;;
+SELECT JSON_TYPE(JSON_EXTRACT(&#x27;{&quot;color&quot;: null}&#x27;, &#x27;$.color&#x27;)) = &#x27;NULL&#x27;,
+       JSON_EXTRACT(&#x27;{}&#x27;, &#x27;$.color&#x27;) IS NULL, JSON_VALID(&#x27;17&#x27;);</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="数据变化 · ch32_attrs" tabindex="0">
+<table class="sql-result"><caption>数据变化 · ch32_attrs</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">id</th><th scope="col">attrs</th><th scope="col">color</th></tr></thead>
+<tbody>
+<tr><td><code>写入 JSON 并生成列后</code></td><td class="sql-number"><code>1</code></td><td><code>{&quot;color&quot;:&quot;blue&quot;}</code></td><td><code>blue</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT id, color FROM ch32_attrs WHERE color = &#x27;blue&#x27;;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">color</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>blue</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT JSON_TYPE(JSON_EXTRACT(&#x27;{&quot;color&quot;: null}&#x27;, &#x27;$.color&#x27;)) = &#x27;NULL&#x27;, JSON_EXTRACT(&#x27;{}&#x27;, &#x27;$.color&#x27;) IS NULL, JSON_VALID(&#x27;17&#x27;);</code></span></caption>
+<thead><tr><th scope="col">JSON_TYPE(JSON_EXTRACT(&#x27;{&quot;color&quot;: null}&#x27;, &#x27;$.color&#x27;)) = &#x27;NULL&#x27;</th><th scope="col">JSON_EXTRACT(&#x27;{}&#x27;, &#x27;$.color&#x27;) IS NULL</th><th scope="col">JSON_VALID(&#x27;17&#x27;)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　写入 <code>{&quot;color&quot;:&quot;blue&quot;}</code>。常量测试还含显式 JSON null、缺失字段和 JSON 数字。</p><p><strong>执行后</strong>　生成列返回 <code>1 | blue</code>。后三个判定皆为 <code>1</code>。</p>
+<p class="outcome">第一条返回 1、blue。第二条为 1、1、1，区分显式的 JSON null、缺失字段返回的 SQL NULL，以及合法的 JSON 数字。稳定的业务键和约束仍宜明确定义。</p>
+</details>
+</div></section>
+<section id="p9" class="point" data-dialects="mysql" data-alternate-anchor="dial-bind"><h2>绑定参数与动态查询</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>让值走预处理参数，避免手工拼接用户输入。应用应使用驱动的参数绑定接口，SQL 层可如下演练。表名、列名等标识符按已知白名单选择。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">PREPARE find_product FROM &#x27;SELECT name FROM products WHERE product_id = ?&#x27;;
+SET @product = 1;
+EXECUTE find_product USING @product;
+DEALLOCATE PREPARE find_product;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 相关行" tabindex="0">
+<table class="sql-result"><caption>products · 相关行</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXECUTE find_product USING @product;</code></span></caption>
+<thead><tr><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　商品 1 已存在。代码会为这次预处理执行绑定参数 1。</p><p><strong>执行后</strong>　执行时返回 <code>SQL Basics</code>，随后释放该预处理语句。</p>
+<p class="outcome">返回 SQL Basics。预处理语句属于当前会话。</p>
+</details>
+</div></section>
+<section id="p10" class="point" data-dialects="mysql" data-alternate-anchor="dial-analytic"><h2>数据建模：约束与快照</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>一对多用外键，多对多用带两个外键的关联表。单价在 products 是当前报价，在 order_items 是成交快照。约束表达结构与局部不变量，跨行规则应在事务内校验，并用约束或合适的锁处理并发，见<a href="26-transactions.html">第 26 章</a>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">START TRANSACTION;
+UPDATE products SET price = 22 WHERE product_id = 1;
+SELECT p.price AS current_price, i.unit_price AS sold_price
+FROM order_items AS i JOIN products AS p USING (product_id)
+WHERE i.order_id = 101 AND i.product_id = 1;
+ROLLBACK;
+SELECT price AS restored_price FROM products WHERE product_id = 1;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="数据变化 · 商品 1 与订单 101" tabindex="0">
+<table class="sql-result"><caption>数据变化 · 商品 1 与订单 101</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">product_id</th><th scope="col">当前价</th><th scope="col">成交价</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td><code>事务内</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>22.00</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td><code>回滚后</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td><td class="sql-number"><code>20.00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT p.price AS current_price, i.unit_price AS sold_price FROM order_items AS i JOIN products AS p USING (product_id) WHERE i.order_id = 101 AND i.product_id = 1;</code></span></caption>
+<thead><tr><th scope="col">current_price</th><th scope="col">sold_price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>22.00</code></td><td class="sql-number"><code>20.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT price AS restored_price FROM products WHERE product_id = 1;</code></span></caption>
+<thead><tr><th scope="col">restored_price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>20.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　商品 1 的现价与订单 101 的成交价起初都是 20.00。</p><p><strong>执行后</strong>　事务内为 <code>当前价 22.00 | 成交价 20.00</code>。回滚后当前价恢复 20.00。</p>
+<p class="outcome">当前价试改为 22.00，历史成交价仍为 20.00。回滚恢复初始商品价。</p>
+</details>
+</div></section>
+<section id="w3-parameters" class="point" data-dialects="mysql" data-alternate-anchor="dial-bind"><h2>绑定字符串与重复执行</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>查询模板里的 <code>?</code> 是值参数。使用应用驱动提供的参数绑定，让输入只作为数据传入，即使值里含有单引号。查询对象名若需动态选择，应由受控名单决定。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>PREPARE w3_find_customer FROM
+  &#x27;SELECT customer_id, name FROM customers WHERE name = ?&#x27;;
+
+SET @name = &#x27;Ana&#x27;;
+EXECUTE w3_find_customer USING @name;
+
+SET @name = &#x27;O&#x27;&#x27;Neil&#x27;;
+EXECUTE w3_find_customer USING @name;
+DEALLOCATE PREPARE w3_find_customer;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两次绑定的输入" tabindex="0">
+<table class="sql-result"><caption>两次绑定的输入</caption>
+<thead><tr><th scope="col">@name</th></tr></thead>
+<tbody>
+<tr><td><code>Ana</code></td></tr>
+<tr><td><code>O&#x27;Neil</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>EXECUTE w3_find_customer USING @name;</code><span class="sql-caption-context">@name = Ana</span></span></caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Ana</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>EXECUTE w3_find_customer USING @name;</code><span class="sql-caption-context">@name = O&#39;Neil</span></span></caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-no-rows" colspan="2">0 行</td></tr>
+</tbody>
+</table></div>
+</div>
+<p>第一次匹配 Ana。第二次查找名称为 <code>O'Neil</code> 的客户，在练习数据中得到 0 行。应用里的参数应单独传给驱动。</p>
+<p class="sources"><a href="https://www.w3schools.com/sql/sql_parameterized_queries.asp">W3Schools Parameters</a> · <a href="https://www.w3schools.com/sql/sql_prepared_statements.asp">W3Schools Prepared Statements</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/sql-prepared-statements.html">MySQL 预处理语句</a> · <a href="https://www.php.net/manual/en/mysqli.quickstart.prepared-statements.php">PHP mysqli 参数绑定</a></p></section>
+<aside id="merge" class="panel moved-section" aria-label="相关章节">
+<p data-dialects="postgresql"><a href="33-postgresql-write.html#merge">继续阅读 · PostgreSQL MERGE INTO</a></p>
+<p data-dialects="sqlserver"><a href="36-sqlserver-write.html#merge">继续阅读 · SQL Server MERGE INTO</a></p>
+<p data-dialects="mysql"><a href="#p7">继续阅读 · MySQL ON DUPLICATE KEY UPDATE</a></p>
+</aside>
+<section id="dial-analytic" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>CTE、CASE 与窗口函数</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>CTE 给中间结果命名。CASE 适合映射业务条件。窗口函数保留每行，可按类别给商品排名，再用外层过滤前两名。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 执行前练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH ranked AS (
+  SELECT product_id,category,price,
+         ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC,product_id) AS rn,
+         CASE WHEN price&gt;=20 THEN &#x27;high&#x27; ELSE &#x27;basic&#x27; END AS band
+  FROM products
+)
+SELECT product_id,category,rn,band FROM ranked WHERE rn&lt;=2 ORDER BY category,rn;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH ranked AS ( SELECT product_id,category,price, ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC,product_id) AS rn, CASE WHEN price&gt;=20 THEN &#x27;high&#x27; ELSE &#x27;basic&#x27; END AS band FROM products ) SELECT product_id,category,rn,band FROM ranked WHERE rn&lt;=2 ORDER BY category,rn;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">category</th><th scope="col">rn</th><th scope="col">band</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td><code>book</code></td><td class="sql-number"><code>1</code></td><td><code>high</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>book</code></td><td class="sql-number"><code>2</code></td><td><code>high</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>stationery</code></td><td class="sql-number"><code>1</code></td><td><code>basic</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>stationery</code></td><td class="sql-number"><code>2</code></td><td><code>basic</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>WITH ranked AS (
+  SELECT product_id,category,price,
+         ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC,product_id) AS rn,
+         CASE WHEN price&gt;=20 THEN &#x27;high&#x27; ELSE &#x27;basic&#x27; END AS band
+  FROM products
+)
+SELECT product_id,category,rn,band FROM ranked WHERE rn&lt;=2 ORDER BY category,rn;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH ranked AS ( SELECT product_id,category,price, ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC,product_id) AS rn, CASE WHEN price&gt;=20 THEN &#x27;high&#x27; ELSE &#x27;basic&#x27; END AS band FROM products ) SELECT product_id,category,rn,band FROM ranked WHERE rn&lt;=2 ORDER BY category,rn;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">category</th><th scope="col">rn</th><th scope="col">band</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td><code>book</code></td><td class="sql-number"><code>1</code></td><td><code>high</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>book</code></td><td class="sql-number"><code>2</code></td><td><code>high</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>stationery</code></td><td class="sql-number"><code>1</code></td><td><code>basic</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>stationery</code></td><td class="sql-number"><code>2</code></td><td><code>basic</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+</section>
+<section id="dial-recursive" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p3">
+<h2>递归 CTE</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>先给锚点，再用 UNION ALL 递归扩展，停止条件避免无限循环。PostgreSQL 需要 RECURSIVE，SQL Server 用 WITH 并可设置最大递归深度。</p>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH RECURSIVE n AS (
+  SELECT 1 AS step UNION ALL SELECT step+1 FROM n WHERE step&lt;3
+)
+SELECT step FROM n ORDER BY step;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH RECURSIVE n AS ( SELECT 1 AS step UNION ALL SELECT step+1 FROM n WHERE step&lt;3 ) SELECT step FROM n ORDER BY step;</code></span></caption>
+<thead><tr><th scope="col">step</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>WITH n AS (
+  SELECT 1 AS step UNION ALL SELECT step+1 FROM n WHERE step&lt;3
+)
+SELECT step FROM n ORDER BY step OPTION (MAXRECURSION 10);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH n AS ( SELECT 1 AS step UNION ALL SELECT step+1 FROM n WHERE step&lt;3 ) SELECT step FROM n ORDER BY step OPTION (MAXRECURSION 10);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">step</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/queries-with.html">PostgreSQL WITH</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/recursive-common-table-expression-transact-sql">SQL Server 递归 CTE</a></p>
+</section>
+<section id="dial-conflict" class="point" data-dialects="postgresql" data-alternate-anchor="p7">
+<h2>PostgreSQL ON CONFLICT</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>明确冲突键。DO UPDATE 使用 EXCLUDED 获取原先要插入的值，RETURNING 可返回写入后的记录。PostgreSQL 19 另有 DO SELECT，用于在冲突时返回已有行。</p>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_notes_events (id int PRIMARY KEY,status varchar(12));
+INSERT INTO pg_notes_events VALUES (1,&#x27;new&#x27;);
+INSERT INTO pg_notes_events VALUES (1,&#x27;done&#x27;),(2,&#x27;new&#x27;)
+ON CONFLICT (id) DO UPDATE SET status=EXCLUDED.status;
+SELECT id,status FROM pg_notes_events ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,status FROM pg_notes_events ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>done</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>new</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-insert.html">PostgreSQL INSERT · 包含 19 的 DO SELECT</a></p>
+</section>
+<section id="dial-json-engine" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p8">
+<h2>JSON 取值和标量类型</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>PostgreSQL 常用 jsonb 加 -&gt;&gt; 读取文本。SQL Server 可用 JSON_VALUE 读取标量。将 JSON 数字参与计算时显式转换类型。</p>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH payload AS (SELECT &#x27;{&quot;color&quot;:&quot;blue&quot;,&quot;qty&quot;:2}&#x27;::jsonb AS doc)
+SELECT doc-&gt;&gt;&#x27;color&#x27; AS color,(doc-&gt;&gt;&#x27;qty&#x27;)::int+1 AS next_qty FROM payload;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH payload AS (SELECT &#x27;{&quot;color&quot;:&quot;blue&quot;,&quot;qty&quot;:2}&#x27;::jsonb AS doc) SELECT doc-&gt;&gt;&#x27;color&#x27; AS color,(doc-&gt;&gt;&#x27;qty&#x27;)::int+1 AS next_qty FROM payload;</code></span></caption>
+<thead><tr><th scope="col">color</th><th scope="col">next_qty</th></tr></thead>
+<tbody>
+<tr><td><code>blue</code></td><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>WITH payload AS (SELECT N&#x27;{&quot;color&quot;:&quot;blue&quot;,&quot;qty&quot;:2}&#x27; AS doc)
+SELECT JSON_VALUE(doc,&#x27;$.color&#x27;) AS color,
+       CONVERT(int,JSON_VALUE(doc,&#x27;$.qty&#x27;))+1 AS next_qty FROM payload;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH payload AS (SELECT N&#x27;{&quot;color&quot;:&quot;blue&quot;,&quot;qty&quot;:2}&#x27; AS doc) SELECT JSON_VALUE(doc,&#x27;$.color&#x27;) AS color, CONVERT(int,JSON_VALUE(doc,&#x27;$.qty&#x27;))+1 AS next_qty FROM payload;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">color</th><th scope="col">next_qty</th></tr></thead>
+<tbody>
+<tr><td><code>blue</code></td><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/functions-json.html">PostgreSQL JSON 函数</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/json-value-transact-sql">SQL Server JSON_VALUE</a></p>
+</section>
+<section id="dial-bind" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p9">
+<h2>参数化执行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>将 SQL 模板和值分别传入执行接口，可让输入始终作为数据处理。实际应用使用驱动的参数绑定。标识符需要从允许的列表选择。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 执行前练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>PREPARE pg_notes_get(int) AS SELECT name FROM products WHERE product_id=$1;
+EXECUTE pg_notes_get(1);
+DEALLOCATE pg_notes_get;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXECUTE pg_notes_get(1);</code></span></caption>
+<thead><tr><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>EXEC sys.sp_executesql N&#x27;SELECT name FROM dbo.products WHERE product_id=@id;&#x27;,
+                       N&#x27;@id int&#x27;,@id=1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXEC sys.sp_executesql N&#x27;SELECT name FROM dbo.products WHERE product_id=@id;&#x27;, N&#x27;@id int&#x27;,@id=1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-prepare.html">PostgreSQL PREPARE</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-executesql-transact-sql">SQL Server sp_executesql</a></p>
+</section>
+<aside id="dial-get-or-create" class="panel moved-section" aria-label="相关章节" data-dialects="postgresql">
+<p><a href="33-postgresql-write.html#do-select">继续阅读 · PostgreSQL 19 的 ON CONFLICT DO SELECT</a></p>
+</aside>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>写一条查询，返回每位客户的已付订单金额，即使没有付款也返回 0。</p><details><summary>查看答案</summary><figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">WITH paid AS (
+  SELECT o.customer_id, SUM(i.qty * i.unit_price) AS total
+  FROM orders AS o JOIN order_items AS i USING (order_id)
+  WHERE o.status = &#x27;paid&#x27;
+  GROUP BY o.customer_id
+)
+SELECT c.name, COALESCE(paid.total, 0) AS total
+FROM customers AS c LEFT JOIN paid USING (customer_id)
+ORDER BY c.customer_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="orders · 练习数据" tabindex="0">
+<table class="sql-result"><caption>orders · 练习数据</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td><td><code>paid</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td class="sql-number"><code>2</code></td><td><code>pending</code></td></tr>
+<tr><td class="sql-number"><code>103</code></td><td class="sql-number"><code>1</code></td><td><code>paid</code></td></tr>
+<tr><td class="sql-number"><code>104</code></td><td class="sql-number"><code>3</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="order_items · 练习数据" tabindex="0">
+<table class="sql-result"><caption>order_items · 练习数据</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>103</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>104</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH paid AS ( SELECT o.customer_id, SUM(i.qty * i.unit_price) AS total FROM orders AS o JOIN order_items AS i USING (order_id) WHERE o.status = &#x27;paid&#x27; GROUP BY o.customer_id ) SELECT c.name, COALESCE(paid.total, 0) AS total FROM customers AS c LEFT JOIN paid USING (customer_id) ORDER BY c.customer_id;</code></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">total</th></tr></thead>
+<tbody>
+<tr><td><code>Ana</code></td><td class="sql-number"><code>75.00</code></td></tr>
+<tr><td><code>Bo</code></td><td class="sql-number"><code>0.00</code></td></tr>
+<tr><td><code>Chen</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td><code>Dina</code></td><td class="sql-number"><code>0.00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　已付订单金额按客户为 <code>Ana:45+30</code>、<code>Chen:20</code>。Bo、Dina 无已付款项。</p><p><strong>执行后</strong>　左联结和补零得到 <code>Ana 75.00</code>、<code>Bo 0.00</code>、<code>Chen 20.00</code>、<code>Dina 0.00</code>。</p>
+<p class="outcome">Ana 75.00，Bo 0.00，Chen 20.00，Dina 0.00。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/flow-control-functions.html">CASE</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/with.html">WITH</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/window-functions-usage.html">窗口函数</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/json.html">JSON</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/sql-prepared-statements.html">预处理</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/insert-on-duplicate.html">UPSERT</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="postgresql sqlserver mysql"><a href="#p1">用 CASE 分类并统计满足条件的行</a></li><li data-dialects="mysql"><a href="#p2">WITH 给中间结果命名</a></li><li data-dialects="mysql"><a href="#p3">递归 CTE 逐层展开</a></li><li data-dialects="postgresql sqlserver mysql"><a href="#p4">窗口排名和每组前 N</a></li><li data-dialects="postgresql sqlserver mysql"><a href="#p5">累计窗口与 LAG</a></li><li data-dialects="postgresql sqlserver mysql"><a href="#p6">比较两组结果的交集和差集</a></li><li data-dialects="mysql"><a href="#p7">UPSERT 处理唯一键冲突</a></li><li data-dialects="mysql"><a href="#p8">JSON 字段及生成列索引</a></li><li data-dialects="mysql"><a href="#p9">绑定参数与动态查询</a></li><li data-dialects="mysql"><a href="#p10">用约束和成交快照保留业务事实</a></li><li data-dialects="mysql"><a href="#w3-parameters">绑定字符串与重复执行</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-analytic">用 CTE 组织查询并按组排名</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-recursive">递归 CTE 展开层级</a></li><li data-dialects="postgresql"><a href="#dial-conflict">ON CONFLICT 遇到主键冲突时更新</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-json-engine">JSON 取值和标量类型</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-bind">给动态查询绑定参数</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="31-appendices.html">← 附录速查</a><a href="../v1.html">章节目录</a><a rel="next" href="33-postgresql-write.html" data-dialects="postgresql">PostgreSQL 原生语法 →</a><a rel="next" href="36-sqlserver-write.html" data-dialects="sqlserver">SQL Server 原生语法 →</a><a rel="next" href="../v1.html#reference-appendices" data-dialects="mysql">参考附录 →</a></nav>
+</main>
+</body></html>

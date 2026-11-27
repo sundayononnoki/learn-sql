@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>数据过滤 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 7 章 · 原书第 40–45 页</p>
+<h1>数据过滤</h1>
+<p class="lead" data-dialects="mysql">组合多个条件时用括号表达意图，并留意 NULL 如何影响 NOT IN。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="postgresql sqlserver mysql" data-alternate-anchor="dial-logic"><h2>AND 和 OR</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>一条查询只写一个 WHERE，用逻辑运算符连接条件。<code>AND</code> 需要两边都为真，<code>OR</code> 至少一边为真就通过。</p>
+<figure><figcaption>SQL · 通用写法</figcaption><pre><code data-kind="sql">SELECT product_id FROM products WHERE category = &#x27;book&#x27; AND price = 30 ORDER BY product_id;
+SELECT product_id FROM products WHERE category = &#x27;book&#x27; OR price = 5 ORDER BY product_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">category</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id FROM products WHERE category = &#x27;book&#x27; AND price = 30 ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT product_id FROM products WHERE category = &#x27;book&#x27; OR price = 5 ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　图书编号是 1、2、5。价格 30 的是 2、5，价格 5 的是 4。</p><p><strong>执行后</strong>　<code>AND → [2,5]</code>。<code>OR → [1,2,4,5]</code>。</p>
+<p class="outcome">第一条得 2、5。第二条得 1、2、4、5。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="postgresql sqlserver mysql" data-alternate-anchor="dial-logic"><h2>优先级与括号</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>AND 的优先级高于 OR。把 OR 括起来可以让类别条件同时约束两个价格。</p>
+<figure><figcaption>SQL · 通用写法</figcaption><pre><code data-kind="sql">SELECT product_id FROM products
+WHERE category = &#x27;book&#x27; AND price = 20 OR price = 5 ORDER BY product_id;
+SELECT product_id FROM products
+WHERE category = &#x27;book&#x27; AND (price = 20 OR price = 5) ORDER BY product_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">category</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id FROM products WHERE category = &#x27;book&#x27; AND price = 20 OR price = 5 ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT product_id FROM products WHERE category = &#x27;book&#x27; AND (price = 20 OR price = 5) ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　编号 1 是 20 元图书。编号 4 是 5 元文具。</p><p><strong>执行后</strong>　不加括号可选中文具 4，得 <code>[1,4]</code>。加括号后只得 <code>[1]</code>。</p>
+<p class="outcome">不加括号得到 1、4。加括号后只有 1。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="postgresql sqlserver mysql" data-alternate-anchor="dial-logic"><h2>IN 枚举候选值</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>IN</code> 适合从同一列的一组候选值中任取一个。还可接单列子查询。</p>
+<figure><figcaption>SQL · 通用写法</figcaption><pre><code data-kind="sql">SELECT product_id FROM products WHERE price IN (5, 30) ORDER BY product_id;
+SELECT product_id FROM products WHERE price = 5 OR price = 30 ORDER BY product_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">category</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id FROM products WHERE price IN (5, 30) ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT product_id FROM products WHERE price = 5 OR price = 30 ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　价格 5 对应编号 4，价格 30 对应 2 与 5。</p><p><strong>执行后</strong>　IN 和连续 OR 均返回 <code>[2,4,5]</code>。</p>
+<p class="outcome">两种写法都返回 2、4、5。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-logic"><h2>NOT 反转条件与三值逻辑</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>NOT</code> 反转真或假，未知依然未知。候选集合可能包含 NULL 时，要用可靠的反联结写法，例如<a href="14-subqueries.html">第 14 章</a>的 NOT EXISTS。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT product_id FROM products WHERE price NOT IN (5, 30) ORDER BY product_id;
+SELECT product_id FROM products WHERE price NOT BETWEEN 10 AND 20 ORDER BY product_id;
+SELECT 2 NOT IN (1, NULL) AS unknown_result;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">category</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id FROM products WHERE price NOT IN (5, 30) ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT product_id FROM products WHERE price NOT BETWEEN 10 AND 20 ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT 2 NOT IN (1, NULL) AS unknown_result;</code></span></caption>
+<thead><tr><th scope="col">unknown_result</th></tr></thead>
+<tbody>
+<tr><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　编号 1–5 的价格依次为 <code>20, 30, 10, 5, 30</code>。另有 <code>2 NOT IN (1,NULL)</code>。</p><p><strong>执行后</strong>　<code>NOT IN → [1,3]</code>。<code>NOT BETWEEN → [2,4,5]</code>。含 NULL 的常量比较返回 <code>NULL</code>。</p>
+<p class="outcome">前两条返回 1、3 和 2、4、5，最后一条返回 NULL。把最后一个条件放在 WHERE 中会过滤该行。</p>
+</details>
+</div></section>
+<section id="dial-logic" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>AND、OR、IN 与 NOT</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>括号明确逻辑组合。NOT IN 的候选集合含 NULL 时，不匹配的普通值仍可能得到未知。用相关 NOT EXISTS 可清晰表达查不到关联。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 执行前练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="customers · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>customers · 执行前练习数据</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">name</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Ana</code></td><td><code>北京</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>Bo</code></td><td><code>上海</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Chen</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Dina</code></td><td><code>北京</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT product_id FROM products
+WHERE category = &#x27;book&#x27; AND (price = 20 OR price IN (30,40)) ORDER BY product_id;
+SELECT customer_id FROM customers WHERE customer_id NOT IN (1, NULL) ORDER BY customer_id;
+SELECT c.customer_id FROM customers AS c
+WHERE NOT EXISTS (SELECT 1 FROM orders AS o WHERE o.customer_id=c.customer_id) ORDER BY c.customer_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id FROM products WHERE category = &#x27;book&#x27; AND (price = 20 OR price IN (30,40)) ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT customer_id FROM customers WHERE customer_id NOT IN (1, NULL) ORDER BY customer_id;</code></span></caption>
+<thead><tr><th scope="col">customer_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-no-rows" colspan="1">0 行</td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT c.customer_id FROM customers AS c WHERE NOT EXISTS (SELECT 1 FROM orders AS o WHERE o.customer_id=c.customer_id) ORDER BY c.customer_id;</code></span></caption>
+<thead><tr><th scope="col">customer_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT product_id FROM products
+WHERE category = &#x27;book&#x27; AND (price = 20 OR price IN (30,40)) ORDER BY product_id;
+SELECT customer_id FROM customers WHERE customer_id NOT IN (1, NULL) ORDER BY customer_id;
+SELECT c.customer_id FROM customers AS c
+WHERE NOT EXISTS (SELECT 1 FROM orders AS o WHERE o.customer_id=c.customer_id) ORDER BY c.customer_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id FROM products WHERE category = &#x27;book&#x27; AND (price = 20 OR price IN (30,40)) ORDER BY product_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT customer_id FROM customers WHERE customer_id NOT IN (1, NULL) ORDER BY customer_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">customer_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-no-rows" colspan="1">0 行</td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT c.customer_id FROM customers AS c WHERE NOT EXISTS (SELECT 1 FROM orders AS o WHERE o.customer_id=c.customer_id) ORDER BY c.customer_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">customer_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>筛选上海客户与城市未知的客户。</p><details><summary>查看答案</summary><figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT customer_id FROM customers WHERE city = &#x27;上海&#x27; OR city IS NULL ORDER BY customer_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="customers · 练习数据" tabindex="0">
+<table class="sql-result"><caption>customers · 练习数据</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>北京</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>上海</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>北京</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT customer_id FROM customers WHERE city = &#x27;上海&#x27; OR city IS NULL ORDER BY customer_id;</code></span></caption>
+<thead><tr><th scope="col">customer_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　客户 2 城市为上海，客户 3 城市为 NULL，其他两人都在北京。</p><p><strong>执行后</strong>　返回客户 <code>[2,3]</code>。</p>
+<p class="outcome">返回 2、3。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/logical-operators.html">逻辑运算</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/operator-precedence.html">优先级</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/comparison-operators.html">比较运算</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="postgresql sqlserver mysql"><a href="#p1">AND 同时满足、OR 至少满足一个条件</a></li><li data-dialects="postgresql sqlserver mysql"><a href="#p2">用括号控制条件先后</a></li><li data-dialects="postgresql sqlserver mysql"><a href="#p3">IN 枚举候选值</a></li><li data-dialects="mysql"><a href="#p4">NOT 反转条件与三值逻辑</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-logic">组合筛选条件并排除匹配</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="06-where.html">← 过滤数据</a><a href="../v1.html">章节目录</a><a rel="next" href="08-like.html">用通配符进行过滤 →</a></nav>
+</main>
+</body></html>

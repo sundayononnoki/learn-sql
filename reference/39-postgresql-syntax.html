@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>39 · PostgreSQL · SQL 基本元素与名称解析 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 39 章 · 原生语法</p>
+<h1>PostgreSQL · SQL 基本元素与名称解析</h1>
+<p class="lead">用 PostgreSQL 的标识符、字面量和比较规则写出确定的表达式，并能查清未限定的表、函数和操作符实际指向什么。</p>
+<div class="layout"><article class="content">
+<section id="identifiers" class="point" data-dialects="postgresql">
+<h2>小写折叠、双引号与保留字</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>裸标识符折叠为小写。双引号保留原拼法，也允许把关键字用作名字。常规对象名可用小写和下划线，引用已有的带引号名称时保持大小写一致。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="CTE PriceBook 的一行" tabindex="0">
+<table class="sql-result"><caption>CTE PriceBook 的一行</caption>
+<thead><tr><th scope="col">select</th><th scope="col">example</th></tr></thead>
+<tbody>
+<tr><td><code>20</code></td><td><code>30</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH &quot;PriceBook&quot;(&quot;select&quot;, EXAMPLE) AS (VALUES (20, 30))
+SELECT &quot;select&quot; AS quoted_keyword, ExAmPlE AS folded_name
+FROM &quot;PriceBook&quot;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH &quot;PriceBook&quot;(&quot;select&quot;, EXAMPLE) AS (VALUES (20, 30))
+SELECT &quot;select&quot; AS quoted_keyword, ExAmPlE AS folded_name
+FROM &quot;PriceBook&quot;;</code></span></caption>
+<thead><tr><th scope="col">quoted_keyword</th><th scope="col">folded_name</th></tr></thead>
+<tbody>
+<tr><td><code>20</code></td><td><code>30</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-syntax-lexical.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="escape-strings" class="point" data-dialects="postgresql">
+<h2>单引号、E 转义和 Unicode 转义</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>普通字符串用两个单引号表示一个撇号。E 字符串显式识别反斜杠转义。U&amp; 后接引号与 Unicode 码点。示例默认转义符为 \，数据库采用 UTF-8。普通字符串里的反斜杠行为由 standard_conforming_strings 控制，现代默认值为 on。U&amp; 字符串字面量要求 standard_conforming_strings 为 on。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="三个字符串源码" tabindex="0">
+<table class="sql-result"><caption>三个字符串源码</caption>
+<thead><tr><th scope="col">ordinary</th><th scope="col">escaped</th><th scope="col">unicode</th></tr></thead>
+<tbody>
+<tr><td><code>&#x27;Dianne&#x27;&#x27;s&#x27;</code></td><td><code>E&#x27;a\nb&#x27;</code></td><td><code>U&amp;&#x27;\5317\4EAC&#x27;</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT &#x27;Dianne&#x27;&#x27;s&#x27; AS apostrophe, length(E&#x27;a\nb&#x27;) AS escaped_length,
+       U&amp;&#x27;\5317\4EAC&#x27; AS city;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;Dianne&#x27;&#x27;s&#x27; AS apostrophe, length(E&#x27;a\nb&#x27;) AS escaped_length,
+       U&amp;&#x27;\5317\4EAC&#x27; AS city;</code></span></caption>
+<thead><tr><th scope="col">apostrophe</th><th scope="col">escaped_length</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td><code>Dianne&#x27;s</code></td><td><code>3</code></td><td><code>北京</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-syntax-lexical.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="dollar-quote" class="point" data-dialects="postgresql">
+<h2>美元引号保留字符串正文</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>标签之间的撇号和反斜杠原样保留。结束标签与开头标签须完全一致。不同标签可用于正文里的另一对美元引号。常见于函数体和多行 SQL 文本。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="标签包住的字符" tabindex="0">
+<table class="sql-result"><caption>标签包住的字符</caption>
+<thead><tr><th scope="col">quote_argument</th></tr></thead>
+<tbody>
+<tr><td><code>$q$It&#x27;s \n$q$</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT $q$It&#x27;s \n$q$ AS original_text,
+       length($q$\n$q$) AS slash_and_n,
+       $outer$keep $inner$x$inner$$outer$ AS nested_text;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT $q$It&#x27;s \n$q$ AS original_text,
+       length($q$\n$q$) AS slash_and_n,
+       $outer$keep $inner$x$inner$$outer$ AS nested_text;</code></span></caption>
+<thead><tr><th scope="col">original_text</th><th scope="col">slash_and_n</th><th scope="col">nested_text</th></tr></thead>
+<tbody>
+<tr><td><code>It&#x27;s \n</code></td><td><code>2</code></td><td><code>keep $inner$x$inner$</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-syntax-lexical.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="casts" class="point" data-dialects="postgresql">
+<h2>::、CAST 与类型检查</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>PostgreSQL 的 :: 和标准 CAST 都可指定目标类型。显式转换能表达精度，并在重载时指定参数类型。pg_typeof 可查看表达式选定的类型。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待转换的文本" tabindex="0">
+<table class="sql-result"><caption>待转换的文本</caption>
+<thead><tr><th scope="col">int_text</th><th scope="col">amount_text</th></tr></thead>
+<tbody>
+<tr><td><code>42</code></td><td><code>12.50</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT &#x27;42&#x27;::integer AS parsed, CAST(&#x27;12.50&#x27; AS numeric(6,2)) AS amount,
+       pg_typeof(1 + 2.5)::text AS mixed_type;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;42&#x27;::integer AS parsed, CAST(&#x27;12.50&#x27; AS numeric(6,2)) AS amount,
+       pg_typeof(1 + 2.5)::text AS mixed_type;</code></span></caption>
+<thead><tr><th scope="col">parsed</th><th scope="col">amount</th><th scope="col">mixed_type</th></tr></thead>
+<tbody>
+<tr><td><code>42</code></td><td><code>12.50</code></td><td><code>numeric</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-expressions.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="typed-time" class="point" data-dialects="postgresql">
+<h2>DATE、TIME 与 INTERVAL 字面量</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>类型名加字符串可直接声明日期、时刻和间隔。日期加整数按天计算，日期加 interval 返回 timestamp。按日历加月时，目标月天数不足会落在该月的最后一天。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="表达式起值" tabindex="0">
+<table class="sql-result"><caption>表达式起值</caption>
+<thead><tr><th scope="col">day</th><th scope="col">clock</th><th scope="col">step</th></tr></thead>
+<tbody>
+<tr><td><code>2025-01-31</code></td><td><code>09:10:00</code></td><td><code>1 month</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT DATE &#x27;2025-01-31&#x27; + 1 AS next_day,
+       to_char(DATE &#x27;2025-01-31&#x27; + INTERVAL &#x27;1 month&#x27;, &#x27;YYYY-MM-DD HH24:MI&#x27;) AS one_month,
+       EXTRACT(HOUR FROM TIME &#x27;09:10:00&#x27;)::integer AS clock_hour;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATE &#x27;2025-01-31&#x27; + 1 AS next_day,
+       to_char(DATE &#x27;2025-01-31&#x27; + INTERVAL &#x27;1 month&#x27;, &#x27;YYYY-MM-DD HH24:MI&#x27;) AS one_month,
+       EXTRACT(HOUR FROM TIME &#x27;09:10:00&#x27;)::integer AS clock_hour;</code></span></caption>
+<thead><tr><th scope="col">next_day</th><th scope="col">one_month</th><th scope="col">clock_hour</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-01</code></td><td><code>2025-02-28 00:00</code></td><td><code>9</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/datatype-datetime.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="boolean" class="point" data-dialects="postgresql">
+<h2>TRUE、FALSE、UNKNOWN 与布尔筛选</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>布尔列可为 TRUE、FALSE 或 NULL。谓词 IS TRUE、IS FALSE 和 IS UNKNOWN 分别识别三种状态，返回确定的布尔值。WHERE 保留条件为 TRUE 的行，排除 FALSE 和 UNKNOWN。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="三种布尔输入" tabindex="0">
+<table class="sql-result"><caption>三种布尔输入</caption>
+<thead><tr><th scope="col">seq</th><th scope="col">flag</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>true</code></td></tr>
+<tr><td><code>2</code></td><td><code>false</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sample(seq, flag) AS (VALUES (1, TRUE), (2, FALSE), (3, NULL::boolean))
+SELECT seq, flag, flag IS TRUE AS is_true, flag IS FALSE AS is_false,
+       flag IS UNKNOWN AS is_unknown
+FROM sample ORDER BY seq;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sample(seq, flag) AS (VALUES (1, TRUE), (2, FALSE), (3, NULL::boolean))
+SELECT seq, flag, flag IS TRUE AS is_true, flag IS FALSE AS is_false,
+       flag IS UNKNOWN AS is_unknown
+FROM sample ORDER BY seq;</code></span></caption>
+<thead><tr><th scope="col">seq</th><th scope="col">flag</th><th scope="col">is_true</th><th scope="col">is_false</th><th scope="col">is_unknown</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>true</code></td><td><code>true</code></td><td><code>false</code></td><td><code>false</code></td></tr>
+<tr><td><code>2</code></td><td><code>false</code></td><td><code>false</code></td><td><code>true</code></td><td><code>false</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td><td><code>false</code></td><td><code>false</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-comparison.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="null-safe" class="point" data-dialects="postgresql">
+<h2>用 IS DISTINCT FROM 比较含 NULL 的新旧值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>比较两个可空值时，IS DISTINCT FROM 将两个 NULL 视为相同，将一空一非空视为不同。IS NOT DISTINCT FROM 是它的互补谓词。检测字段是否发生变化时可直接使用。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="比较的两列" tabindex="0">
+<table class="sql-result"><caption>比较的两列</caption>
+<thead><tr><th scope="col">seq</th><th scope="col">old_value</th><th scope="col">new_value</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td class="sql-null"><code>NULL</code></td><td><code>5</code></td></tr>
+<tr><td><code>3</code></td><td><code>5</code></td><td><code>5</code></td></tr>
+<tr><td><code>4</code></td><td><code>5</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH changes(seq, old_value, new_value) AS (
+  VALUES (1, NULL::integer, NULL::integer), (2, NULL, 5), (3, 5, 5), (4, 5, 7)
+)
+SELECT seq, old_value = new_value AS plain_eq,
+       old_value IS DISTINCT FROM new_value AS changed,
+       old_value IS NOT DISTINCT FROM new_value AS equal_with_nulls
+FROM changes ORDER BY seq;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH changes(seq, old_value, new_value) AS (
+  VALUES (1, NULL::integer, NULL::integer), (2, NULL, 5), (3, 5, 5), (4, 5, 7)
+)
+SELECT seq, old_value = new_value AS plain_eq,
+       old_value IS DISTINCT FROM new_value AS changed,
+       old_value IS NOT DISTINCT FROM new_value AS equal_with_nulls
+FROM changes ORDER BY seq;</code></span></caption>
+<thead><tr><th scope="col">seq</th><th scope="col">plain_eq</th><th scope="col">changed</th><th scope="col">equal_with_nulls</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td><td><code>false</code></td><td><code>true</code></td></tr>
+<tr><td><code>2</code></td><td class="sql-null"><code>NULL</code></td><td><code>true</code></td><td><code>false</code></td></tr>
+<tr><td><code>3</code></td><td><code>true</code></td><td><code>false</code></td><td><code>true</code></td></tr>
+<tr><td><code>4</code></td><td><code>false</code></td><td><code>true</code></td><td><code>false</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-comparison.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="row-comparisons" class="point" data-dialects="postgresql">
+<h2>ROW 构造值与多列比较</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>大小比较从左至右看字段。第一对已经分出大小时，后面的 NULL 不参与。如果走到含 NULL 的决定位置，结果为未知。多列游标分页可使用同一方向的行值比较，并按相同的非空列顺序排序。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="三对待比记录" tabindex="0">
+<table class="sql-result"><caption>三对待比记录</caption>
+<thead><tr><th scope="col">seq</th><th scope="col">lhs</th><th scope="col">rhs</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>(1,20)</code></td><td><code>(1,30)</code></td></tr>
+<tr><td><code>2</code></td><td><code>(1,NULL)</code></td><td><code>(2,0)</code></td></tr>
+<tr><td><code>3</code></td><td><code>(1,NULL)</code></td><td><code>(1,0)</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH pairs(seq, a, b, c, d) AS (
+  VALUES (1, 1, 20, 1, 30), (2, 1, NULL, 2, 0), (3, 1, NULL, 1, 0)
+)
+SELECT seq, ROW(a,b) &lt; ROW(c,d) AS less
+FROM pairs ORDER BY seq;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH pairs(seq, a, b, c, d) AS (
+  VALUES (1, 1, 20, 1, 30), (2, 1, NULL, 2, 0), (3, 1, NULL, 1, 0)
+)
+SELECT seq, ROW(a,b) &lt; ROW(c,d) AS less
+FROM pairs ORDER BY seq;</code></span></caption>
+<thead><tr><th scope="col">seq</th><th scope="col">less</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>true</code></td></tr>
+<tr><td><code>2</code></td><td><code>true</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-comparisons.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="array-any-all" class="point" data-dialects="postgresql">
+<h2>数组 ANY、SOME 与 ALL</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>ANY 或 SOME 对数组元素逐一比较，存在一个真值就为真。ALL 需要每次比较都为真。空数组的 ANY 为假、ALL 为真。对常见的严格比较符，若没有决定结果且遇到 NULL 元素，就得到未知。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="右侧为四种整数数组，待比较值为 3" tabindex="0">
+<table class="sql-result"><caption>右侧为四种整数数组，待比较值为 3</caption>
+<thead><tr><th scope="col">seq</th><th scope="col">candidates</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>{1,3}</code></td></tr>
+<tr><td><code>2</code></td><td><code>{1,2}</code></td></tr>
+<tr><td><code>3</code></td><td><code>{1,NULL}</code></td></tr>
+<tr><td><code>4</code></td><td><code>{}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH samples(seq, candidates) AS (
+  VALUES (1, ARRAY[1,3]), (2, ARRAY[1,2]), (3, ARRAY[1,NULL]), (4, ARRAY[]::integer[])
+)
+SELECT seq, 3 = ANY(candidates) AS any_equal,
+       3 &gt; ALL(candidates) AS above_all, 3 = SOME(candidates) AS some_equal
+FROM samples ORDER BY seq;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH samples(seq, candidates) AS (
+  VALUES (1, ARRAY[1,3]), (2, ARRAY[1,2]), (3, ARRAY[1,NULL]), (4, ARRAY[]::integer[])
+)
+SELECT seq, 3 = ANY(candidates) AS any_equal,
+       3 &gt; ALL(candidates) AS above_all, 3 = SOME(candidates) AS some_equal
+FROM samples ORDER BY seq;</code></span></caption>
+<thead><tr><th scope="col">seq</th><th scope="col">any_equal</th><th scope="col">above_all</th><th scope="col">some_equal</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>true</code></td><td><code>false</code></td><td><code>true</code></td></tr>
+<tr><td><code>2</code></td><td><code>false</code></td><td><code>true</code></td><td><code>false</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>4</code></td><td><code>false</code></td><td><code>true</code></td><td><code>false</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-comparisons.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="operator-overloads" class="point" data-dialects="postgresql">
+<h2>同一操作符可以有多个类型签名</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>操作符重载由操作数类型选择。|| 连接文本时得到一段文本，连接整数数组时得到整数数组。遇到不明确的字符串字面量，可写显式类型转换。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两对不同类型的操作数" tabindex="0">
+<table class="sql-result"><caption>两对不同类型的操作数</caption>
+<thead><tr><th scope="col">left_operand</th><th scope="col">right_operand</th></tr></thead>
+<tbody>
+<tr><td><code>&#x27;12&#x27;::text</code></td><td><code>&#x27;3&#x27;::text</code></td></tr>
+<tr><td><code>ARRAY[1,2]</code></td><td><code>ARRAY[3]</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT &#x27;12&#x27;::text || &#x27;3&#x27;::text AS joined_text,
+       (ARRAY[1,2] || ARRAY[3])::text AS joined_array;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;12&#x27;::text || &#x27;3&#x27;::text AS joined_text,
+       (ARRAY[1,2] || ARRAY[3])::text AS joined_array;</code></span></caption>
+<thead><tr><th scope="col">joined_text</th><th scope="col">joined_array</th></tr></thead>
+<tbody>
+<tr><td><code>123</code></td><td><code>{1,2,3}</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/typeconv-oper.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="function-overloads" class="point" data-dialects="postgresql">
+<h2>按参数类型选择函数重载</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>同名函数可定义多种参数签名。length(text) 数字符，length(bytea) 数字节。这里先用 convert_to 把同一文本编码成 UTF-8 字节序列，再调用另一种签名。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="用于两种签名的原始文本" tabindex="0">
+<table class="sql-result"><caption>用于两种签名的原始文本</caption>
+<thead><tr><th scope="col">word</th><th scope="col">encoding</th></tr></thead>
+<tbody>
+<tr><td><code>北京</code></td><td><code>UTF8</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT pg_catalog.length(&#x27;北京&#x27;::text) AS characters,
+       pg_catalog.length(convert_to(&#x27;北京&#x27;, &#x27;UTF8&#x27;)) AS bytes;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT pg_catalog.length(&#x27;北京&#x27;::text) AS characters,
+       pg_catalog.length(convert_to(&#x27;北京&#x27;, &#x27;UTF8&#x27;)) AS bytes;</code></span></caption>
+<thead><tr><th scope="col">characters</th><th scope="col">bytes</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>6</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/typeconv-func.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="qualified-operator" class="point" data-dialects="postgresql">
+<h2>用 OPERATOR 指定算子所在模式</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>OPERATOR(模式名.符号) 选择该模式的操作符名称，其优先级和普通通用操作符相同。直接写 + 时遵循加法的优先级。混用限定算子和算术时加括号，让计算次序明确。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="三项算术操作数" tabindex="0">
+<table class="sql-result"><caption>三项算术操作数</caption>
+<thead><tr><th scope="col">a</th><th scope="col">b</th><th scope="col">c</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>3</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT 2 + 3 * 4 AS ordinary_precedence,
+       2 OPERATOR(pg_catalog.+) (3 * 4) AS right_grouped,
+       (2 OPERATOR(pg_catalog.+) 3) * 4 AS left_grouped;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT 2 + 3 * 4 AS ordinary_precedence,
+       2 OPERATOR(pg_catalog.+) (3 * 4) AS right_grouped,
+       (2 OPERATOR(pg_catalog.+) 3) * 4 AS left_grouped;</code></span></caption>
+<thead><tr><th scope="col">ordinary_precedence</th><th scope="col">right_grouped</th><th scope="col">left_grouped</th></tr></thead>
+<tbody>
+<tr><td><code>14</code></td><td><code>14</code></td><td><code>20</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-syntax-lexical.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="search-path" class="point" data-dialects="postgresql">
+<h2>search_path、限定名称与访问权限</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>未限定的表名沿搜索路径查找，模式名.表名可锁定来源。练习账号需有模式的 USAGE 和表的 SELECT 权限。只把可信模式放入路径。给不受信角色模式的 CREATE 权限会让使用该路径的会话信任其创建的对象。在新练习会话中设置路径。先按第一课初始化 PostgreSQL 练习模式。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="练习库的商品 1" tabindex="0">
+<table class="sql-result"><caption>练习库的商品 1</caption>
+<thead><tr><th scope="col">schema_name</th><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>sql_notes_lab</code></td><td><code>1</code></td><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SET search_path TO sql_notes_lab;
+
+SELECT current_schema() AS active_schema,
+       (SELECT name FROM products WHERE product_id = 1) AS through_path,
+       (SELECT name FROM sql_notes_lab.products WHERE product_id = 1) AS qualified;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT current_schema() AS active_schema,
+       (SELECT name FROM products WHERE product_id = 1) AS through_path,
+       (SELECT name FROM sql_notes_lab.products WHERE product_id = 1) AS qualified;</code></span></caption>
+<thead><tr><th scope="col">active_schema</th><th scope="col">through_path</th><th scope="col">qualified</th></tr></thead>
+<tbody>
+<tr><td><code>sql_notes_lab</code></td><td><code>SQL Basics</code></td><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/ddl-schemas.html">PostgreSQL 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#identifiers">用双引号保留标识符大小写</a></li>
+<li><a href="#escape-strings">单引号、E 转义和 Unicode 转义</a></li>
+<li><a href="#dollar-quote">美元引号保留字符串正文</a></li>
+<li><a href="#casts">用 CAST 或 :: 转换并核对类型</a></li>
+<li><a href="#typed-time">用 DATE / TIME / INTERVAL 写字面量</a></li>
+<li><a href="#boolean">TRUE、FALSE、UNKNOWN 与布尔筛选</a></li>
+<li><a href="#null-safe">用 IS DISTINCT FROM 比较含 NULL 的新旧值</a></li>
+<li><a href="#row-comparisons">ROW 构造值与多列比较</a></li>
+<li><a href="#array-any-all">比较数组中任意元素或全部元素</a></li>
+<li><a href="#operator-overloads">同一操作符可以有多个类型签名</a></li>
+<li><a href="#function-overloads">按参数类型选择函数重载</a></li>
+<li><a href="#qualified-operator">用 OPERATOR 指定算子所在模式</a></li>
+<li><a href="#search-path">设置搜索路径并核对模式访问权限</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="35-postgresql-design.html">← 时间区间与索引约束</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="40-postgresql-analytics.html">聚合、窗口与集合函数 →</a></nav>
+</main>
+</body>
+</html>

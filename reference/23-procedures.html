@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>使用存储过程 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 23 章 · 原书第 163–173 页</p>
+<h1>使用存储过程</h1>
+<p class="lead" data-dialects="mysql">存储过程把一组操作封装成可调用对象。用参数传递输入与输出，用局部变量表达过程内的中间值。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-procedure"><h2>创建和调用无参过程</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>过程有名字，即使没有参数也写括号。将复用的逻辑放在过程里，一次 CALL 能完成服务器端的多个步骤并减少往返。CREATE ROUTINE 与 EXECUTE 由权限控制。 MySQL 用 <code>CALL</code>。如果同名过程已在 SQL Server 的 <code>dbo</code> 下创建，可用 <code>EXEC dbo.ch23_prices;</code> 调用。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE PROCEDURE ch23_prices()
+SELECT MIN(price) AS low, MAX(price) AS high FROM products;
+CALL ch23_prices();</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>CALL ch23_prices();</code></span></caption>
+<thead><tr><th scope="col">low</th><th scope="col">high</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>5.00</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　尚无价格查询过程，商品价最低 5.00、最高 30.00。</p><p><strong>执行后</strong>　建过程并调用，得到 <code>low=5.00, high=30.00</code>。</p>
+<p class="outcome">过程返回一个结果集，最低 5.00，最高 30.00。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-procedure"><h2>IN、OUT、INOUT 与 DELIMITER</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>IN 是输入，OUT 是输出，INOUT 同时带入和带回值。mysql 客户端的 DELIMITER 改输入拆分边界，使 BEGIN…END 内可保留分号。</p>
+<figure><figcaption>mysql 客户端</figcaption><pre><code data-kind="mysql">DELIMITER $$
+CREATE PROCEDURE ch23_total(IN p_order INT, OUT p_total DECIMAL(12,2),
+                             INOUT p_calls INT)
+SQL SECURITY INVOKER
+BEGIN
+  SELECT COALESCE(SUM(qty * unit_price), 0) INTO p_total
+  FROM order_items WHERE order_id = p_order;
+  SET p_calls = p_calls + 1;
+END$$
+DELIMITER ;
+SET @calls = 0;
+CALL ch23_total(101, @total, @calls);
+SELECT @total AS total, @calls AS calls;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="参数变化" tabindex="0">
+<table class="sql-result"><caption>参数变化</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">p_order</th><th scope="col">@total</th><th scope="col">@calls</th></tr></thead>
+<tbody>
+<tr><td><code>调用前</code></td><td class="sql-number"><code>101</code></td><td class="sql-na"><span aria-label="不适用">—</span></td><td class="sql-number"><code>0</code></td></tr>
+<tr><td><code>调用后</code></td><td class="sql-number"><code>101</code></td><td class="sql-number"><code>45.00</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @total AS total, @calls AS calls;</code></span></caption>
+<thead><tr><th scope="col">total</th><th scope="col">calls</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>45.00</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　调用前 <code>@calls = 0</code>。订单 101 明细总额 45.00。</p><p><strong>执行后</strong>　调用后 <code>@total = 45.00</code>，<code>@calls = 1</code>。</p>
+<p class="outcome">调用后，在同一连接里读到 45.00 和 1。SELECT INTO 把金额写入 OUT 参数，带 @ 的变量属于当前会话。INVOKER 下调用者需有 EXECUTE 与读取明细的权限。默认 DEFINER 会按定义者的权限检查过程体。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-procedure"><h2>局部变量、IF 与注释</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>DECLARE 声明过程体内部的变量。IF 决定是否执行额外操作。MySQL 的 BOOLEAN 是 TINYINT(1) 的同义词。</p>
+<figure><figcaption>mysql 客户端</figcaption><pre><code data-kind="mysql">DELIMITER $$
+CREATE PROCEDURE ch23_tax(IN p_taxable BOOLEAN, OUT p_total DECIMAL(8,2))
+COMMENT &#x27;Tax demo&#x27;
+BEGIN
+  DECLARE subtotal DECIMAL(8,2) DEFAULT 45.00;
+  IF p_taxable THEN
+    SET p_total = ROUND(subtotal * 1.10, 2);
+  ELSEIF p_taxable IS NULL THEN
+    SET p_total = NULL;
+  ELSE
+    SET p_total = subtotal;
+  END IF;
+END$$
+DELIMITER ;
+CALL ch23_tax(TRUE, @total);
+SELECT @total;
+CALL ch23_tax(FALSE, @total);
+SELECT @total;
+CALL ch23_tax(NULL, @total);
+SELECT @total;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="CALL 输入" tabindex="0">
+<table class="sql-result"><caption>CALL 输入</caption>
+<thead><tr><th scope="col">p_taxable</th><th scope="col">subtotal</th></tr></thead>
+<tbody>
+<tr><td><code>TRUE</code></td><td class="sql-number"><code>45.00</code></td></tr>
+<tr><td><code>FALSE</code></td><td class="sql-number"><code>45.00</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>45.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT @total;</code><span class="sql-caption-context">CALL 参数为 TRUE</span></span></caption>
+<thead><tr><th scope="col">@total</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>49.50</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT @total;</code><span class="sql-caption-context">CALL 参数为 FALSE</span></span></caption>
+<thead><tr><th scope="col">@total</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>45.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT @total;</code><span class="sql-caption-context">CALL 参数为 NULL</span></span></caption>
+<thead><tr><th scope="col">@total</th></tr></thead>
+<tbody>
+<tr><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　过程内的小计为 45.00，依次传入 TRUE、FALSE、NULL。</p><p><strong>执行后</strong>　三次计算依次得 <code>49.50</code>、<code>45.00</code>、<code>NULL</code>。</p>
+<p class="outcome">依次返回 49.50、45.00、NULL。COMMENT 可在过程状态中查看。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-procedure"><h2>查看与移除过程</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>SHOW CREATE PROCEDURE 检查定义，SHOW PROCEDURE STATUS 查元信息。删除过程时 DROP 后写过程名。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SHOW CREATE PROCEDURE ch23_tax;
+SHOW PROCEDURE STATUS WHERE Db = DATABASE() AND Name = &#x27;ch23_tax&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　<code>ch23_tax</code> 已建立且定义含注释。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SHOW CREATE PROCEDURE ch23_tax;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Procedure</th><th scope="col">sql_mode</th><th scope="col">Create Procedure</th><th scope="col">character_set_client</th><th scope="col">collation_connection</th><th scope="col">Database Collation</th></tr></thead>
+<tbody>
+<tr><td><code>ch23_tax</code></td><td><code>ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION</code></td><td><code>CREATE DEFINER=`root`@`localhost` PROCEDURE `ch23_tax`(IN p_taxable BOOLEAN, OUT p_total DECIMAL(8,2))
+    COMMENT &#x27;Tax demo&#x27;
+BEGIN
+  DECLARE subtotal DECIMAL(8,2) DEFAULT 45.00;
+  IF p_taxable THEN
+    SET p_total = ROUND(subtotal * 1.10, 2);
+  ELSEIF p_taxable IS NULL THEN
+    SET p_total = NULL;
+  ELSE
+    SET p_total = subtotal;
+  END IF;
+END</code></td><td><code>utf8mb4</code></td><td><code>utf8mb4_0900_ai_ci</code></td><td><code>utf8mb4_0900_ai_ci</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SHOW PROCEDURE STATUS WHERE Db = DATABASE() AND Name = &#x27;ch23_tax&#x27;;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Db</th><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Language</th><th scope="col">Definer</th><th scope="col">Modified</th><th scope="col">Created</th><th scope="col">Security_type</th><th scope="col">Comment</th><th scope="col">character_set_client</th><th scope="col">collation_connection</th><th scope="col">Database Collation</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab</code></td><td><code>ch23_tax</code></td><td><code>PROCEDURE</code></td><td><code>SQL</code></td><td><code>root@localhost</code></td><td><code>2026-11-20 23:47:55</code></td><td><code>2026-11-20 23:47:55</code></td><td><code>DEFINER</code></td><td><code>Tax demo</code></td><td><code>utf8mb4</code></td><td><code>utf8mb4_0900_ai_ci</code></td><td><code>utf8mb4_0900_ai_ci</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　可查到过程 SQL 和状态，Comment 为 <code>Tax demo</code>。</p>
+</details>
+</div>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code data-kind="sql-manual">DROP PROCEDURE IF EXISTS ch23_tax;
+SHOW PROCEDURE STATUS WHERE Db = DATABASE() AND Name = &#x27;ch23_tax&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="对象变化 · 存储过程" tabindex="0">
+<table class="sql-result"><caption>对象变化 · 存储过程</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">ch23_tax</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>存在</code></td></tr>
+<tr><td><code>DROP 后</code></td><td><code>已移除</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SHOW PROCEDURE STATUS WHERE Db = DATABASE() AND Name = &#x27;ch23_tax&#x27;;</code></span></caption>
+<thead><tr><th scope="col">Db</th><th scope="col">Name</th><th scope="col">Type</th></tr></thead>
+<tbody>
+<tr><td class="sql-no-rows" colspan="3">0 行</td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　<code>ch23_tax</code> 在当前库中存在。</p><p><strong>执行后</strong>　DROP 后状态查询返回 <code>0 行</code>。</p>
+<p class="outcome">可查到定义、注释和元数据。移除后再查状态会得到空结果。</p>
+</details>
+</div></section>
+<section id="dial-procedure" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>过程参数、CALL / EXEC 与返回值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>PostgreSQL 用 CALL 调用过程。INOUT 参数在调用结果中返回。SQL Server 用 EXEC，并在过程声明和调用处都写 OUTPUT。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="orders · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>orders · 执行前练习数据</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td><td><code>2025-01-10</code></td><td><code>paid</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td class="sql-number"><code>2</code></td><td><code>2025-02-01</code></td><td><code>pending</code></td></tr>
+<tr><td class="sql-number"><code>103</code></td><td class="sql-number"><code>1</code></td><td><code>2025-02-02</code></td><td><code>paid</code></td></tr>
+<tr><td class="sql-number"><code>104</code></td><td class="sql-number"><code>3</code></td><td><code>2025-02-02</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE OR REPLACE PROCEDURE pg_notes_count(IN target_id int, INOUT order_count int)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  SELECT COUNT(*) INTO order_count FROM orders WHERE customer_id=target_id;
+END;
+$$;
+CALL pg_notes_count(1,0);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>CALL pg_notes_count(1,0);</code></span></caption>
+<thead><tr><th scope="col">order_count</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<p>在练习库中单独运行下面的代码块，让 CREATE OR ALTER 位于批次开头。GO 由 SSMS 或 sqlcmd 处理。</p>
+<figure><figcaption>SQL Server · SSMS / sqlcmd</figcaption><pre><code>CREATE OR ALTER PROCEDURE dbo.notes_count @target_id int, @order_count int OUTPUT AS
+BEGIN
+  SET NOCOUNT ON;
+  SELECT @order_count=COUNT(*) FROM dbo.orders WHERE customer_id=@target_id;
+END;
+GO
+DECLARE @result int;
+EXEC dbo.notes_count @target_id=1, @order_count=@result OUTPUT;
+SELECT @result AS order_count;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @result AS order_count;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_count</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-call.html">PostgreSQL CALL</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-procedure-transact-sql">SQL Server CREATE PROCEDURE</a></p>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>在同一会话将 ch23_total 调用两次，最后看计数与金额。</p><details><summary>查看答案</summary><figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SET @calls = 0;
+CALL ch23_total(101, @total, @calls);
+CALL ch23_total(102, @total, @calls);
+SELECT @calls, @total;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="order_items · 相关行" tabindex="0">
+<table class="sql-result"><caption>order_items · 相关行</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>102</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @calls, @total;</code></span></caption>
+<thead><tr><th scope="col">@calls</th><th scope="col">@total</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　调用前把计数器设为 0。订单 101、102 金额分别为 45.00 与 30.00。</p><p><strong>执行后</strong>　两次调用后 <code>@calls = 2</code>。<code>@total = 30.00</code>，保存最后一次金额。</p>
+<p class="outcome">两次调用，@total 是最后一次的 30.00。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/stored-routines.html">存储过程</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/create-procedure.html">CREATE PROCEDURE</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/call.html">CALL</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="mysql"><a href="#p1">创建和调用无参过程</a></li><li data-dialects="mysql"><a href="#p2">为过程传入或返回参数</a></li><li data-dialects="mysql"><a href="#p3">用局部变量和 IF 控制过程</a></li><li data-dialects="mysql"><a href="#p4">查看与移除过程</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-procedure">CALL / EXEC 调用过程并读取返回值</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="22-views.html">← 使用视图</a><a href="../v1.html">章节目录</a><a rel="next" href="24-cursors.html">使用游标 →</a></nav>
+</main>
+</body></html>

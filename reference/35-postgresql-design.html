@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>35 · PostgreSQL · 时间区间与索引约束 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 35 章 · 原生语法</p>
+<h1>PostgreSQL · 时间区间与索引约束</h1>
+<p class="lead">把时间重叠、条件唯一性和按日期补零交给数据库。 临时表示例重复运行时请开新连接。</p>
+<div class="layout"><article class="content">
+<section id="range" class="point" data-dialects="postgresql">
+<h2>daterange 与 &amp;&amp; · 检查时间窗口重叠</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>这里使用左闭右开区间 [开始, 结束)。两个区间仅在边界相接时不重叠，适合表达可连续预订的日期。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入区间" tabindex="0">
+<table class="sql-result"><caption>输入区间</caption>
+<thead><tr><th scope="col">现有</th><th scope="col">请求 1</th><th scope="col">请求 2</th></tr></thead>
+<tbody>
+<tr><td><code>[2026-06-01,2026-06-03)</code></td><td><code>[2026-06-02,2026-06-04)</code></td><td><code>[2026-06-03,2026-06-04)</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH requests(id, stay) AS (VALUES
+  (1, daterange(&#x27;2026-06-02&#x27;, &#x27;2026-06-04&#x27;, &#x27;[)&#x27;)),
+  (2, daterange(&#x27;2026-06-03&#x27;, &#x27;2026-06-04&#x27;, &#x27;[)&#x27;))
+)
+SELECT id, stay &amp;&amp; daterange(&#x27;2026-06-01&#x27;, &#x27;2026-06-03&#x27;, &#x27;[)&#x27;) AS overlaps
+FROM requests ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH requests(id, stay) AS (VALUES
+  (1, daterange(&#x27;2026-06-02&#x27;, &#x27;2026-06-04&#x27;, &#x27;[)&#x27;)),
+  (2, daterange(&#x27;2026-06-03&#x27;, &#x27;2026-06-04&#x27;, &#x27;[)&#x27;))
+)
+SELECT id, stay &amp;&amp; daterange(&#x27;2026-06-01&#x27;, &#x27;2026-06-03&#x27;, &#x27;[)&#x27;) AS overlaps
+FROM requests ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">overlaps</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>true</code></td></tr>
+<tr><td><code>2</code></td><td><code>false</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/rangetypes.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="exclude" class="point" data-dialects="postgresql">
+<h2>EXCLUDE USING gist · 阻止重叠预约</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>这里的临时表代表一个资源。排斥约束用 &amp;&amp; 拒绝与现有行重叠的预约。DO NOTHING 跳过冲突，RETURNING 只显示实际写入的预约。空区间不会重叠，实际预订可加 CHECK (NOT isempty(stay))。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="已有预约" tabindex="0">
+<table class="sql-result"><caption>已有预约</caption>
+<thead><tr><th scope="col">stay</th></tr></thead>
+<tbody>
+<tr><td><code>[2026-06-01,2026-06-03)</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="尝试预约" tabindex="0">
+<table class="sql-result"><caption>尝试预约</caption>
+<thead><tr><th scope="col">id</th><th scope="col">stay</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>[2026-06-02,2026-06-04)</code></td></tr>
+<tr><td><code>3</code></td><td><code>[2026-06-03,2026-06-05)</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_native_bookings (
+  id int PRIMARY KEY, stay daterange NOT NULL,
+  CONSTRAINT booking_no_overlap EXCLUDE USING gist (stay WITH &amp;&amp;)
+);
+INSERT INTO pg_native_bookings VALUES (1, &#x27;[2026-06-01,2026-06-03)&#x27;);
+
+INSERT INTO pg_native_bookings VALUES
+  (2, &#x27;[2026-06-02,2026-06-04)&#x27;), (3, &#x27;[2026-06-03,2026-06-05)&#x27;)
+ON CONFLICT ON CONSTRAINT booking_no_overlap DO NOTHING
+RETURNING id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO pg_native_bookings VALUES
+  (2, &#x27;[2026-06-02,2026-06-04)&#x27;), (3, &#x27;[2026-06-03,2026-06-05)&#x27;)
+ON CONFLICT ON CONSTRAINT booking_no_overlap DO NOTHING
+RETURNING id;</code></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/rangetypes.html#RANGETYPES-CONSTRAINT">PostgreSQL 官方文档</a></p>
+</section>
+<section id="partial-index" class="point" data-dialects="postgresql">
+<h2>唯一表达式索引 · 只约束有效账号</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>索引键是 lower(email)，WHERE 决定哪些行受唯一性约束。一个活跃账号已占用该邮箱时，允许录入停用账号。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="已有账号" tabindex="0">
+<table class="sql-result"><caption>已有账号</caption>
+<thead><tr><th scope="col">id</th><th scope="col">email</th><th scope="col">active</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>A@example.test</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="拟新增账号" tabindex="0">
+<table class="sql-result"><caption>拟新增账号</caption>
+<thead><tr><th scope="col">id</th><th scope="col">email</th><th scope="col">active</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>a@example.test</code></td><td><code>false</code></td></tr>
+<tr><td><code>3</code></td><td><code>a@example.test</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_native_accounts (id int PRIMARY KEY, email text NOT NULL, active boolean NOT NULL);
+CREATE UNIQUE INDEX pg_native_active_email ON pg_native_accounts (lower(email)) WHERE active;
+INSERT INTO pg_native_accounts VALUES (1, &#x27;A@example.test&#x27;, true);
+
+INSERT INTO pg_native_accounts VALUES
+  (2, &#x27;a@example.test&#x27;, false), (3, &#x27;a@example.test&#x27;, true)
+ON CONFLICT (lower(email)) WHERE active DO NOTHING
+RETURNING id, active;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO pg_native_accounts VALUES
+  (2, &#x27;a@example.test&#x27;, false), (3, &#x27;a@example.test&#x27;, true)
+ON CONFLICT (lower(email)) WHERE active DO NOTHING
+RETURNING id, active;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">active</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>false</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/indexes-partial.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="generate-series" class="point" data-dialects="postgresql">
+<h2>generate_series · 生成日期补齐零销量</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>先生成完整日期，再左联结销售记录。COUNT(右侧日期) 对未匹配行返回 0，FILTER 可在同一次分组中单独数已付款。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="销售明细" tabindex="0">
+<table class="sql-result"><caption>销售明细</caption>
+<thead><tr><th scope="col">sold_on</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>2026-06-01</code></td><td><code>paid</code></td></tr>
+<tr><td><code>2026-06-01</code></td><td><code>pending</code></td></tr>
+<tr><td><code>2026-06-03</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sales(sold_on, status) AS (VALUES
+  (DATE &#x27;2026-06-01&#x27;, &#x27;paid&#x27;), (DATE &#x27;2026-06-01&#x27;, &#x27;pending&#x27;),
+  (DATE &#x27;2026-06-03&#x27;, &#x27;paid&#x27;)
+)
+SELECT DATE &#x27;2026-06-01&#x27; + offsets.n AS day, COUNT(s.sold_on) AS total,
+       COUNT(*) FILTER (WHERE s.status = &#x27;paid&#x27;) AS paid
+FROM generate_series(0, 2) AS offsets(n)
+LEFT JOIN sales AS s ON s.sold_on = DATE &#x27;2026-06-01&#x27; + offsets.n
+GROUP BY offsets.n ORDER BY offsets.n;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sales(sold_on, status) AS (VALUES
+  (DATE &#x27;2026-06-01&#x27;, &#x27;paid&#x27;), (DATE &#x27;2026-06-01&#x27;, &#x27;pending&#x27;),
+  (DATE &#x27;2026-06-03&#x27;, &#x27;paid&#x27;)
+)
+SELECT DATE &#x27;2026-06-01&#x27; + offsets.n AS day, COUNT(s.sold_on) AS total,
+       COUNT(*) FILTER (WHERE s.status = &#x27;paid&#x27;) AS paid
+FROM generate_series(0, 2) AS offsets(n)
+LEFT JOIN sales AS s ON s.sold_on = DATE &#x27;2026-06-01&#x27; + offsets.n
+GROUP BY offsets.n ORDER BY offsets.n;</code></span></caption>
+<thead><tr><th scope="col">day</th><th scope="col">total</th><th scope="col">paid</th></tr></thead>
+<tbody>
+<tr><td><code>2026-06-01</code></td><td><code>2</code></td><td><code>1</code></td></tr>
+<tr><td><code>2026-06-02</code></td><td><code>0</code></td><td><code>0</code></td></tr>
+<tr><td><code>2026-06-03</code></td><td><code>1</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/functions-srf.html">PostgreSQL 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#range">daterange 检查两段时间是否重叠</a></li>
+<li><a href="#exclude">EXCLUDE USING gist · 阻止重叠预约</a></li>
+<li><a href="#partial-index">唯一表达式索引 · 只约束有效账号</a></li>
+<li><a href="#generate-series">generate_series 补齐无销量的日期</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="34-postgresql-query.html">← 原生查询、数组与 JSONB</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="39-postgresql-syntax.html">SQL 基本元素与名称解析 →</a></nav>
+</main>
+</body>
+</html>

@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>63 · SQL Server · 诊断与对象实用语句 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 63 章 · 原生语法</p>
+<h1>SQL Server · 诊断与对象实用语句</h1>
+<p class="lead">用系统诊断读取列、统计和会话，演练分区操作与对象管理。所有修改示例仅在有相应权限的独立练习库和新连接执行。</p>
+<div class="layout"><article class="content">
+<section id="describe" class="point" data-dialects="sqlserver">
+<h2>预览第一组结果的列结构</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+</span></p>
+<p>无需执行目标 SELECT，也可读取第一个结果集的列名、类型及可空性。sys.dm_exec_describe_first_result_set 便于直接选择所需列。调用方需有执行被分析语句的权限。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待分析的 SQL" tabindex="0">
+<table class="sql-result"><caption>待分析的 SQL</caption>
+<thead><tr><th scope="col">sql_text</th></tr></thead>
+<tbody>
+<tr><td><code>SELECT 3 AS qty;</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT column_ordinal, name, system_type_name, is_nullable
+FROM sys.dm_exec_describe_first_result_set(N&#x27;SELECT 3 AS qty;&#x27;, NULL, 0)
+WHERE is_hidden = 0;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT column_ordinal, name, system_type_name, is_nullable
+FROM sys.dm_exec_describe_first_result_set(N&#x27;SELECT 3 AS qty;&#x27;, NULL, 0)
+WHERE is_hidden = 0;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">column_ordinal</th><th scope="col">name</th><th scope="col">system_type_name</th><th scope="col">is_nullable</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>qty</code></td><td><code>int</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">需要完整元数据时，可用 EXEC sys.sp_describe_first_result_set @tsql = N&#x27;SELECT 3 AS qty;&#x27;;。sp_help 则针对库中现有对象返回对象、列、索引等信息。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-objects/sys-dm-exec-describe-first-result-set-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="refresh-view" class="point" data-dialects="sqlserver">
+<h2>sp_refreshview · 刷新视图的列定义</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>非架构绑定视图保留列元数据。基础表增列后，含 SELECT * 的旧视图可能继续显示原有列。刷新视图可同步这一元数据。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="基础表与视图的初始列" tabindex="0">
+<table class="sql-result"><caption>基础表与视图的初始列</caption>
+<thead><tr><th scope="col">source_object</th><th scope="col">view_object</th><th scope="col">existing_column</th><th scope="col">added_column</th></tr></thead>
+<tbody>
+<tr><td><code>dbo.d63_view_source</code></td><td><code>dbo.d63_view</code></td><td><code>id</code></td><td><code>qty</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+CREATE TABLE dbo.d63_view_source (id int);
+EXEC(N&#x27;CREATE VIEW dbo.d63_view AS SELECT * FROM dbo.d63_view_source;&#x27;);
+ALTER TABLE dbo.d63_view_source ADD qty int NULL;
+DECLARE @before_view int = (
+  SELECT COUNT(*) FROM sys.columns WHERE object_id = OBJECT_ID(N&#x27;dbo.d63_view&#x27;)
+);
+EXEC sys.sp_refreshview N&#x27;dbo.d63_view&#x27;;
+
+SELECT @before_view AS before_columns, COUNT(*) AS after_columns
+FROM sys.columns WHERE object_id = OBJECT_ID(N&#x27;dbo.d63_view&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @before_view AS before_columns, COUNT(*) AS after_columns
+FROM sys.columns WHERE object_id = OBJECT_ID(N&#x27;dbo.d63_view&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">before_columns</th><th scope="col">after_columns</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">创建生产视图时优先列出明确的输出列。查看结果后，在同一会话执行 ROLLBACK TRANSACTION;，撤销本卡的新对象和数据。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-refreshview-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="refresh-module" class="point" data-dialects="sqlserver">
+<h2>sp_refreshsqlmodule · 刷新非架构绑定模块</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>用于同步函数、过程、视图与某些触发器的持久化元数据。本例刷新内联表值函数。刷新会移除模块已有签名，正式环境应将重新签名纳入迁移。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="函数依赖的表结构" tabindex="0">
+<table class="sql-result"><caption>函数依赖的表结构</caption>
+<thead><tr><th scope="col">source_object</th><th scope="col">function_object</th><th scope="col">existing_column</th><th scope="col">added_column</th></tr></thead>
+<tbody>
+<tr><td><code>dbo.d63_fn_source</code></td><td><code>dbo.d63_fn</code></td><td><code>id</code></td><td><code>qty</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+CREATE TABLE dbo.d63_fn_source (id int);
+EXEC(N&#x27;CREATE FUNCTION dbo.d63_fn() RETURNS TABLE AS
+       RETURN (SELECT * FROM dbo.d63_fn_source);&#x27;);
+ALTER TABLE dbo.d63_fn_source ADD qty int NULL;
+DECLARE @before_module int = (
+  SELECT COUNT(*) FROM sys.columns WHERE object_id = OBJECT_ID(N&#x27;dbo.d63_fn&#x27;)
+);
+EXEC sys.sp_refreshsqlmodule N&#x27;dbo.d63_fn&#x27;;
+
+SELECT @before_module AS before_columns, COUNT(*) AS after_columns
+FROM sys.columns WHERE object_id = OBJECT_ID(N&#x27;dbo.d63_fn&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @before_module AS before_columns, COUNT(*) AS after_columns
+FROM sys.columns WHERE object_id = OBJECT_ID(N&#x27;dbo.d63_fn&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">before_columns</th><th scope="col">after_columns</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">需要模块的 ALTER 权限。查看结果后，在同一会话执行 ROLLBACK TRANSACTION;，撤销本卡的新对象和数据。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-refreshsqlmodule-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="dbcc-histogram" class="point" data-dialects="sqlserver">
+<h2>DBCC SHOW_STATISTICS · 阅读直方图</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>用 HISTOGRAM 只取统计对象的直方图。每步的 RANGE_HI_KEY 是上界，EQ_ROWS 是等于上界的估计行数，RANGE_ROWS 与 DISTINCT_RANGE_ROWS 描述不含上界的区间。统计直方图基于首列。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="用于 FULLSCAN 的输入" tabindex="0">
+<table class="sql-result"><caption>用于 FULLSCAN 的输入</caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>7</code></td></tr>
+<tr><td><code>7</code></td></tr>
+<tr><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+CREATE TABLE dbo.d63_hist (qty int NOT NULL);
+INSERT INTO dbo.d63_hist VALUES (7),(7),(7);
+CREATE STATISTICS ST_d63_qty ON dbo.d63_hist (qty) WITH FULLSCAN;
+
+DBCC SHOW_STATISTICS (N&#x27;dbo.d63_hist&#x27;, N&#x27;ST_d63_qty&#x27;) WITH HISTOGRAM;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>DBCC SHOW_STATISTICS (N&#x27;dbo.d63_hist&#x27;, N&#x27;ST_d63_qty&#x27;) WITH HISTOGRAM;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">RANGE_HI_KEY</th><th scope="col">RANGE_ROWS</th><th scope="col">EQ_ROWS</th><th scope="col">DISTINCT_RANGE_ROWS</th><th scope="col">AVG_RANGE_ROWS</th></tr></thead>
+<tbody>
+<tr><td><code>7</code></td><td><code>0</code></td><td><code>3</code></td><td><code>0</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">需要密度向量或标题时可选 DENSITY_VECTOR 或 STAT_HEADER。查看结果后，在同一会话执行 ROLLBACK TRANSACTION;，撤销本卡的新对象和数据。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-show-statistics-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="dbcc-inputbuffer" class="point" data-dialects="sqlserver">
+<h2>DBCC INPUTBUFFER · 读取当前会话提交的批次</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>给出会话编号便可查看最后提交的输入。比对自己的会话时用 @@SPID。为了得到下表的 Language Event，用 SSMS 或 sqlcmd 将下列 SQL 作为单独的文本批次提交。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="会话条件" tabindex="0">
+<table class="sql-result"><caption>会话条件</caption>
+<thead><tr><th scope="col">session_id</th><th scope="col">submit_mode</th></tr></thead>
+<tbody>
+<tr><td><code>当前连接（@@SPID）</code></td><td><code>单条文本批次</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DBCC INPUTBUFFER (@@SPID) WITH NO_INFOMSGS;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>DBCC INPUTBUFFER (@@SPID) WITH NO_INFOMSGS;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">EventType</th><th scope="col">Parameters</th><th scope="col">EventInfo</th></tr></thead>
+<tbody>
+<tr><td><code>Language Event</code></td><td><code>0</code></td><td><code>DBCC INPUTBUFFER (@@SPID) WITH NO_INFOMSGS;</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">换行和空格由客户端提交方式决定。客户端可能把调用包装成 RPC，届时 EventType 和 EventInfo 会不同。查看其他会话受权限限制。可查询的替代接口 sys.dm_exec_input_buffer 从 SQL Server 2014 SP2 起提供。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-inputbuffer-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="truncate-partitions" class="point" data-dialects="sqlserver">
+<h2>TRUNCATE TABLE WITH PARTITIONS · 只清指定分区</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+ · 分区功能的版本类型范围从 2016 SP1 起扩大</span></p>
+<p>分区号从 1 开始，TO 表示包含两端的范围。只处理专用练习表。分区表及其索引须对齐。清空分区需要表的 ALTER 权限，SQL Server 中可在事务里回滚。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="RANGE RIGHT 按 10、20、30 划分" tabindex="0">
+<table class="sql-result"><caption>RANGE RIGHT 按 10、20、30 划分</caption>
+<thead><tr><th scope="col">id</th><th scope="col">partition_no</th></tr></thead>
+<tbody>
+<tr><td><code>5</code></td><td><code>1</code></td></tr>
+<tr><td><code>15</code></td><td><code>2</code></td></tr>
+<tr><td><code>25</code></td><td><code>3</code></td></tr>
+<tr><td><code>35</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+CREATE PARTITION FUNCTION d63_part_fn (int) AS RANGE RIGHT FOR VALUES (10,20,30);
+CREATE PARTITION SCHEME d63_part_scheme AS PARTITION d63_part_fn ALL TO ([PRIMARY]);
+CREATE TABLE dbo.d63_part_table (id int NOT NULL) ON d63_part_scheme(id);
+INSERT INTO dbo.d63_part_table VALUES (5),(15),(25),(35);
+TRUNCATE TABLE dbo.d63_part_table WITH (PARTITIONS (2 TO 3));
+
+EXEC(N&#x27;SELECT id, $PARTITION.d63_part_fn(id) AS partition_no
+       FROM dbo.d63_part_table ORDER BY id;&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXEC(N&#x27;SELECT id, $PARTITION.d63_part_fn(id) AS partition_no
+       FROM dbo.d63_part_table ORDER BY id;&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">partition_no</th></tr></thead>
+<tbody>
+<tr><td><code>5</code></td><td><code>1</code></td></tr>
+<tr><td><code>35</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">支持多段列表，例如 PARTITIONS (1, 3 TO 4)。查看结果后，在同一会话执行 ROLLBACK TRANSACTION;，撤销本卡的新对象和数据。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/truncate-table-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="disable-trigger" class="point" data-dialects="sqlserver">
+<h2>DISABLE TRIGGER · 暂停指定 DML 触发器</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>禁用操作保留触发器定义，后续符合条件的修改暂时不触发它。用 sys.triggers.is_disabled 检查状态。目标表仍执行普通 INSERT。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="对象与测试写入" tabindex="0">
+<table class="sql-result"><caption>对象与测试写入</caption>
+<thead><tr><th scope="col">目标表</th><th scope="col">触发器</th><th scope="col">插入编号</th></tr></thead>
+<tbody>
+<tr><td><code>dbo.d63_disable_target</code></td><td><code>dbo.d63_disable_audit_trg</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+CREATE TABLE dbo.d63_disable_target (id int);
+CREATE TABLE dbo.d63_disable_log (id int);
+EXEC(N&#x27;CREATE TRIGGER dbo.d63_disable_audit_trg ON dbo.d63_disable_target
+       AFTER INSERT AS INSERT INTO dbo.d63_disable_log SELECT id FROM inserted;&#x27;);
+DISABLE TRIGGER dbo.d63_disable_audit_trg ON dbo.d63_disable_target;
+INSERT INTO dbo.d63_disable_target VALUES (1);
+
+SELECT is_disabled, (SELECT COUNT(*) FROM dbo.d63_disable_log) AS audit_rows
+FROM sys.triggers WHERE object_id = OBJECT_ID(N&#x27;dbo.d63_disable_audit_trg&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT is_disabled, (SELECT COUNT(*) FROM dbo.d63_disable_log) AS audit_rows
+FROM sys.triggers WHERE object_id = OBJECT_ID(N&#x27;dbo.d63_disable_audit_trg&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">is_disabled</th><th scope="col">audit_rows</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">表级操作需要对目标表的 ALTER 权限。查看结果后，在同一会话执行 ROLLBACK TRANSACTION;，撤销本卡的新对象和数据。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/disable-trigger-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="enable-trigger" class="point" data-dialects="sqlserver">
+<h2>ENABLE TRIGGER · 恢复指定 DML 触发器</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>启用后，新的符合条件的语句会触发这段逻辑。禁用期间发生的变更不会被补做。示例先在禁用状态插入 1，再启用并插入 2，检查日志。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="时间顺序" tabindex="0">
+<table class="sql-result"><caption>时间顺序</caption>
+<thead><tr><th scope="col">event_no</th><th scope="col">trigger_disabled</th><th scope="col">row_id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td><td><code>1</code></td></tr>
+<tr><td><code>2</code></td><td><code>0</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+CREATE TABLE dbo.d63_enable_target (id int);
+CREATE TABLE dbo.d63_enable_log (id int);
+EXEC(N&#x27;CREATE TRIGGER dbo.d63_enable_audit_trg ON dbo.d63_enable_target
+       AFTER INSERT AS INSERT INTO dbo.d63_enable_log SELECT id FROM inserted;&#x27;);
+DISABLE TRIGGER dbo.d63_enable_audit_trg ON dbo.d63_enable_target;
+INSERT INTO dbo.d63_enable_target VALUES (1);
+ENABLE TRIGGER dbo.d63_enable_audit_trg ON dbo.d63_enable_target;
+INSERT INTO dbo.d63_enable_target VALUES (2);
+
+SELECT t.is_disabled, a.id AS logged_id
+FROM sys.triggers AS t CROSS JOIN dbo.d63_enable_log AS a
+WHERE t.object_id = OBJECT_ID(N&#x27;dbo.d63_enable_audit_trg&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT t.is_disabled, a.id AS logged_id
+FROM sys.triggers AS t CROSS JOIN dbo.d63_enable_log AS a
+WHERE t.object_id = OBJECT_ID(N&#x27;dbo.d63_enable_audit_trg&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">is_disabled</th><th scope="col">logged_id</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">数据库级与服务器级 DDL 触发器分别用 ON DATABASE 和 ON ALL SERVER。查看结果后，在同一会话执行 ROLLBACK TRANSACTION;，撤销本卡的新对象和数据。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/enable-trigger-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="schema-transfer" class="point" data-dialects="sqlserver">
+<h2>ALTER SCHEMA TRANSFER · 在同一库移动表</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>把对象从当前模式移到目标模式。已有代码的旧限定名要检查。移动会移除该对象上显式授予的权限，迁移前后需核对。此处演示移动普通表并读取原行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="迁移目标" tabindex="0">
+<table class="sql-result"><caption>迁移目标</caption>
+<thead><tr><th scope="col">old_name</th><th scope="col">new_name</th><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>dbo.d63_move</code></td><td><code>d63_archive.d63_move</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+EXEC(N&#x27;CREATE SCHEMA d63_archive AUTHORIZATION dbo;&#x27;);
+CREATE TABLE dbo.d63_move (id int PRIMARY KEY);
+INSERT INTO dbo.d63_move VALUES (7);
+ALTER SCHEMA d63_archive TRANSFER dbo.d63_move;
+
+EXEC(N&#x27;SELECT OBJECT_SCHEMA_NAME(OBJECT_ID(N&#x27;&#x27;d63_archive.d63_move&#x27;&#x27;)) AS schema_name,
+       id FROM d63_archive.d63_move;&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXEC(N&#x27;SELECT OBJECT_SCHEMA_NAME(OBJECT_ID(N&#x27;&#x27;d63_archive.d63_move&#x27;&#x27;)) AS schema_name,
+       id FROM d63_archive.d63_move;&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">schema_name</th><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>d63_archive</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">需要对被移动对象的 CONTROL 及目标模式的 ALTER 权限。过程、函数等定义内的旧模式名不会随此命令重写。查看结果后，在同一会话执行 ROLLBACK TRANSACTION;，撤销本卡的新对象和数据。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-schema-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="scoped-credential" class="point" data-dialects="sqlserver">
+<h2>DATABASE SCOPED CREDENTIAL · 核对库级凭据元数据</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+ · 具体认证方式另有版本条件</span></p>
+<p>库级凭据为外部数据访问选取身份。本卡只登记虚构练习值，查询名称和身份，不连外部源。使用已经配置数据库主密钥、且尚无同名凭据的隔离数据库。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="虚构配置" tabindex="0">
+<table class="sql-result"><caption>虚构配置</caption>
+<thead><tr><th scope="col">credential_name</th><th scope="col">identity</th><th scope="col">secret_kind</th></tr></thead>
+<tbody>
+<tr><td><code>d63_demo_credential</code></td><td><code>d63_placeholder_identity</code></td><td><code>无效占位值</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+CREATE DATABASE SCOPED CREDENTIAL d63_demo_credential
+  WITH IDENTITY = N&#x27;d63_placeholder_identity&#x27;, SECRET = N&#x27;not-a-real-secret&#x27;;
+
+SELECT name, credential_identity
+FROM sys.database_scoped_credentials WHERE name = N&#x27;d63_demo_credential&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, credential_identity
+FROM sys.database_scoped_credentials WHERE name = N&#x27;d63_demo_credential&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">credential_identity</th></tr></thead>
+<tbody>
+<tr><td><code>d63_demo_credential</code></td><td><code>d63_placeholder_identity</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">需要 数据库 CONTROL。真实配置的 IDENTITY/SECRET 格式按外部源选择，真实秘密由部署环境提供。查看结果后，在同一会话执行 ROLLBACK TRANSACTION;，撤销本卡的新对象和数据。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-database-scoped-credential-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="set-nocount" class="point" data-dialects="sqlserver">
+<h2>SET NOCOUNT · 消息与行数分别处理</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>NOCOUNT ON 抑制客户端收到的行数完成消息。@@ROWCOUNT 仍更新，可用它判断前一条语句是否命中。用 @@OPTIONS 的位 512 读取当前设置。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="上一语句读取的行" tabindex="0">
+<table class="sql-result"><caption>上一语句读取的行</caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET NOCOUNT ON;
+DECLARE @last_qty int;
+SELECT @last_qty = id FROM (VALUES (1),(2)) AS src(id);
+
+SELECT CASE WHEN (@@OPTIONS &amp; 512) = 512 THEN 1 ELSE 0 END AS nocount_on,
+       @@ROWCOUNT AS previous_rows;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CASE WHEN (@@OPTIONS &amp; 512) = 512 THEN 1 ELSE 0 END AS nocount_on,
+       @@ROWCOUNT AS previous_rows;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">nocount_on</th><th scope="col">previous_rows</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">请在新的练习连接执行，测试后关闭连接。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-nocount-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="language-dateformat" class="point" data-dialects="sqlserver">
+<h2>SET LANGUAGE 与 SET DATEFORMAT</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>LANGUAGE 设置会话的语言并设定默认日期顺序。之后的 DATEFORMAT 可覆盖日期字符串解析顺序。下例使用 dmy 将日期文本读为 4 月 3 日，再按 style 23 固定输出。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="会话设置与日期文本" tabindex="0">
+<table class="sql-result"><caption>会话设置与日期文本</caption>
+<thead><tr><th scope="col">language</th><th scope="col">dateformat</th><th scope="col">date_text</th></tr></thead>
+<tbody>
+<tr><td><code>us_english</code></td><td><code>dmy</code></td><td><code>03/04/2025</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET LANGUAGE us_english;
+SET DATEFORMAT dmy;
+
+SELECT @@LANGUAGE AS session_language,
+       CONVERT(char(10), CONVERT(date, &#x27;03/04/2025&#x27;), 23) AS date_iso;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @@LANGUAGE AS session_language,
+       CONVERT(char(10), CONVERT(date, &#x27;03/04/2025&#x27;), 23) AS date_iso;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">session_language</th><th scope="col">date_iso</th></tr></thead>
+<tbody>
+<tr><td><code>us_english</code></td><td><code>2025-04-03</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">在新连接试验，测试后关闭。跨会话传值优先绑定日期类型或采用明确的 ISO 风格，避免依赖区域默认。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-dateformat-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="set-textsize" class="point" data-dialects="sqlserver">
+<h2>SET TEXTSIZE · 限制返回的长字段字节数</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>TEXTSIZE 限制长字符串或二进制值返回给客户端的字节数，源表达式的字节数仍可用 DATALENGTH 查询。用 ASCII 文本避免把字节数与字符数混淆。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入值与输出上限" tabindex="0">
+<table class="sql-result"><caption>输入值与输出上限</caption>
+<thead><tr><th scope="col">text_value</th><th scope="col">limit_bytes</th></tr></thead>
+<tbody>
+<tr><td><code>abcde</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET TEXTSIZE 3;
+
+SELECT CAST(&#x27;abcde&#x27; AS varchar(max)) AS returned_value,
+       DATALENGTH(CAST(&#x27;abcde&#x27; AS varchar(max))) AS expression_bytes;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CAST(&#x27;abcde&#x27; AS varchar(max)) AS returned_value,
+       DATALENGTH(CAST(&#x27;abcde&#x27; AS varchar(max))) AS expression_bytes;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">returned_value</th><th scope="col">expression_bytes</th></tr></thead>
+<tbody>
+<tr><td><code>abc</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">只在新的练习连接运行。驱动可能在连接时设定自己的 TEXTSIZE，测试完成后关闭该连接。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-textsize-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#describe">预览第一组结果的列结构</a></li>
+<li><a href="#refresh-view">sp_refreshview · 刷新视图的列定义</a></li>
+<li><a href="#refresh-module">sp_refreshsqlmodule · 刷新非架构绑定模块</a></li>
+<li><a href="#dbcc-histogram">DBCC SHOW_STATISTICS · 阅读直方图</a></li>
+<li><a href="#dbcc-inputbuffer">DBCC INPUTBUFFER · 读取当前会话提交的批次</a></li>
+<li><a href="#truncate-partitions">TRUNCATE TABLE WITH PARTITIONS · 只清指定分区</a></li>
+<li><a href="#disable-trigger">DISABLE TRIGGER · 暂停指定 DML 触发器</a></li>
+<li><a href="#enable-trigger">ENABLE TRIGGER · 恢复指定 DML 触发器</a></li>
+<li><a href="#schema-transfer">ALTER SCHEMA TRANSFER · 在同一库移动表</a></li>
+<li><a href="#scoped-credential">DATABASE SCOPED CREDENTIAL · 核对库级凭据元数据</a></li>
+<li><a href="#set-nocount">SET NOCOUNT 隐藏行数完成消息</a></li>
+<li><a href="#language-dateformat">设置会话语言和日期解析顺序</a></li>
+<li><a href="#set-textsize">SET TEXTSIZE · 限制返回的长字段字节数</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="61-sqlserver-versions.html">← SQL Server 版本与迁移附录</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="../v1.html#reference-appendices">参考附录 →</a></nav>
+</main>
+</body>
+</html>

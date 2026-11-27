@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>56 · SQL Server · 索引、统计、计划与诊断 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 56 章 · 原生语法</p>
+<h1>SQL Server · 索引、统计、计划与诊断</h1>
+<p class="lead">先找真实慢语句并检查输入、结果和计划，再衡量读写开销。逐卡在隔离实例或练习库执行，全文、版本预览、在线维护及系统诊断各有独立前提。</p>
+<div class="layout"><article class="content">
+<section id="rowstore" class="point" data-dialects="sqlserver">
+<h2>堆、聚集索引、非聚集索引与 INCLUDE</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025 · 在独立练习库使用未占用的对象名</span></p>
+<p>堆没有聚集索引。聚集行存索引的叶级就是数据行，一张表最多有一个聚集索引。非聚集索引另有查找键，INCLUDE 把 price 放在叶级供覆盖查询使用。是否走该索引由优化器决定。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个表的组织方式" tabindex="0">
+<table class="sql-result"><caption>两个表的组织方式</caption>
+<thead><tr><th scope="col">对象名</th><th scope="col">基础组织</th><th scope="col">第二索引</th></tr></thead>
+<tbody>
+<tr><td><code>d56_heap</code></td><td><code>HEAP</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>d56_order</code></td><td><code>CLUSTERED</code></td><td><code>category INCLUDE(price)</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d56_heap (id int NOT NULL);
+CREATE TABLE dbo.d56_order (
+    id int NOT NULL CONSTRAINT PK_d56_order PRIMARY KEY CLUSTERED,
+    category varchar(12) NOT NULL,
+    price decimal(8,2) NOT NULL
+);
+CREATE INDEX IX_d56_category ON dbo.d56_order(category) INCLUDE(price);
+
+SELECT t.name AS table_name, i.type_desc, i.name AS index_name
+FROM sys.tables AS t JOIN sys.indexes AS i ON i.object_id = t.object_id
+WHERE t.object_id IN (OBJECT_ID(N&#x27;dbo.d56_heap&#x27;), OBJECT_ID(N&#x27;dbo.d56_order&#x27;))
+ORDER BY t.name, i.index_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT t.name AS table_name, i.type_desc, i.name AS index_name
+FROM sys.tables AS t JOIN sys.indexes AS i ON i.object_id = t.object_id
+WHERE t.object_id IN (OBJECT_ID(N&#x27;dbo.d56_heap&#x27;), OBJECT_ID(N&#x27;dbo.d56_order&#x27;))
+ORDER BY t.name, i.index_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">table_name</th><th scope="col">type_desc</th><th scope="col">index_name</th></tr></thead>
+<tbody>
+<tr><td><code>d56_heap</code></td><td><code>HEAP</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>d56_order</code></td><td><code>CLUSTERED</code></td><td><code>PK_d56_order</code></td></tr>
+<tr><td><code>d56_order</code></td><td><code>NONCLUSTERED</code></td><td><code>IX_d56_category</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/indexes/clustered-and-nonclustered-indexes-described?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/indexes/create-indexes-with-included-columns?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+<section id="filtered-computed" class="point" data-dialects="sqlserver">
+<h2>筛选索引和计算列索引</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server · 筛选索引需 2008+ · 使用独立连接设置 SET</span></p>
+<p>筛选索引只维护 WHERE 谓词满足的行，适合少量待处理项。SQL Server 要求用简单筛选谓词，谓词不能引用计算列。确定且精确的计算列可以作为普通索引键，相关会话须满足 SET 选项。先用 sys.indexes 确认对象，再用实际计划评估。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="练习行与预计被收录的索引" tabindex="0">
+<table class="sql-result"><caption>练习行与预计被收录的索引</caption>
+<thead><tr><th scope="col">id</th><th scope="col">status</th><th scope="col">subtotal</th><th scope="col">筛选索引收录</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>open</code></td><td><code>10.00</code></td><td><code>1</code></td></tr>
+<tr><td><code>2</code></td><td><code>done</code></td><td><code>20.00</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET QUOTED_IDENTIFIER ON;
+SET NUMERIC_ROUNDABORT OFF;
+
+CREATE TABLE dbo.d56_lines (
+    id int PRIMARY KEY,
+    status varchar(8) NOT NULL,
+    qty int NOT NULL,
+    price decimal(8,2) NOT NULL,
+    subtotal AS CONVERT(decimal(12,2), qty * price) PERSISTED
+);
+INSERT dbo.d56_lines(id,status,qty,price) VALUES (1,&#x27;open&#x27;,2,5.00), (2,&#x27;done&#x27;,4,5.00);
+CREATE INDEX IX_d56_open ON dbo.d56_lines(status) WHERE status = &#x27;open&#x27;;
+CREATE INDEX IX_d56_subtotal ON dbo.d56_lines(subtotal);
+
+SELECT i.name AS index_name, i.has_filter, c.name AS key_column, c.is_computed
+FROM sys.indexes AS i
+JOIN sys.index_columns AS ic
+  ON ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.key_ordinal = 1
+JOIN sys.columns AS c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+WHERE i.object_id = OBJECT_ID(N&#x27;dbo.d56_lines&#x27;)
+  AND i.name IN (N&#x27;IX_d56_open&#x27;, N&#x27;IX_d56_subtotal&#x27;)
+ORDER BY i.name;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT i.name AS index_name, i.has_filter, c.name AS key_column, c.is_computed
+FROM sys.indexes AS i
+JOIN sys.index_columns AS ic
+  ON ic.object_id = i.object_id AND ic.index_id = i.index_id AND ic.key_ordinal = 1
+JOIN sys.columns AS c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+WHERE i.object_id = OBJECT_ID(N&#x27;dbo.d56_lines&#x27;)
+  AND i.name IN (N&#x27;IX_d56_open&#x27;, N&#x27;IX_d56_subtotal&#x27;)
+ORDER BY i.name;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">index_name</th><th scope="col">has_filter</th><th scope="col">key_column</th><th scope="col">is_computed</th></tr></thead>
+<tbody>
+<tr><td><code>IX_d56_open</code></td><td><code>1</code></td><td><code>status</code></td><td><code>0</code></td></tr>
+<tr><td><code>IX_d56_subtotal</code></td><td><code>0</code></td><td><code>subtotal</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/indexes/create-filtered-indexes?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/indexes/indexes-on-computed-columns?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+<section id="columnstore" class="point" data-dialects="sqlserver">
+<h2>COLUMNSTORE 列存与行存</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">聚集列存 SQL Server 2014+ · SQL Server 2016 SP1 起多个版本类型支持 · 平台与版本限制查官方矩阵</span></p>
+<p>聚集列存按列压缩分析表，查询只读取相关列，适合大量扫描与聚合。也可在合适的行存表上建立非聚集列存索引。用 sys.indexes 核对类型。小样例用于核对语法与汇总结果，规模变大后再测行组与段消除。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="事实表中的金额" tabindex="0">
+<table class="sql-result"><caption>事实表中的金额</caption>
+<thead><tr><th scope="col">region</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>east</code></td><td><code>10</code></td></tr>
+<tr><td><code>east</code></td><td><code>20</code></td></tr>
+<tr><td><code>west</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d56_sales (region varchar(8) NOT NULL, amount int NOT NULL);
+INSERT dbo.d56_sales VALUES (&#x27;east&#x27;,10), (&#x27;east&#x27;,20), (&#x27;west&#x27;,7);
+CREATE CLUSTERED COLUMNSTORE INDEX CCX_d56_sales ON dbo.d56_sales;
+
+SELECT s.region, SUM(s.amount) AS total, i.type_desc
+FROM dbo.d56_sales AS s
+CROSS JOIN sys.indexes AS i
+WHERE i.object_id = OBJECT_ID(N&#x27;dbo.d56_sales&#x27;) AND i.name = N&#x27;CCX_d56_sales&#x27;
+GROUP BY s.region, i.type_desc
+ORDER BY s.region;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT s.region, SUM(s.amount) AS total, i.type_desc
+FROM dbo.d56_sales AS s
+CROSS JOIN sys.indexes AS i
+WHERE i.object_id = OBJECT_ID(N&#x27;dbo.d56_sales&#x27;) AND i.name = N&#x27;CCX_d56_sales&#x27;
+GROUP BY s.region, i.type_desc
+ORDER BY s.region;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">region</th><th scope="col">total</th><th scope="col">type_desc</th></tr></thead>
+<tbody>
+<tr><td><code>east</code></td><td><code>30</code></td><td><code>CLUSTERED COLUMNSTORE</code></td></tr>
+<tr><td><code>west</code></td><td><code>7</code></td><td><code>CLUSTERED COLUMNSTORE</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-columnstore-index-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="xml-spatial" class="point" data-dialects="sqlserver">
+<h2>XML 主索引、PATH 与空间索引</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server · XML 索引 2005+，空间索引 2008+，GEOMETRY_AUTO_GRID 2012+ · 匹配类型和 SET 选项</span></p>
+<p>主 XML 索引编码 XML 节点，PATH 二级索引服务路径筛选。空间索引将几何形状按网格划分，适用于支持的空间谓词。本例两个基础表都有聚集主键。空间参考系保持一致。两条过滤得到可核对结果，索引实际用法再看计划。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="XML 文档及点坐标" tabindex="0">
+<table class="sql-result"><caption>XML 文档及点坐标</caption>
+<thead><tr><th scope="col">id</th><th scope="col">XML 文档</th><th scope="col">坐标</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>&lt;item code=&quot;A&quot;/&gt;</code></td><td><code>POINT (10 20)</code></td></tr>
+<tr><td><code>2</code></td><td><code>&lt;item code=&quot;B&quot;/&gt;</code></td><td><code>POINT (40 20)</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET QUOTED_IDENTIFIER ON;
+SET NUMERIC_ROUNDABORT OFF;
+
+CREATE TABLE dbo.d56_xml (id int PRIMARY KEY CLUSTERED, doc xml NOT NULL);
+INSERT dbo.d56_xml VALUES (1, N&#x27;&lt;item code=&quot;A&quot;/&gt;&#x27;), (2, N&#x27;&lt;item code=&quot;B&quot;/&gt;&#x27;);
+CREATE PRIMARY XML INDEX PX_d56_doc ON dbo.d56_xml(doc);
+CREATE XML INDEX IX_d56_path ON dbo.d56_xml(doc) USING XML INDEX PX_d56_doc FOR PATH;
+CREATE TABLE dbo.d56_geo (id int PRIMARY KEY CLUSTERED, pos geometry NOT NULL);
+INSERT dbo.d56_geo VALUES (1, geometry::Point(10,20,0)), (2, geometry::Point(40,20,0));
+CREATE SPATIAL INDEX SX_d56_pos ON dbo.d56_geo(pos)
+USING GEOMETRY_AUTO_GRID WITH (BOUNDING_BOX = (0,0,100,100));
+
+SELECT &#x27;XML&#x27; AS feature, id
+FROM dbo.d56_xml WHERE doc.exist(&#x27;/item[@code=&quot;A&quot;]&#x27;) = 1
+UNION ALL
+SELECT &#x27;Spatial&#x27;, id
+FROM dbo.d56_geo WHERE pos.STIntersects(geometry::Point(10,20,0)) = 1
+ORDER BY feature, id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;XML&#x27; AS feature, id
+FROM dbo.d56_xml WHERE doc.exist(&#x27;/item[@code=&quot;A&quot;]&#x27;) = 1
+UNION ALL
+SELECT &#x27;Spatial&#x27;, id
+FROM dbo.d56_geo WHERE pos.STIntersects(geometry::Point(10,20,0)) = 1
+ORDER BY feature, id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">feature</th><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>Spatial</code></td><td><code>1</code></td></tr>
+<tr><td><code>XML</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-xml-index-transact-sql?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-spatial-index-transact-sql?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+<section id="fulltext-index" class="point" data-dialects="sqlserver">
+<h2>全文目录、KEY INDEX 与全文填充</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server · 需已安装全文组件、目录权限与表 ALTER 权限 · 无外层事务 · 用支持 GO 的客户端</span></p>
+<p>全文索引使用唯一、单列、非空的键索引映射原始行。LANGUAGE 1033 用英语分词。初始填充异步完成。本例用全新表和目录，最多等待 20 秒。若还没命中，请确认全文组件与填充状态后单独重跑结果查询。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待分词文本" tabindex="0">
+<table class="sql-result"><caption>待分词文本</caption>
+<thead><tr><th scope="col">id</th><th scope="col">body</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>green notebook</code></td></tr>
+<tr><td><code>2</code></td><td><code>paper folder</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d56_docs (
+    id int NOT NULL CONSTRAINT PK_d56_docs PRIMARY KEY, body nvarchar(70) NOT NULL
+);
+INSERT dbo.d56_docs VALUES (1, N&#x27;green notebook&#x27;), (2, N&#x27;paper folder&#x27;);
+CREATE FULLTEXT CATALOG d56_ft;
+CREATE FULLTEXT INDEX ON dbo.d56_docs(body LANGUAGE 1033)
+KEY INDEX PK_d56_docs ON d56_ft WITH (CHANGE_TRACKING = OFF, NO POPULATION);
+ALTER FULLTEXT INDEX ON dbo.d56_docs START FULL POPULATION;
+GO
+DECLARE @seconds int = 0;
+WHILE @seconds &lt; 20 AND NOT EXISTS (
+    SELECT 1 FROM dbo.d56_docs WHERE CONTAINS(body, &#x27;notebook&#x27;)
+)
+BEGIN
+    WAITFOR DELAY &#x27;00:00:01&#x27;;
+    SET @seconds += 1;
+END;
+
+SELECT id, body FROM dbo.d56_docs
+WHERE CONTAINS(body, &#x27;notebook&#x27;) ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, body FROM dbo.d56_docs
+WHERE CONTAINS(body, &#x27;notebook&#x27;) ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">body</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>green notebook</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/search/create-and-manage-full-text-indexes?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-index-transact-sql?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+<section id="json-index" class="point" data-dialects="sqlserver">
+<h2>原生 JSON 列的索引路径</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025 (17.x) GA · 聚集主键 · 需要 ALTER 目标表</span></p>
+<p>CREATE JSON INDEX 在原生 json 列上建索引，FOR 指定子路径，默认根路径 $。同一索引声明的路径不可相互覆盖。表须有聚集主键，示例通过对象目录核对索引存在。旧版本可把 NVARCHAR 中常查的 JSON_VALUE 映射为计算列后建立普通索引。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="JSON 文档" tabindex="0">
+<table class="sql-result"><caption>JSON 文档</caption>
+<thead><tr><th scope="col">id</th><th scope="col">body</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>{&quot;kind&quot;:&quot;book&quot;,&quot;quantity&quot;:2}</code></td></tr>
+<tr><td><code>2</code></td><td><code>{&quot;kind&quot;:&quot;pen&quot;,&quot;quantity&quot;:5}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d56_json (id int NOT NULL PRIMARY KEY CLUSTERED, body json NOT NULL);
+INSERT dbo.d56_json VALUES
+    (1, &#x27;{&quot;kind&quot;:&quot;book&quot;,&quot;quantity&quot;:2}&#x27;), (2, &#x27;{&quot;kind&quot;:&quot;pen&quot;,&quot;quantity&quot;:5}&#x27;);
+CREATE JSON INDEX IX_d56_json_kind ON dbo.d56_json(body) FOR (&#x27;$.kind&#x27;);
+
+SELECT j.id, JSON_VALUE(j.body, &#x27;$.kind&#x27;) AS kind, i.name AS index_name
+FROM dbo.d56_json AS j CROSS JOIN sys.indexes AS i
+WHERE JSON_VALUE(j.body, &#x27;$.kind&#x27;) = &#x27;book&#x27;
+  AND i.object_id = OBJECT_ID(N&#x27;dbo.d56_json&#x27;) AND i.name = N&#x27;IX_d56_json_kind&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT j.id, JSON_VALUE(j.body, &#x27;$.kind&#x27;) AS kind, i.name AS index_name
+FROM dbo.d56_json AS j CROSS JOIN sys.indexes AS i
+WHERE JSON_VALUE(j.body, &#x27;$.kind&#x27;) = &#x27;book&#x27;
+  AND i.object_id = OBJECT_ID(N&#x27;dbo.d56_json&#x27;) AND i.name = N&#x27;IX_d56_json_kind&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">kind</th><th scope="col">index_name</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>book</code></td><td><code>IX_d56_json_kind</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-json-index-transact-sql?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/json-data-type?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+<section id="vector-index" class="point" data-dialects="sqlserver">
+<h2>向量索引与近似检索的版本差异</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025 (17.x) 预览 · PREVIEW_FEATURES = ON · GENERATE_SERIES 需兼容级别 160+ · 需 ALTER ANY DATABASE SCOPED CONFIGURATION · 用支持 GO 的客户端</span></p>
+<p>DiskANN 索引服务近似近邻查询，距离度量要与查询一致。样例生成 100 个非 NULL 向量作为可创建索引的最小语料，然后核对索引名。SQL Server 2025 仅在专用练习库启用预览。当查询不同构建时，新索引接口用 TOP (N) WITH APPROXIMATE，早期构建在 VECTOR_SEARCH 中传 TOP_N。部署前核对实际索引版本和写入限制。本地 SQL Server 2025 的近似检索使用支持 TOP_N 的文档路径。云端较新的近似索引语法按各自产品条件查阅。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="生成的向量" tabindex="0">
+<table class="sql-result"><caption>生成的向量</caption>
+<thead><tr><th scope="col">id 范围</th><th scope="col">维度</th><th scope="col">向量构造</th></tr></thead>
+<tbody>
+<tr><td><code>1–100</code></td><td><code>3</code></td><td><code>[id/100,1,0]</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>ALTER DATABASE SCOPED CONFIGURATION SET PREVIEW_FEATURES = ON;
+GO
+CREATE TABLE dbo.d56_vec (
+    id int NOT NULL PRIMARY KEY CLUSTERED, embedding vector(3) NOT NULL
+);
+INSERT dbo.d56_vec(id,embedding)
+SELECT value, CAST(JSON_ARRAY(CAST(value * 0.01 AS float), 1, 0) AS vector(3))
+FROM GENERATE_SERIES(1,100);
+CREATE VECTOR INDEX IX_d56_vec ON dbo.d56_vec(embedding)
+WITH (METRIC = &#x27;cosine&#x27;, TYPE = &#x27;DiskANN&#x27;);
+
+SELECT i.name AS index_name, (SELECT COUNT(*) FROM dbo.d56_vec) AS source_rows
+FROM sys.indexes AS i
+WHERE i.object_id = OBJECT_ID(N&#x27;dbo.d56_vec&#x27;) AND i.name = N&#x27;IX_d56_vec&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT i.name AS index_name, (SELECT COUNT(*) FROM dbo.d56_vec) AS source_rows
+FROM sys.indexes AS i
+WHERE i.object_id = OBJECT_ID(N&#x27;dbo.d56_vec&#x27;) AND i.name = N&#x27;IX_d56_vec&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">index_name</th><th scope="col">source_rows</th></tr></thead>
+<tbody>
+<tr><td><code>IX_d56_vec</code></td><td><code>100</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-vector-index-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="online-maintenance" class="point" data-dialects="sqlserver">
+<h2>ONLINE、RESUMABLE、低优先级与压缩</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2017+ 可续跑重建，2019+ 可续跑创建 · SQL Server 2025 Enterprise 或 Enterprise Developer · 无外层事务</span></p>
+<p>重建和重新组织具有不同的锁、空间和日志开销。ONLINE 仍要在特定阶段取得锁，低优先级等待的 SELF 只结束当前维护请求。RESUMABLE 支持查询运行或暂停状态以及 PAUSE、RESUME、ABORT。小表在无阻塞时应立即完成。PAGE 压缩适用于行存，读写收益需实测。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="维护对象" tabindex="0">
+<table class="sql-result"><caption>维护对象</caption>
+<thead><tr><th scope="col">索引</th><th scope="col">压缩</th><th scope="col">访问情况</th></tr></thead>
+<tbody>
+<tr><td><code>IX_d56_online</code></td><td><code>PAGE</code></td><td><code>独立连接、无阻塞</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d56_maint (id int NOT NULL PRIMARY KEY, qty int NOT NULL);
+INSERT dbo.d56_maint VALUES (1,3), (2,4);
+CREATE INDEX IX_d56_online ON dbo.d56_maint(qty) WITH (DATA_COMPRESSION = PAGE);
+ALTER INDEX IX_d56_online ON dbo.d56_maint REORGANIZE;
+ALTER INDEX IX_d56_online ON dbo.d56_maint REBUILD
+WITH (ONLINE = ON (WAIT_AT_LOW_PRIORITY (MAX_DURATION = 1 MINUTES, ABORT_AFTER_WAIT = SELF)),
+      RESUMABLE = ON, MAX_DURATION = 1 MINUTES);
+
+SELECT i.name AS index_name, p.data_compression_desc,
+       (SELECT COUNT(*) FROM sys.index_resumable_operations AS r
+         WHERE r.object_id = i.object_id AND r.index_id = i.index_id) AS unfinished
+FROM sys.indexes AS i
+JOIN sys.partitions AS p ON p.object_id = i.object_id AND p.index_id = i.index_id
+WHERE i.object_id = OBJECT_ID(N&#x27;dbo.d56_maint&#x27;) AND i.name = N&#x27;IX_d56_online&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT i.name AS index_name, p.data_compression_desc,
+       (SELECT COUNT(*) FROM sys.index_resumable_operations AS r
+         WHERE r.object_id = i.object_id AND r.index_id = i.index_id) AS unfinished
+FROM sys.indexes AS i
+JOIN sys.partitions AS p ON p.object_id = i.object_id AND p.index_id = i.index_id
+WHERE i.object_id = OBJECT_ID(N&#x27;dbo.d56_maint&#x27;) AND i.name = N&#x27;IX_d56_online&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">index_name</th><th scope="col">data_compression_desc</th><th scope="col">unfinished</th></tr></thead>
+<tbody>
+<tr><td><code>IX_d56_online</code></td><td><code>PAGE</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-index-transact-sql?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/sql-server/editions-and-components-of-sql-server-2025?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+<section id="statistics" class="point" data-dialects="sqlserver">
+<h2>CREATE STATISTICS 与 UPDATE STATISTICS</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012 SP1+（统计 DMV） · 创建、更新需对应表权限，查询受列可见性限制</span></p>
+<p>统计信息帮助优化器估算命中行数。多列统计的直方图以首列为准。FULLSCAN 读取全部行，适合演示与特定修复，开销随数据量增长。检查 rows 与 rows_sampled 判断本次采样覆盖的行数。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="统计列的数据" tabindex="0">
+<table class="sql-result"><caption>统计列的数据</caption>
+<thead><tr><th scope="col">category</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>book</code></td><td><code>2</code></td></tr>
+<tr><td><code>book</code></td><td><code>5</code></td></tr>
+<tr><td><code>pen</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d56_stats (category varchar(12) NOT NULL, qty int NOT NULL);
+INSERT dbo.d56_stats VALUES (&#x27;book&#x27;,2), (&#x27;book&#x27;,5), (&#x27;pen&#x27;,1);
+CREATE STATISTICS ST_d56_category_qty ON dbo.d56_stats(category,qty);
+UPDATE STATISTICS dbo.d56_stats ST_d56_category_qty WITH FULLSCAN;
+
+SELECT s.name AS stats_name, d.rows, d.rows_sampled
+FROM sys.stats AS s
+CROSS APPLY sys.dm_db_stats_properties(s.object_id,s.stats_id) AS d
+WHERE s.object_id = OBJECT_ID(N&#x27;dbo.d56_stats&#x27;) AND s.name = N&#x27;ST_d56_category_qty&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT s.name AS stats_name, d.rows, d.rows_sampled
+FROM sys.stats AS s
+CROSS APPLY sys.dm_db_stats_properties(s.object_id,s.stats_id) AS d
+WHERE s.object_id = OBJECT_ID(N&#x27;dbo.d56_stats&#x27;) AND s.name = N&#x27;ST_d56_category_qty&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">stats_name</th><th scope="col">rows</th><th scope="col">rows_sampled</th></tr></thead>
+<tbody>
+<tr><td><code>ST_d56_category_qty</code></td><td><code>3</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-statistics-transact-sql?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-db-stats-properties-transact-sql?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+<section id="plan-io-time" class="point" data-dialects="sqlserver">
+<h2>估算计划、实际计划、逻辑读与 CPU 时间</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server · 需要查询权限和查询所访问数据库的 SHOWPLAN 权限 · 用支持 GO 的客户端</span></p>
+<p>SHOWPLAN_XML 只返回编译计划，ON/OFF 必须各自成批。STATISTICS XML 执行查询并给出实际计划。STATISTICS IO/TIME 把逻辑读、耗时、CPU 等信息写到客户端消息。OPTION (MAXDOP 1, RECOMPILE) 作用于一条查询，适合对照计划，常规查询是否加提示由实测决定。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="计划中的输入表" tabindex="0">
+<table class="sql-result"><caption>计划中的输入表</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>4</code></td></tr>
+<tr><td><code>2</code></td><td><code>9</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d56_measure (id int PRIMARY KEY, qty int NOT NULL);
+INSERT dbo.d56_measure VALUES (1,4), (2,9);
+GO
+SET SHOWPLAN_XML ON;
+GO
+SELECT qty FROM dbo.d56_measure WHERE id = 2 OPTION (MAXDOP 1, RECOMPILE);
+GO
+SET SHOWPLAN_XML OFF;
+GO
+SET STATISTICS IO ON;
+SET STATISTICS TIME ON;
+SET STATISTICS XML ON;
+
+SELECT qty FROM dbo.d56_measure WHERE id = 2 OPTION (MAXDOP 1, RECOMPILE);
+
+SET STATISTICS XML OFF;
+SET STATISTICS TIME OFF;
+SET STATISTICS IO OFF;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT qty FROM dbo.d56_measure WHERE id = 2 OPTION (MAXDOP 1, RECOMPILE);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>9</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">估算阶段只有计划 XML。实际执行另有计划 XML 和读页、CPU 与 elapsed time 消息，耗时和页数随实例与缓存状态变化。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-showplan-xml-transact-sql?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-xml-transact-sql?view=sql-server-ver17">SQL Server 官方文档 2</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-io-transact-sql?view=sql-server-ver17">SQL Server 官方文档 3</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-time-transact-sql?view=sql-server-ver17">SQL Server 官方文档 4</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-query?view=sql-server-ver17">SQL Server 官方文档 5</a></p>
+</section>
+<section id="query-store" class="point" data-dialects="sqlserver">
+<h2>Query Store 及强制计划</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+ · 在独立练习库启用可写 Query Store · 刷新、配置和强制计划需相应权限</span></p>
+<p>Query Store 保存查询、计划与运行统计。先捕捉自己练习语句的计划，再用真实 query_id 与 plan_id 调用 sp_query_store_force_plan。is_forced_plan 表示已请求强制，后续还要检查强制失败计数及实际表现。末尾解除本例强制状态。按当前脚本的批次边界整段执行，保留同批变量作用域。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="要捕捉的测试语句" tabindex="0">
+<table class="sql-result"><caption>要捕捉的测试语句</caption>
+<thead><tr><th scope="col">表</th><th scope="col">qty</th><th scope="col">查询结果</th></tr></thead>
+<tbody>
+<tr><td><code>d56_qs</code></td><td><code>2, 3</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>ALTER DATABASE CURRENT SET QUERY_STORE = ON
+    (OPERATION_MODE = READ_WRITE, QUERY_CAPTURE_MODE = ALL);
+CREATE TABLE dbo.d56_qs (id int PRIMARY KEY, qty int NOT NULL);
+INSERT dbo.d56_qs VALUES (1,2), (2,3);
+EXEC sys.sp_executesql N&#x27;SELECT SUM(qty) AS d56_total FROM dbo.d56_qs OPTION (MAXDOP 1);&#x27;;
+EXEC sys.sp_query_store_flush_db;
+DECLARE @query_id bigint, @plan_id bigint;
+SELECT TOP (1) @query_id = q.query_id, @plan_id = p.plan_id
+FROM sys.query_store_query_text AS t
+JOIN sys.query_store_query AS q ON q.query_text_id = t.query_text_id
+JOIN sys.query_store_plan AS p ON p.query_id = q.query_id
+WHERE t.query_sql_text LIKE N&#x27;SELECT SUM(qty) AS d56_total FROM dbo.d56_qs%&#x27;
+ORDER BY p.plan_id DESC;
+IF @plan_id IS NULL
+    THROW 50002, &#x27;The test plan is not present in Query Store.&#x27;, 1;
+EXEC sys.sp_query_store_force_plan @query_id = @query_id, @plan_id = @plan_id;
+
+SELECT is_forced_plan
+FROM sys.query_store_plan
+WHERE query_id = @query_id AND plan_id = @plan_id;
+
+EXEC sys.sp_query_store_unforce_plan @query_id = @query_id, @plan_id = @plan_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT is_forced_plan
+FROM sys.query_store_plan
+WHERE query_id = @query_id AND plan_id = @plan_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">is_forced_plan</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/performance/monitoring-performance-by-using-the-query-store?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-query-store-force-plan-transact-sql?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+<section id="runtime-dmv" class="point" data-dialects="sqlserver">
+<h2>运行中请求、语句文本与缓存统计</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+ 系统范围可见性通常需 VIEW SERVER PERFORMANCE STATE，旧版用 VIEW SERVER STATE · 仅查看练习实例</span></p>
+<p>sys.dm_exec_requests 反映正在执行的请求，可通过 sql_handle 取 SQL 文本。全实例诊断常结合阻塞会话、等待类型和 sys.dm_exec_query_stats 的缓存累计值。缓存条目在重启、失效或驱逐后会消失，持久历史用 Query Store。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="本次查询范围" tabindex="0">
+<table class="sql-result"><caption>本次查询范围</caption>
+<thead><tr><th scope="col">会话</th><th scope="col">SQL 探针</th></tr></thead>
+<tbody>
+<tr><td><code>@@SPID</code></td><td><code>d56_self_dmv</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CASE WHEN r.session_id = @@SPID THEN 1 ELSE 0 END AS own_request,
+       CASE WHEN s.text LIKE N&#x27;%d56_self_dmv%&#x27; THEN 1 ELSE 0 END AS has_text
+FROM sys.dm_exec_requests AS r
+CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) AS s
+WHERE r.session_id = @@SPID;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CASE WHEN r.session_id = @@SPID THEN 1 ELSE 0 END AS own_request,
+       CASE WHEN s.text LIKE N&#x27;%d56_self_dmv%&#x27; THEN 1 ELSE 0 END AS has_text
+FROM sys.dm_exec_requests AS r
+CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) AS s
+WHERE r.session_id = @@SPID;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">own_request</th><th scope="col">has_text</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">SQL 文本可能包含业务参数或字面量。共享诊断结果前应缩小范围并移除敏感信息。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-exec-requests-transact-sql?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-exec-query-stats-transact-sql?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+<section id="extended-events" class="point" data-dialects="sqlserver">
+<h2>Extended Events 观察单一测试语句</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 实例 · 创建、启停及读取 XE 各需权限 · 2022+ 可授细粒度权限 · 仅用全新练习会话名</span></p>
+<p>在练习实例创建有特定语句标记过滤的服务器级会话。ring_buffer 在内存中保留少量事件，适合短时排查，停止会话前读取。若当次还在分发事件，保持会话运行并重跑读取查询。示例末尾停止并移除本卡创建的会话对象。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="要观察的探针" tabindex="0">
+<table class="sql-result"><caption>要观察的探针</caption>
+<thead><tr><th scope="col">事件</th><th scope="col">唯一标记</th></tr></thead>
+<tbody>
+<tr><td><code>sql_statement_completed</code></td><td><code>d56_xe_probe</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE EVENT SESSION d56_xe ON SERVER
+ADD EVENT sqlserver.sql_statement_completed (
+    WHERE ([sqlserver].[like_i_sql_unicode_string]([statement], N&#x27;SELECT 1 AS d56_xe_probe%&#x27;))
+)
+ADD TARGET package0.ring_buffer
+WITH (MAX_DISPATCH_LATENCY = 1 SECONDS, STARTUP_STATE = OFF);
+ALTER EVENT SESSION d56_xe ON SERVER STATE = START;
+EXEC sys.sp_executesql N&#x27;SELECT 1 AS d56_xe_probe;&#x27;;
+WAITFOR DELAY &#x27;00:00:02&#x27;;
+
+WITH target AS (
+    SELECT CAST(t.target_data AS xml) AS payload
+    FROM sys.dm_xe_sessions AS s
+    JOIN sys.dm_xe_session_targets AS t ON t.event_session_address = s.address
+    WHERE s.name = N&#x27;d56_xe&#x27; AND t.target_name = N&#x27;ring_buffer&#x27;
+)
+SELECT CASE WHEN EXISTS (
+    SELECT 1 FROM target
+    WHERE payload.exist(&#x27;/RingBufferTarget/event[@name=&quot;sql_statement_completed&quot;]/data[@name=&quot;statement&quot;]/value[contains(text()[1],&quot;d56_xe_probe&quot;)]&#x27;) = 1
+) THEN 1 ELSE 0 END AS probe_observed;
+
+ALTER EVENT SESSION d56_xe ON SERVER STATE = STOP;
+DROP EVENT SESSION d56_xe ON SERVER;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH target AS (
+    SELECT CAST(t.target_data AS xml) AS payload
+    FROM sys.dm_xe_sessions AS s
+    JOIN sys.dm_xe_session_targets AS t ON t.event_session_address = s.address
+    WHERE s.name = N&#x27;d56_xe&#x27; AND t.target_name = N&#x27;ring_buffer&#x27;
+)
+SELECT CASE WHEN EXISTS (
+    SELECT 1 FROM target
+    WHERE payload.exist(&#x27;/RingBufferTarget/event[@name=&quot;sql_statement_completed&quot;]/data[@name=&quot;statement&quot;]/value[contains(text()[1],&quot;d56_xe_probe&quot;)]&#x27;) = 1
+) THEN 1 ELSE 0 END AS probe_observed;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">probe_observed</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-event-session-transact-sql?view=sql-server-ver17">SQL Server 官方文档 1</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/extended-events/quick-start-extended-events-in-sql-server?view=sql-server-ver17">SQL Server 官方文档 2</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#rowstore">查看表的存储结构与覆盖索引</a></li>
+<li><a href="#filtered-computed">筛选索引和计算列索引</a></li>
+<li><a href="#columnstore">比较列存和行存索引</a></li>
+<li><a href="#xml-spatial">XML 主索引、PATH 与空间索引</a></li>
+<li><a href="#fulltext-index">全文目录、KEY INDEX 与全文填充</a></li>
+<li><a href="#json-index">原生 JSON 列的索引路径</a></li>
+<li><a href="#vector-index">向量索引与近似检索的版本差异</a></li>
+<li><a href="#online-maintenance">ONLINE、RESUMABLE、低优先级与压缩</a></li>
+<li><a href="#statistics">建立或刷新列分布统计</a></li>
+<li><a href="#plan-io-time">估算计划、实际计划、逻辑读与 CPU 时间</a></li>
+<li><a href="#query-store">记录查询计划并指定采用的计划</a></li>
+<li><a href="#runtime-dmv">运行中请求、语句文本与缓存统计</a></li>
+<li><a href="#extended-events">Extended Events 观察单一测试语句</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="55-sqlserver-history-graph.html">← 时态、变更跟踪、图与账本</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="57-sqlserver-routines.html">程序结构与服务队列 →</a></nav>
+</main>
+</body>
+</html>

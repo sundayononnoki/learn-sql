@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>58 · SQL Server · 事务、隔离和错误处理 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 58 章 · 原生语法</p>
+<h1>SQL Server · 事务、隔离和错误处理</h1>
+<p class="lead">在专用连接观察提交边界、版本可见性与并发冲突，再用事务状态判断可否提交和如何重试。</p>
+<div class="layout"><article class="content">
+<section id="modes" class="point" data-dialects="sqlserver">
+<h2>自动提交、显式事务和隐式事务</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>会话的 IMPLICIT_TRANSACTIONS 为 OFF 时，独立语句默认自动提交。BEGIN TRANSACTION 开启显式事务。开启 IMPLICIT_TRANSACTIONS 后，INSERT 等语句会在没有活动事务时开启一笔事务，调用方仍须显式提交或回滚。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="各模式试写的数据" tabindex="0">
+<table class="sql-result"><caption>各模式试写的数据</caption>
+<thead><tr><th scope="col">id</th><th scope="col">写入模式</th><th scope="col">最终动作</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>自动提交</code></td><td><code>提交</code></td></tr>
+<tr><td><code>2</code></td><td><code>显式事务</code></td><td><code>回滚</code></td></tr>
+<tr><td><code>3</code></td><td><code>隐式事务</code></td><td><code>回滚</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET IMPLICIT_TRANSACTIONS OFF;
+CREATE TABLE #ch58_modes (id int PRIMARY KEY);
+
+INSERT INTO #ch58_modes VALUES (1);
+DECLARE @automatic int = @@TRANCOUNT;
+BEGIN TRANSACTION;
+INSERT INTO #ch58_modes VALUES (2);
+DECLARE @explicit int = @@TRANCOUNT;
+ROLLBACK TRANSACTION;
+SET IMPLICIT_TRANSACTIONS ON;
+INSERT INTO #ch58_modes VALUES (3);
+DECLARE @implicit int = @@TRANCOUNT;
+ROLLBACK TRANSACTION;
+SET IMPLICIT_TRANSACTIONS OFF;
+SELECT @automatic AS automatic_count, @explicit AS explicit_count,
+       @implicit AS implicit_count, id AS committed_id
+FROM #ch58_modes;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @automatic AS automatic_count, @explicit AS explicit_count,
+       @implicit AS implicit_count, id AS committed_id
+FROM #ch58_modes;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">automatic_count</th><th scope="col">explicit_count</th><th scope="col">implicit_count</th><th scope="col">committed_id</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td><code>1</code></td><td><code>1</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-implicit-transactions-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="nested-save" class="point" data-dialects="sqlserver">
+<h2>@@TRANCOUNT、嵌套与保存点</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>内部 COMMIT 只减少 @@TRANCOUNT，最外层 COMMIT 才真正提交。SAVE TRANSACTION 不改变计数。ROLLBACK TRANSACTION 保存点回滚到标记，整笔 ROLLBACK 把计数清零。保存点回滚不会撤销已升级或已转换的锁。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待写的数据" tabindex="0">
+<table class="sql-result"><caption>待写的数据</caption>
+<thead><tr><th scope="col">id</th><th scope="col">相对保存点</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>之前</code></td></tr>
+<tr><td><code>2</code></td><td><code>之后</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET IMPLICIT_TRANSACTIONS OFF;
+CREATE TABLE #ch58_save (id int PRIMARY KEY);
+
+BEGIN TRANSACTION;
+INSERT INTO #ch58_save VALUES (1);
+SAVE TRANSACTION keep_first;
+BEGIN TRANSACTION;
+INSERT INTO #ch58_save VALUES (2);
+COMMIT TRANSACTION;
+DECLARE @after_inner int = @@TRANCOUNT;
+ROLLBACK TRANSACTION keep_first;
+DECLARE @after_savepoint int = @@TRANCOUNT;
+COMMIT TRANSACTION;
+SELECT @after_inner AS after_inner_commit,
+       @after_savepoint AS after_savepoint_rollback,
+       @@TRANCOUNT AS after_outer_commit, id AS committed_id
+FROM #ch58_save;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @after_inner AS after_inner_commit,
+       @after_savepoint AS after_savepoint_rollback,
+       @@TRANCOUNT AS after_outer_commit, id AS committed_id
+FROM #ch58_save;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">after_inner_commit</th><th scope="col">after_savepoint_rollback</th><th scope="col">after_outer_commit</th><th scope="col">committed_id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td><td><code>0</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/save-transaction-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="rcsi" class="point" data-dialects="sqlserver">
+<h2>READ COMMITTED SNAPSHOT：每条语句取得一致视图</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2005+，需要改库权限和两个连接</span></p>
+<p>由有建库和改库权限的管理员先在独立实例执行 setup 的管理员段。先在 A 运行标注的 A1 代码，然后用另一条连接 B 执行 B1，再回 A 运行结果 SQL。RCSI 下第二次查询看见 B 已提交的新值。这个模式与普通 READ COMMITTED 的锁定读不同。修改 RCSI 时，除修改连接外，此库应无其他连接。请按面板顺序在指定连接分别执行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="初始 dbo.ver_rcsi" tabindex="0">
+<table class="sql-result"><caption>初始 dbo.ver_rcsi</caption>
+<thead><tr><th scope="col">id</th><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>管理员：先建一次专用库，保持其他连接未打开。</figcaption><pre><code>USE master;
+GO
+CREATE DATABASE SQLNotesCh58Version;
+GO
+ALTER DATABASE SQLNotesCh58Version SET READ_COMMITTED_SNAPSHOT ON;
+ALTER DATABASE SQLNotesCh58Version SET ALLOW_SNAPSHOT_ISOLATION ON;
+GO
+USE SQLNotesCh58Version;
+CREATE TABLE dbo.ver_rcsi (id int PRIMARY KEY, n int NOT NULL);
+INSERT INTO dbo.ver_rcsi VALUES (1, 10);
+GO</code></pre></figure>
+<figure><figcaption>A1：在连接 A 运行至此段结尾并保持事务。</figcaption><pre><code>USE SQLNotesCh58Version;
+SET IMPLICIT_TRANSACTIONS OFF;
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+BEGIN TRANSACTION;
+SELECT n AS first_read FROM dbo.ver_rcsi WHERE id = 1; -- 10
+GO</code></pre></figure>
+<figure><figcaption>B1：在另一个连接执行此段，然后切回 A。</figcaption><pre><code>USE SQLNotesCh58Version;
+SET IMPLICIT_TRANSACTIONS OFF;
+UPDATE dbo.ver_rcsi SET n = 20 WHERE id = 1;
+GO</code></pre></figure>
+<figure><figcaption>A2：在连接 A 执行。</figcaption><pre><code>SELECT n AS second_read FROM dbo.ver_rcsi WHERE id = 1;
+COMMIT TRANSACTION;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT n AS second_read FROM dbo.ver_rcsi WHERE id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">second_read</th></tr></thead>
+<tbody>
+<tr><td><code>20</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-transaction-isolation-level-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="snapshot" class="point" data-dialects="sqlserver">
+<h2>SNAPSHOT：同笔事务维持旧视图</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2005+，数据库须经 ALLOW_SNAPSHOT_ISOLATION ON</span></p>
+<p>沿用上例已启用 ALLOW_SNAPSHOT_ISOLATION 的专用库。本卡分别在管理员连接、连接 A、连接 B 运行标注的段落，最后回到 A 执行结果 SQL。快照在事务首次访问数据时建立，之后普通读取留在同一版本。尝试修改 B 已改过的同一行可能触发更新冲突 3960。请按面板顺序在指定连接分别执行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="初始 dbo.ver_snapshot" tabindex="0">
+<table class="sql-result"><caption>初始 dbo.ver_snapshot</caption>
+<thead><tr><th scope="col">id</th><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>管理员：创建快照实验专用表。</figcaption><pre><code>USE SQLNotesCh58Version;
+CREATE TABLE dbo.ver_snapshot (id int PRIMARY KEY, n int NOT NULL);
+INSERT INTO dbo.ver_snapshot VALUES (1, 10);
+GO</code></pre></figure>
+<figure><figcaption>A1：在连接 A 开启事务，保持不提交。</figcaption><pre><code>USE SQLNotesCh58Version;
+SET IMPLICIT_TRANSACTIONS OFF;
+SET TRANSACTION ISOLATION LEVEL SNAPSHOT;
+BEGIN TRANSACTION;
+SELECT n AS first_read FROM dbo.ver_snapshot WHERE id = 1; -- 10
+GO</code></pre></figure>
+<figure><figcaption>B1：在连接 B 更新并自动提交，然后回到 A。</figcaption><pre><code>USE SQLNotesCh58Version;
+SET IMPLICIT_TRANSACTIONS OFF;
+UPDATE dbo.ver_snapshot SET n = 20 WHERE id = 1;
+GO</code></pre></figure>
+<figure><figcaption>A2：A 的原事务仍在。</figcaption><pre><code>SELECT n AS second_read FROM dbo.ver_snapshot WHERE id = 1;
+COMMIT TRANSACTION;
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT n AS second_read FROM dbo.ver_snapshot WHERE id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">second_read</th></tr></thead>
+<tbody>
+<tr><td><code>10</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="xact-abort" class="point" data-dialects="sqlserver">
+<h2>XACT_ABORT、TRY…CATCH 与 XACT_STATE</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>XACT_STATE 的 1 表示事务能提交，0 表示没有事务，-1 表示事务已不可提交。XACT_ABORT ON 时，本例 CHECK 约束错误把事务置成 -1。CATCH 应完整回滚。ERROR_NUMBER 观察实际错误号。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="本事务尝试写入" tabindex="0">
+<table class="sql-result"><caption>本事务尝试写入</caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>-1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET IMPLICIT_TRANSACTIONS OFF;
+CREATE TABLE #ch58_nonnegative (n int NOT NULL CHECK (n &gt;= 0));
+
+DECLARE @number int, @xstate smallint;
+SET XACT_ABORT ON;
+BEGIN TRY
+  BEGIN TRANSACTION;
+  INSERT INTO #ch58_nonnegative VALUES (1);
+  INSERT INTO #ch58_nonnegative VALUES (-1);
+  COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+  SELECT @number = ERROR_NUMBER(), @xstate = XACT_STATE();
+  IF XACT_STATE() &lt;&gt; 0 ROLLBACK TRANSACTION;
+END CATCH;
+SET XACT_ABORT OFF;
+SELECT @number AS error_number, @xstate AS catch_xact_state,
+       COUNT(*) AS rows_after_rollback
+FROM #ch58_nonnegative;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @number AS error_number, @xstate AS catch_xact_state,
+       COUNT(*) AS rows_after_rollback
+FROM #ch58_nonnegative;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">error_number</th><th scope="col">catch_xact_state</th><th scope="col">rows_after_rollback</th></tr></thead>
+<tbody>
+<tr><td><code>547</code></td><td><code>-1</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/try-catch-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="throw" class="point" data-dialects="sqlserver">
+<h2>THROW 自定义错误与原样重抛</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+</span></p>
+<p>新发出的错误编号至少为 50000，严重度为 16，并可指定 0–255 的状态值。CATCH 中无参数 THROW 保留原编号、严重度和状态。THROW 前面的语句须以分号结束。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="触发的原始错误" tabindex="0">
+<table class="sql-result"><caption>触发的原始错误</caption>
+<thead><tr><th scope="col">number</th><th scope="col">state_code</th><th scope="col">message</th></tr></thead>
+<tbody>
+<tr><td><code>50058</code></td><td><code>7</code></td><td><code>Invalid demo value</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRY
+  BEGIN TRY
+    THROW 50058, N&#x27;Invalid demo value&#x27;, 7;
+  END TRY
+  BEGIN CATCH
+    THROW;
+  END CATCH;
+END TRY
+BEGIN CATCH
+  SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity,
+         ERROR_STATE() AS state_code, ERROR_MESSAGE() AS message;
+END CATCH;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT ERROR_NUMBER() AS number, ERROR_SEVERITY() AS severity,
+         ERROR_STATE() AS state_code, ERROR_MESSAGE() AS message;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">number</th><th scope="col">severity</th><th scope="col">state_code</th><th scope="col">message</th></tr></thead>
+<tbody>
+<tr><td><code>50058</code></td><td><code>16</code></td><td><code>7</code></td><td><code>Invalid demo value</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/throw-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="raiserror" class="point" data-dialects="sqlserver">
+<h2>旧 RAISERROR 与 THROW 的回滚差异</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">本例 FORMATMESSAGE 使用字符串模板，需要 SQL Server 2016+</span></p>
+<p>RAISERROR 支持 printf 风格格式参数，但不遵从 SET XACT_ABORT。迁移时可用 FORMATMESSAGE 生成文本，再使用 THROW。请同时调整事务处理，因为本例的 RAISERROR 错误保留可提交状态，THROW 则使事务不可提交。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个错误的共同参数" tabindex="0">
+<table class="sql-result"><caption>两个错误的共同参数</caption>
+<thead><tr><th scope="col">输入值</th><th scope="col">state_code</th><th scope="col">XACT_ABORT</th></tr></thead>
+<tbody>
+<tr><td><code>-1</code></td><td><code>4</code></td><td><code>ON</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET IMPLICIT_TRANSACTIONS OFF;
+CREATE TABLE #ch58_error_mode (n int);
+
+SET XACT_ABORT ON;
+DECLARE @old_state smallint, @new_state smallint;
+BEGIN TRY
+  BEGIN TRANSACTION;
+  INSERT INTO #ch58_error_mode VALUES (1);
+  RAISERROR (N&#x27;Bad value: %d&#x27;, 16, 4, -1);
+  COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+  SET @old_state = XACT_STATE();
+  IF XACT_STATE() &lt;&gt; 0 ROLLBACK TRANSACTION;
+END CATCH;
+BEGIN TRY
+  BEGIN TRANSACTION;
+  INSERT INTO #ch58_error_mode VALUES (1);
+  DECLARE @message nvarchar(2048) = FORMATMESSAGE(N&#x27;Bad value: %d&#x27;, -1);
+  THROW 50058, @message, 4;
+  COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+  SET @new_state = XACT_STATE();
+  IF XACT_STATE() &lt;&gt; 0 ROLLBACK TRANSACTION;
+END CATCH;
+SET XACT_ABORT OFF;
+SELECT @old_state AS raiserror_state, @new_state AS throw_state;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @old_state AS raiserror_state, @new_state AS throw_state;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">raiserror_state</th><th scope="col">throw_state</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>-1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/raiserror-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="locks" class="point" data-dialects="sqlserver">
+<h2>UPDLOCK、HOLDLOCK、READPAST、NOWAIT 与锁超时</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">两个连接。先完成 A，B 运行完后回 A 执行 ROLLBACK TRANSACTION</span></p>
+<p>UPDLOCK 以更新意图读取并保留更新锁。HOLDLOCK 提供相当于 SERIALIZABLE 的表范围语义。本例直接修改 A 持有的行，确保 B 读请求和排他锁冲突。先运行管理员段，再运行 A 段并保持事务。B 在另一个连接执行结果 SQL，最后 A 单独执行 ROLLBACK。READPAST 跳过被锁的行／键，页锁仍可能阻塞。NOWAIT 即时失败，LOCK_TIMEOUT 为会话级毫秒设置。请按面板顺序在指定连接分别执行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="初始 dbo.ch58_jobs" tabindex="0">
+<table class="sql-result"><caption>初始 dbo.ch58_jobs</caption>
+<thead><tr><th scope="col">id</th><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td></tr>
+<tr><td><code>2</code></td><td><code>20</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>管理员：在 SQLNotesLab 创建一次。</figcaption><pre><code>USE SQLNotesLab;
+CREATE TABLE dbo.ch58_jobs (id int PRIMARY KEY, n int NOT NULL);
+INSERT INTO dbo.ch58_jobs VALUES (1, 10), (2, 20);
+GO</code></pre></figure>
+<figure><figcaption>A：恢复默认模式，锁定并修改行 1，保持事务开启。</figcaption><pre><code>USE SQLNotesLab;
+SET IMPLICIT_TRANSACTIONS OFF;
+BEGIN TRANSACTION;
+SELECT n FROM dbo.ch58_jobs WITH (UPDLOCK, HOLDLOCK, ROWLOCK) WHERE id = 1;
+UPDATE dbo.ch58_jobs WITH (ROWLOCK) SET n = 99 WHERE id = 1;
+GO</code></pre></figure>
+<figure><figcaption>B：必须在 A 回滚前运行。</figcaption><pre><code>USE SQLNotesLab;
+SET IMPLICIT_TRANSACTIONS OFF;
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+DECLARE @skipped_to int, @nowait int, @timeout int, @ignore int;
+SELECT TOP (1) @skipped_to = id
+FROM dbo.ch58_jobs WITH (READPAST, READCOMMITTEDLOCK) ORDER BY id;
+BEGIN TRY
+  SELECT @ignore = n FROM dbo.ch58_jobs WITH (NOWAIT, READCOMMITTEDLOCK) WHERE id = 1;
+END TRY
+BEGIN CATCH
+  SET @nowait = ERROR_NUMBER();
+END CATCH;
+SET LOCK_TIMEOUT 500;
+BEGIN TRY
+  SELECT @ignore = n FROM dbo.ch58_jobs WITH (READCOMMITTEDLOCK) WHERE id = 1;
+END TRY
+BEGIN CATCH
+  SET @timeout = ERROR_NUMBER();
+END CATCH;
+SET LOCK_TIMEOUT -1;
+SELECT @skipped_to AS available_id, @nowait AS nowait_error, @timeout AS timeout_error;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @skipped_to AS available_id, @nowait AS nowait_error, @timeout AS timeout_error;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">available_id</th><th scope="col">nowait_error</th><th scope="col">timeout_error</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>1222</code></td><td><code>1222</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-table?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="nolock" class="point" data-dialects="sqlserver">
+<h2>NOLOCK 可能读取从未提交的值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">两个连接。B 查完后，回 A 执行 ROLLBACK TRANSACTION，可再验证 n 为 10</span></p>
+<p>本例在独立示例表验证脏读。先创建表，再让 A 打开事务改值。保持 A 不提交，B 运行结果 SQL。最后 A 执行 ROLLBACK。NOLOCK 仍取得架构稳定性锁，某些 DDL 仍会阻塞。它还可能漏行、重复读行或读到稍后回滚的值。请按面板顺序在指定连接分别执行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="初始已提交的数据" tabindex="0">
+<table class="sql-result"><caption>初始已提交的数据</caption>
+<thead><tr><th scope="col">id</th><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>管理员。</figcaption><pre><code>USE SQLNotesLab;
+CREATE TABLE dbo.ch58_dirty (id int PRIMARY KEY, n int NOT NULL);
+INSERT INTO dbo.ch58_dirty VALUES (1, 10);
+GO</code></pre></figure>
+<figure><figcaption>A：只运行此段并保持连接。</figcaption><pre><code>USE SQLNotesLab;
+SET IMPLICIT_TRANSACTIONS OFF;
+BEGIN TRANSACTION;
+UPDATE dbo.ch58_dirty SET n = 99 WHERE id = 1;
+GO</code></pre></figure>
+<figure><figcaption>B：A 未提交时运行。</figcaption><pre><code>USE SQLNotesLab;
+SELECT n AS uncommitted_value FROM dbo.ch58_dirty WITH (NOLOCK) WHERE id = 1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT n AS uncommitted_value FROM dbo.ch58_dirty WITH (NOLOCK) WHERE id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">uncommitted_value</th></tr></thead>
+<tbody>
+<tr><td><code>99</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-table?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="deadlock" class="point" data-dialects="sqlserver">
+<h2>死锁受害者 1205 与整事务重试</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">两个连接。持锁后确认双方都进入下面描述的交叉步骤</span></p>
+<p>连接 A 和 B 先分别锁定不同的行，然后交叉请求。A1 → B1 → A2（A 等待）→ B2。B 用较低的 DEADLOCK_PRIORITY，成为演练中预期的牺牲者。SQL Server 回滚受害者事务，应用可对可重试业务做有限次数重试，并重新执行整笔事务。用固定加锁顺序减少再发生。请按面板顺序在指定连接分别执行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="初始数据" tabindex="0">
+<table class="sql-result"><caption>初始数据</caption>
+<thead><tr><th scope="col">id</th><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td></tr>
+<tr><td><code>2</code></td><td><code>20</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>管理员。</figcaption><pre><code>USE SQLNotesLab;
+CREATE TABLE dbo.ch58_deadlock (id int PRIMARY KEY, n int NOT NULL);
+INSERT INTO dbo.ch58_deadlock VALUES (1, 10), (2, 20);
+GO</code></pre></figure>
+<figure><figcaption>A1。</figcaption><pre><code>USE SQLNotesLab;
+SET IMPLICIT_TRANSACTIONS OFF;
+SET DEADLOCK_PRIORITY NORMAL;
+SET LOCK_TIMEOUT -1;
+BEGIN TRANSACTION;
+UPDATE dbo.ch58_deadlock WITH (ROWLOCK) SET n = n + 1 WHERE id = 1;
+GO</code></pre></figure>
+<figure><figcaption>B1：换到连接 B。</figcaption><pre><code>USE SQLNotesLab;
+SET IMPLICIT_TRANSACTIONS OFF;
+SET DEADLOCK_PRIORITY LOW;
+SET LOCK_TIMEOUT -1;
+BEGIN TRANSACTION;
+UPDATE dbo.ch58_deadlock WITH (ROWLOCK) SET n = n + 1 WHERE id = 2;
+GO</code></pre></figure>
+<figure><figcaption>A2：回到连接 A 执行，再换 B。A 此时可能仍在等待。</figcaption><pre><code>UPDATE dbo.ch58_deadlock WITH (ROWLOCK) SET n = n + 1 WHERE id = 2;
+ROLLBACK TRANSACTION;
+GO</code></pre></figure>
+<figure><figcaption>B2：仍在连接 B 的同一事务中。</figcaption><pre><code>BEGIN TRY
+  UPDATE dbo.ch58_deadlock WITH (ROWLOCK) SET n = n + 1 WHERE id = 1;
+  ROLLBACK TRANSACTION;
+END TRY
+BEGIN CATCH
+  SELECT ERROR_NUMBER() AS error_number, XACT_STATE() AS remaining_xact_state;
+  IF XACT_STATE() &lt;&gt; 0 ROLLBACK TRANSACTION;
+END CATCH;
+SET DEADLOCK_PRIORITY NORMAL;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT ERROR_NUMBER() AS error_number, XACT_STATE() AS remaining_xact_state;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">error_number</th><th scope="col">remaining_xact_state</th></tr></thead>
+<tbody>
+<tr><td><code>1205</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-deadlocks-guide?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="applock" class="point" data-dialects="sqlserver">
+<h2>sp_getapplock 锁定业务资源名</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>应用锁按数据库、数据库主体和资源名隔离，可以协调各应用连接自愿遵守的业务资源。Transaction 所有者随提交或回滚释放。返回 0 表示立即获得，1 表示等待后获得，负数表示未获得。返回值 -3 表示应用锁请求成为死锁牺牲者，调用者应显式处理当前事务。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="申请前的业务资源锁" tabindex="0">
+<table class="sql-result"><caption>申请前的业务资源锁</caption>
+<thead><tr><th scope="col">资源名</th><th scope="col">锁所有者</th><th scope="col">模式</th></tr></thead>
+<tbody>
+<tr><td><code>ch58:report:demo</code></td><td><code>Transaction</code></td><td><code>NoLock</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET IMPLICIT_TRANSACTIONS OFF;
+DECLARE @result int, @held nvarchar(32);
+BEGIN TRANSACTION;
+EXEC @result = sys.sp_getapplock
+     @Resource = N&#x27;ch58:report:demo&#x27;, @LockMode = &#x27;Exclusive&#x27;,
+     @LockOwner = &#x27;Transaction&#x27;, @LockTimeout = 0;
+SET @held = APPLOCK_MODE(&#x27;public&#x27;, N&#x27;ch58:report:demo&#x27;, &#x27;Transaction&#x27;);
+ROLLBACK TRANSACTION;
+BEGIN TRANSACTION;
+SELECT @result AS lock_result, @held AS held_mode,
+       APPLOCK_MODE(&#x27;public&#x27;, N&#x27;ch58:report:demo&#x27;, &#x27;Transaction&#x27;) AS released_mode;
+COMMIT TRANSACTION;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @result AS lock_result, @held AS held_mode,
+       APPLOCK_MODE(&#x27;public&#x27;, N&#x27;ch58:report:demo&#x27;, &#x27;Transaction&#x27;) AS released_mode;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">lock_result</th><th scope="col">held_mode</th><th scope="col">released_mode</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td><code>Exclusive</code></td><td><code>NoLock</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-getapplock-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#modes">比较事务何时开始和提交</a></li>
+<li><a href="#nested-save">查看事务层数并撤销到保存点</a></li>
+<li><a href="#rcsi">READ COMMITTED SNAPSHOT：每条语句取得一致视图</a></li>
+<li><a href="#snapshot">SNAPSHOT：同笔事务维持旧视图</a></li>
+<li><a href="#xact-abort">捕获错误并判断事务能否提交</a></li>
+<li><a href="#throw">THROW 自定义错误与原样重抛</a></li>
+<li><a href="#raiserror">旧 RAISERROR 与 THROW 的回滚差异</a></li>
+<li><a href="#locks">控制更新锁、跳锁和等待时间</a></li>
+<li><a href="#nolock">NOLOCK 可能读取从未提交的值</a></li>
+<li><a href="#deadlock">死锁受害者 1205 与整事务重试</a></li>
+<li><a href="#applock">sp_getapplock 锁定业务资源名</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="57-sqlserver-routines.html">← 程序结构与服务队列</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="59-sqlserver-security.html">权限、加密和审计 →</a></nav>
+</main>
+</body>
+</html>

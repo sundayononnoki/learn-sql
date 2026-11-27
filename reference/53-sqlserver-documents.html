@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>53 · SQL Server · JSON、XML、全文、正则和模糊匹配 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 53 章 · 原生语法</p>
+<h1>SQL Server · JSON、XML、全文、正则和模糊匹配</h1>
+<p class="lead">按目标选查询方式：结构化文档用路径，全文用词项索引，正则匹配模式，模糊匹配用相似度。带 DDL 的例子只在 SQLNotesLab 演练。</p>
+<div class="layout"><article class="content">
+<section id="for-json" class="point" data-dialects="sqlserver">
+<h2>FOR JSON PATH 和 AUTO</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+</span></p>
+<p>PATH 按列别名指定属性路径。AUTO 根据查询来源和投影列形成形状。WITHOUT_ARRAY_WRAPPER 适合确定只产生一个对象的查询。默认省略 NULL，需保留时加 INCLUDE_NULL_VALUES。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="一行订单" tabindex="0">
+<table class="sql-result"><caption>一行订单</caption>
+<thead><tr><th scope="col">id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @id int = 101, @status nvarchar(12) = N&#x27;paid&#x27;;
+
+SELECT
+  (SELECT @id AS [order.id], @status AS [order.status]
+   FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS path_result,
+  (SELECT v.id, v.status
+   FROM (VALUES (@id, @status)) AS v(id, status)
+   FOR JSON AUTO) AS auto_result;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT
+  (SELECT @id AS [order.id], @status AS [order.status]
+   FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS path_result,
+  (SELECT v.id, v.status
+   FROM (VALUES (@id, @status)) AS v(id, status)
+   FOR JSON AUTO) AS auto_result;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">path_result</th><th scope="col">auto_result</th></tr></thead>
+<tbody>
+<tr><td><code>{&quot;order&quot;:{&quot;id&quot;:101,&quot;status&quot;:&quot;paid&quot;}}</code></td><td><code>[{&quot;id&quot;:101,&quot;status&quot;:&quot;paid&quot;}]</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/json/format-query-results-as-json-with-for-json-sql-server?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="openjson-default" class="point" data-dialects="sqlserver">
+<h2>OPENJSON 默认键、值和类型</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+ · 兼容级别至少 130</span></p>
+<p>默认输出 key、value、type。数组的 key 为从 0 开始的下标，value 是文本表示，JSON null 对应 SQL NULL。type 的 0 至 5 分别代表 null、字符串、数值、布尔、数组、对象。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待展开的 JSON 数组" tabindex="0">
+<table class="sql-result"><caption>待展开的 JSON 数组</caption>
+<thead><tr><th scope="col">文档</th></tr></thead>
+<tbody>
+<tr><td><code>[&quot;SQL&quot;,20,true,null]</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT [key], [value], [type]
+FROM OPENJSON(N&#x27;[&quot;SQL&quot;,20,true,null]&#x27;)
+ORDER BY CONVERT(int, [key]);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT [key], [value], [type]
+FROM OPENJSON(N&#x27;[&quot;SQL&quot;,20,true,null]&#x27;)
+ORDER BY CONVERT(int, [key]);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">key</th><th scope="col">value</th><th scope="col">type</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td><code>SQL</code></td><td><code>1</code></td></tr>
+<tr><td><code>1</code></td><td><code>20</code></td><td><code>2</code></td></tr>
+<tr><td><code>2</code></td><td><code>true</code></td><td><code>3</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/openjson-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="openjson-schema" class="point" data-dialects="sqlserver">
+<h2>OPENJSON WITH 将文档映射为类型化列</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+ · 兼容级别至少 130</span></p>
+<p>WITH 指定列类型和属性路径。属性名匹配区分大小写。AS JSON 保留嵌套对象或数组，便于下一次 OPENJSON 展开。类型化列可直接用于数值计算。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="订单档案" tabindex="0">
+<table class="sql-result"><caption>订单档案</caption>
+<thead><tr><th scope="col">文档</th></tr></thead>
+<tbody>
+<tr><td><code>{&quot;orders&quot;:[{&quot;id&quot;:101,&quot;qty&quot;:2,&quot;items&quot;:[1,4]}]}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @payload nvarchar(max) = N&#x27;{&quot;orders&quot;:[{&quot;id&quot;:101,&quot;qty&quot;:2,&quot;items&quot;:[1,4]}]}&#x27;;
+
+SELECT order_id, qty, items
+FROM OPENJSON(@payload, &#x27;$.orders&#x27;)
+WITH (order_id int &#x27;$.id&#x27;, qty int &#x27;$.qty&#x27;,
+      items nvarchar(max) &#x27;$.items&#x27; AS JSON);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, qty, items
+FROM OPENJSON(@payload, &#x27;$.orders&#x27;)
+WITH (order_id int &#x27;$.id&#x27;, qty int &#x27;$.qty&#x27;,
+      items nvarchar(max) &#x27;$.items&#x27; AS JSON);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">qty</th><th scope="col">items</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>2</code></td><td><code>[1,4]</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/openjson-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="json-access" class="point" data-dialects="sqlserver">
+<h2>JSON_VALUE、JSON_QUERY、JSON_MODIFY 与 ISJSON</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+</span></p>
+<p>VALUE 取标量，QUERY 取对象或数组。默认 lax 下缺失路径返回 NULL，strict 下相应读取报错。MODIFY 返回改好的 JSON 文本。ISJSON 给出语法检查结果，不验证键名唯一性。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="修改前的 JSON" tabindex="0">
+<table class="sql-result"><caption>修改前的 JSON</caption>
+<thead><tr><th scope="col">文档</th></tr></thead>
+<tbody>
+<tr><td><code>{&quot;id&quot;:101,&quot;status&quot;:&quot;pending&quot;,&quot;tags&quot;:[&quot;sql&quot;,&quot;db&quot;]}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @doc nvarchar(max) = N&#x27;{&quot;id&quot;:101,&quot;status&quot;:&quot;pending&quot;,&quot;tags&quot;:[&quot;sql&quot;,&quot;db&quot;]}&#x27;;
+
+SELECT ISJSON(@doc) AS valid_json,
+       JSON_VALUE(@doc, &#x27;strict $.id&#x27;) AS id_text,
+       JSON_VALUE(@doc, &#x27;lax $.missing&#x27;) AS missing,
+       JSON_QUERY(@doc, &#x27;$.tags&#x27;) AS tags,
+       JSON_VALUE(JSON_MODIFY(@doc, &#x27;$.status&#x27;, &#x27;paid&#x27;), &#x27;$.status&#x27;) AS new_status;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT ISJSON(@doc) AS valid_json,
+       JSON_VALUE(@doc, &#x27;strict $.id&#x27;) AS id_text,
+       JSON_VALUE(@doc, &#x27;lax $.missing&#x27;) AS missing,
+       JSON_QUERY(@doc, &#x27;$.tags&#x27;) AS tags,
+       JSON_VALUE(JSON_MODIFY(@doc, &#x27;$.status&#x27;, &#x27;paid&#x27;), &#x27;$.status&#x27;) AS new_status;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">valid_json</th><th scope="col">id_text</th><th scope="col">missing</th><th scope="col">tags</th><th scope="col">new_status</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>101</code></td><td class="sql-null"><code>NULL</code></td><td><code>[&quot;sql&quot;,&quot;db&quot;]</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/json-functions-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="json-construct" class="point" data-dialects="sqlserver">
+<h2>JSON_PATH_EXISTS 与 JSON 构造函数</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+</span></p>
+<p>PATH_EXISTS 判断路径是否存在，包括值是 JSON null 的键。JSON_OBJECT 和 JSON_ARRAY 构造结构，NULL ON NULL 和 ABSENT ON NULL 可指定保留或省略空值。ISJSON 可加 OBJECT、ARRAY、VALUE 或 SCALAR 约束。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="路径参数与构造值" tabindex="0">
+<table class="sql-result"><caption>路径参数与构造值</caption>
+<thead><tr><th scope="col">文档</th><th scope="col">构造数据</th></tr></thead>
+<tbody>
+<tr><td><code>{&quot;id&quot;:101,&quot;x&quot;:null}</code></td><td><code>id 101；1、NULL、2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @doc nvarchar(max) = N&#x27;{&quot;id&quot;:101,&quot;x&quot;:null}&#x27;;
+
+SELECT JSON_PATH_EXISTS(@doc, &#x27;$.x&#x27;) AS has_null_key,
+       JSON_PATH_EXISTS(@doc, &#x27;$.missing&#x27;) AS has_missing_key,
+       ISJSON(@doc, OBJECT) AS is_object,
+       JSON_OBJECT(&#x27;id&#x27;: 101) AS built_object,
+       JSON_ARRAY(1, NULL, 2 NULL ON NULL) AS built_array;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT JSON_PATH_EXISTS(@doc, &#x27;$.x&#x27;) AS has_null_key,
+       JSON_PATH_EXISTS(@doc, &#x27;$.missing&#x27;) AS has_missing_key,
+       ISJSON(@doc, OBJECT) AS is_object,
+       JSON_OBJECT(&#x27;id&#x27;: 101) AS built_object,
+       JSON_ARRAY(1, NULL, 2 NULL ON NULL) AS built_array;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">has_null_key</th><th scope="col">has_missing_key</th><th scope="col">is_object</th><th scope="col">built_object</th><th scope="col">built_array</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>0</code></td><td><code>1</code></td><td><code>{&quot;id&quot;:101}</code></td><td><code>[1,null,2]</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/json-path-exists-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="json-aggregates" class="point" data-dialects="sqlserver">
+<h2>JSON_ARRAYAGG 和 JSON_OBJECTAGG</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025+ · Azure 产品适用范围查各函数页</span></p>
+<p>将一组值封装为数组，或将键值对封装为对象。在 JSON_ARRAYAGG 内加 ORDER BY 可稳定数组顺序。对象成员顺序不作为应用契约。对象聚合示例通过 JSON_VALUE 读取成员。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="参与聚合的行" tabindex="0">
+<table class="sql-result"><caption>参与聚合的行</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>book</code></td></tr>
+<tr><td><code>2</code></td><td><code>pen</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT JSON_ARRAYAGG(id ORDER BY id) AS ids,
+       JSON_VALUE(JSON_OBJECTAGG(label: id), &#x27;$.pen&#x27;) AS pen_id
+FROM (VALUES (1,&#x27;book&#x27;), (2,&#x27;pen&#x27;)) AS items(id,label);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT JSON_ARRAYAGG(id ORDER BY id) AS ids,
+       JSON_VALUE(JSON_OBJECTAGG(label: id), &#x27;$.pen&#x27;) AS pen_id
+FROM (VALUES (1,&#x27;book&#x27;), (2,&#x27;pen&#x27;)) AS items(id,label);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">ids</th><th scope="col">pen_id</th></tr></thead>
+<tbody>
+<tr><td><code>[1,2]</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/json-arrayagg-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="native-json-path" class="point" data-dialects="sqlserver">
+<h2>数组通配路径与 JSON_CONTAINS</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025+ · 数组通配符与 WITH ARRAY WRAPPER 需 json 输入</span></p>
+<p>SQL Server 2025 的原生 json 可用数组通配符 [*]。JSON_QUERY 配 WITH ARRAY WRAPPER 把多项结果装回数组。JSON_CONTAINS 按 SQL 标量类型检查路径内是否含搜索值。路径的数组下标从 0 起。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="原生 JSON 及目标路径" tabindex="0">
+<table class="sql-result"><caption>原生 JSON 及目标路径</caption>
+<thead><tr><th scope="col">文档</th><th scope="col">检查目标</th></tr></thead>
+<tbody>
+<tr><td><code>{&quot;tags&quot;:[{&quot;name&quot;:&quot;sql&quot;},{&quot;name&quot;:&quot;db&quot;}]}</code></td><td><code>首个名称等于 sql</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @doc json = &#x27;{&quot;tags&quot;:[{&quot;name&quot;:&quot;sql&quot;},{&quot;name&quot;:&quot;db&quot;}]}&#x27;;
+
+SELECT JSON_QUERY(@doc, &#x27;$.tags[*].name&#x27; WITH ARRAY WRAPPER) AS tag_names,
+       JSON_CONTAINS(@doc, &#x27;sql&#x27;, &#x27;$.tags[0].name&#x27;) AS first_is_sql;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT JSON_QUERY(@doc, &#x27;$.tags[*].name&#x27; WITH ARRAY WRAPPER) AS tag_names,
+       JSON_CONTAINS(@doc, &#x27;sql&#x27;, &#x27;$.tags[0].name&#x27;) AS first_is_sql;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">tag_names</th><th scope="col">first_is_sql</th></tr></thead>
+<tbody>
+<tr><td><code>[&quot;sql&quot;,&quot;db&quot;]</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/json-contains-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="native-json-modify" class="point" data-dialects="sqlserver">
+<h2>原生 JSON 的 modify 方法</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025+</span></p>
+<p>原生 json 可在 UPDATE 的 SET 子句中通过 modify 修改指定路径。此例仅替换已存在的数值，修改的是 JSON 值，表的普通主键不变。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="修改前的订单文档" tabindex="0">
+<table class="sql-result"><caption>修改前的订单文档</caption>
+<thead><tr><th scope="col">id</th><th scope="col">payload</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>{&quot;qty&quot;:2}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #ch53_json_items (id int PRIMARY KEY, payload json NOT NULL);
+INSERT INTO #ch53_json_items VALUES (101, &#x27;{&quot;qty&quot;:2}&#x27;);
+UPDATE #ch53_json_items SET payload.modify(&#x27;$.qty&#x27;, 3) WHERE id = 101;
+
+SELECT id, JSON_VALUE(payload, &#x27;$.qty&#x27; RETURNING int) AS qty
+FROM #ch53_json_items;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, JSON_VALUE(payload, &#x27;$.qty&#x27; RETURNING int) AS qty
+FROM #ch53_json_items;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/json-data-type?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="json-text-index" class="point" data-dialects="sqlserver">
+<h2>文本 JSON 的计算列索引</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+</span></p>
+<p>旧版可用普通索引作用于从 JSON_VALUE 提取的计算列。给键转换成合适的窄类型，避免直接用 JSON_VALUE 的 nvarchar(4000) 当索引键。查询的筛选表达式必须能匹配计算列定义，或明确使用计算列名。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="准备建索引和查询的数据" tabindex="0">
+<table class="sql-result"><caption>准备建索引和查询的数据</caption>
+<thead><tr><th scope="col">id</th><th scope="col">payload</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>{&quot;order_id&quot;:101}</code></td></tr>
+<tr><td><code>2</code></td><td><code>{&quot;order_id&quot;:102}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET QUOTED_IDENTIFIER ON;
+SET NUMERIC_ROUNDABORT OFF;
+CREATE TABLE #ch53_text_index (
+  id int PRIMARY KEY, payload nvarchar(max),
+  order_id AS CONVERT(int, JSON_VALUE(payload, &#x27;$.order_id&#x27;))
+);
+CREATE INDEX ix_ch53_order_id ON #ch53_text_index(order_id);
+INSERT INTO #ch53_text_index (id,payload) VALUES
+  (1,N&#x27;{&quot;order_id&quot;:101}&#x27;), (2,N&#x27;{&quot;order_id&quot;:102}&#x27;);
+
+SELECT id, order_id FROM #ch53_text_index WHERE order_id = 102;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, order_id FROM #ch53_text_index WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/json/index-json-data?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="json-index" class="point" data-dialects="sqlserver">
+<h2>CREATE JSON INDEX 按原生路径建索引</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025+ · 原生 json 索引</span></p>
+<p>首次在 SQLNotesLab 运行。原生 json 索引需要有聚集主键的普通表，可用 FOR 指定路径。需有建表和索引权限。结果查询核对索引对象，实际是否使用索引取决于执行计划。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="创建前的索引目标" tabindex="0">
+<table class="sql-result"><caption>创建前的索引目标</caption>
+<thead><tr><th scope="col">表</th><th scope="col">JSON 列</th><th scope="col">路径</th></tr></thead>
+<tbody>
+<tr><td><code>dbo.ch53_native_index</code></td><td><code>payload</code></td><td><code>$.order_id</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.ch53_native_index (
+  id int PRIMARY KEY CLUSTERED, payload json NOT NULL
+);
+CREATE JSON INDEX ix_ch53_native_json ON dbo.ch53_native_index(payload)
+  FOR (&#x27;$.order_id&#x27;);
+
+SELECT name, type_desc
+FROM sys.indexes
+WHERE object_id = OBJECT_ID(N&#x27;dbo.ch53_native_index&#x27;)
+  AND name = N&#x27;ix_ch53_native_json&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, type_desc
+FROM sys.indexes
+WHERE object_id = OBJECT_ID(N&#x27;dbo.ch53_native_index&#x27;)
+  AND name = N&#x27;ix_ch53_native_json&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">type_desc</th></tr></thead>
+<tbody>
+<tr><td><code>ix_ch53_native_json</code></td><td><code>JSON</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-json-index-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="for-xml" class="point" data-dialects="sqlserver">
+<h2>FOR XML PATH 输出元素和属性</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2005+ · PATH、TYPE</span></p>
+<p>PATH 用列别名建元素，@ 前缀指定属性，ROOT 包住结果。TYPE 让输出保留 xml 类型，适合继续用 XQuery。RAW 从每行生成单个元素，AUTO 根据表结构嵌套，EXPLICIT 可显式指定复杂结构。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="一行订单" tabindex="0">
+<table class="sql-result"><caption>一行订单</caption>
+<thead><tr><th scope="col">id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CONVERT(nvarchar(max),
+  (SELECT 101 AS [@id], N&#x27;paid&#x27; AS [status]
+   FOR XML PATH(&#x27;order&#x27;), ROOT(&#x27;orders&#x27;), TYPE)) AS exported_xml;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CONVERT(nvarchar(max),
+  (SELECT 101 AS [@id], N&#x27;paid&#x27; AS [status]
+   FOR XML PATH(&#x27;order&#x27;), ROOT(&#x27;orders&#x27;), TYPE)) AS exported_xml;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">exported_xml</th></tr></thead>
+<tbody>
+<tr><td><code>&lt;orders&gt;&lt;order id=&quot;101&quot;&gt;&lt;status&gt;paid&lt;/status&gt;&lt;/order&gt;&lt;/orders&gt;</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/xml/for-xml-sql-server?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="xml-methods" class="point" data-dialects="sqlserver">
+<h2>XML 的 query、value、exist、nodes 与 modify</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2005+</span></p>
+<p>query 返回 XML 片段，value 把一个标量转换成 SQL 类型，exist 判定路径是否非空。nodes 把匹配节点拆成行。XML DML 的 modify 改变变量或列，replace value of 的目标必须能静态确定至多一个节点。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="变更前的 XML" tabindex="0">
+<table class="sql-result"><caption>变更前的 XML</caption>
+<thead><tr><th scope="col">文档</th></tr></thead>
+<tbody>
+<tr><td><code>&lt;orders&gt;&lt;order id=&quot;101&quot; qty=&quot;2&quot;/&gt;&lt;order id=&quot;102&quot; qty=&quot;1&quot;/&gt;&lt;/orders&gt;</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @orders xml = N&#x27;&lt;orders&gt;&lt;order id=&quot;101&quot; qty=&quot;2&quot;/&gt;&lt;order id=&quot;102&quot; qty=&quot;1&quot;/&gt;&lt;/orders&gt;&#x27;;
+SET @orders.modify(&#x27;replace value of (/orders/order[@id=&quot;101&quot;]/@qty)[1] with &quot;3&quot;&#x27;);
+
+SELECT x.row_node.value(&#x27;(@id)[1]&#x27;, &#x27;int&#x27;) AS id,
+       x.row_node.value(&#x27;(@qty)[1]&#x27;, &#x27;int&#x27;) AS qty,
+       x.row_node.exist(&#x27;self::order[@qty=&quot;3&quot;]&#x27;) AS qty_is_three,
+       CONVERT(nvarchar(max), x.row_node.query(&#x27;&lt;qty&gt;{data(@qty)}&lt;/qty&gt;&#x27;)) AS qty_xml
+FROM @orders.nodes(&#x27;/orders/order&#x27;) AS x(row_node)
+ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT x.row_node.value(&#x27;(@id)[1]&#x27;, &#x27;int&#x27;) AS id,
+       x.row_node.value(&#x27;(@qty)[1]&#x27;, &#x27;int&#x27;) AS qty,
+       x.row_node.exist(&#x27;self::order[@qty=&quot;3&quot;]&#x27;) AS qty_is_three,
+       CONVERT(nvarchar(max), x.row_node.query(&#x27;&lt;qty&gt;{data(@qty)}&lt;/qty&gt;&#x27;)) AS qty_xml
+FROM @orders.nodes(&#x27;/orders/order&#x27;) AS x(row_node)
+ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">qty_is_three</th><th scope="col">qty_xml</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>3</code></td><td><code>1</code></td><td><code>&lt;qty&gt;3&lt;/qty&gt;</code></td></tr>
+<tr><td><code>102</code></td><td><code>1</code></td><td><code>0</code></td><td><code>&lt;qty&gt;1&lt;/qty&gt;</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/xml/xml-data-type-methods?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="xml-schema" class="point" data-dialects="sqlserver">
+<h2>XML schema collection 约束文档结构</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2005+ · GO 由 SSMS 或 sqlcmd 识别</span></p>
+<p>在 SQLNotesLab 首次创建 schema collection。xml(DOCUMENT …) 将实例绑到 XSD 并要求完整文档。样例验证 id 属性必填、且是 xs:int。重做时可从 DECLARE 开始复用已定义的集合。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="XSD 和输入" tabindex="0">
+<table class="sql-result"><caption>XSD 和输入</caption>
+<thead><tr><th scope="col">规则</th><th scope="col">文档</th></tr></thead>
+<tbody>
+<tr><td><code>order 元素有必填 int id</code></td><td><code>&lt;order id=&quot;101&quot;/&gt;</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE XML SCHEMA COLLECTION dbo.ch53_order_xsd AS N&#x27;
+&lt;xs:schema xmlns:xs=&quot;http://www.w3.org/2001/XMLSchema&quot;&gt;
+  &lt;xs:element name=&quot;order&quot;&gt;&lt;xs:complexType&gt;
+    &lt;xs:attribute name=&quot;id&quot; type=&quot;xs:int&quot; use=&quot;required&quot;/&gt;
+  &lt;/xs:complexType&gt;&lt;/xs:element&gt;
+&lt;/xs:schema&gt;&#x27;;
+GO
+DECLARE @order xml(DOCUMENT dbo.ch53_order_xsd) = N&#x27;&lt;order id=&quot;101&quot;/&gt;&#x27;;
+
+SELECT @order.value(&#x27;(/order/@id)[1]&#x27;, &#x27;int&#x27;) AS order_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @order.value(&#x27;(/order/@id)[1]&#x27;, &#x27;int&#x27;) AS order_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/xml/xml-schema-collections-sql-server?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="openxml" class="point" data-dialects="sqlserver">
+<h2>OPENXML 兼容旧式 XML 行集</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">OPENXML 自 SQL Server 2000；本例的 THROW 自 2012</span></p>
+<p>OPENXML 需要先取得文档句柄，路径选中一组元素，映射列时本例用属性名。处理结束释放句柄。新代码通常可直接用 XML 的 nodes 方法。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="旧接口接收的 XML" tabindex="0">
+<table class="sql-result"><caption>旧接口接收的 XML</caption>
+<thead><tr><th scope="col">文档</th></tr></thead>
+<tbody>
+<tr><td><code>&lt;orders&gt;&lt;order id=&quot;101&quot; qty=&quot;2&quot;/&gt;&lt;order id=&quot;102&quot; qty=&quot;1&quot;/&gt;&lt;/orders&gt;</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @handle int, @doc nvarchar(max) =
+  N&#x27;&lt;orders&gt;&lt;order id=&quot;101&quot; qty=&quot;2&quot;/&gt;&lt;order id=&quot;102&quot; qty=&quot;1&quot;/&gt;&lt;/orders&gt;&#x27;;
+DECLARE @parsed TABLE (id int, qty int);
+EXEC sys.sp_xml_preparedocument @handle OUTPUT, @doc;
+BEGIN TRY
+  INSERT INTO @parsed (id,qty)
+  SELECT id, qty FROM OPENXML(@handle, &#x27;/orders/order&#x27;, 1)
+  WITH (id int, qty int);
+END TRY
+BEGIN CATCH
+  EXEC sys.sp_xml_removedocument @handle;
+  THROW;
+END CATCH;
+EXEC sys.sp_xml_removedocument @handle;
+
+SELECT id, qty FROM @parsed ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, qty FROM @parsed ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>2</code></td></tr>
+<tr><td><code>102</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/xml/openxml-sql-server?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="fulltext" class="point" data-dialects="sqlserver">
+<h2>全文目录、CONTAINS/FREETEXT 及表值搜索</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">需 Full-Text Search 组件；该脚本因 THROW 需 SQL Server 2012+</span></p>
+<p>在已安装 Full-Text Search 的 SQL Server 上，用 SQLNotesLab 的管理员连接首次运行，保持自动提交。全文索引用独立目录、唯一键和英语语言标识 1033。CONTAINS 用词项表达式，FREETEXT 更侧重词形及含义。两个表值版本返回 KEY 和 RANK，这里只核对键。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="全文索引的文本" tabindex="0">
+<table class="sql-result"><caption>全文索引的文本</caption>
+<thead><tr><th scope="col">id</th><th scope="col">body</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>A nebula glows</code></td></tr>
+<tr><td><code>2</code></td><td><code>Paper notebooks</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>IF COALESCE(FULLTEXTSERVICEPROPERTY(&#x27;IsFullTextInstalled&#x27;), 0) &lt;&gt; 1
+  THROW 50053, N&#x27;当前实例未安装 Full-Text Search。&#x27;, 1;
+CREATE TABLE dbo.ch53_ft_docs (
+  id int NOT NULL CONSTRAINT pk_ch53_ft_docs PRIMARY KEY,
+  body nvarchar(120) NOT NULL
+);
+INSERT INTO dbo.ch53_ft_docs VALUES (1,N&#x27;A nebula glows&#x27;), (2,N&#x27;Paper notebooks&#x27;);
+CREATE FULLTEXT CATALOG ch53_ft_lab;
+CREATE FULLTEXT INDEX ON dbo.ch53_ft_docs (body LANGUAGE 1033)
+  KEY INDEX pk_ch53_ft_docs ON ch53_ft_lab
+  WITH CHANGE_TRACKING AUTO, STOPLIST = OFF;
+DECLARE @tries int = 0;
+WHILE COALESCE(FULLTEXTCATALOGPROPERTY(&#x27;ch53_ft_lab&#x27;,&#x27;ItemCount&#x27;), 0) &lt; 2 AND @tries &lt; 30
+BEGIN
+  WAITFOR DELAY &#x27;00:00:01&#x27;;
+  SET @tries += 1;
+END;
+IF COALESCE(FULLTEXTCATALOGPROPERTY(&#x27;ch53_ft_lab&#x27;,&#x27;ItemCount&#x27;), 0) &lt; 2
+  THROW 50054, N&#x27;索引填充仍未完成。完成后可直接重跑查询。&#x27;, 1;
+
+SELECT &#x27;CONTAINS&#x27; AS search_mode, id
+FROM dbo.ch53_ft_docs WHERE CONTAINS(body, N&#x27;&quot;nebula&quot;&#x27;)
+UNION ALL
+SELECT &#x27;CONTAINSTABLE&#x27;, [KEY]
+FROM CONTAINSTABLE(dbo.ch53_ft_docs, body, N&#x27;&quot;nebula&quot;&#x27;)
+UNION ALL
+SELECT &#x27;FREETEXT&#x27;, id FROM dbo.ch53_ft_docs WHERE FREETEXT(body, N&#x27;nebula&#x27;)
+UNION ALL
+SELECT &#x27;FREETEXTTABLE&#x27;, [KEY] FROM FREETEXTTABLE(dbo.ch53_ft_docs, body, N&#x27;nebula&#x27;)
+ORDER BY search_mode;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;CONTAINS&#x27; AS search_mode, id
+FROM dbo.ch53_ft_docs WHERE CONTAINS(body, N&#x27;&quot;nebula&quot;&#x27;)
+UNION ALL
+SELECT &#x27;CONTAINSTABLE&#x27;, [KEY]
+FROM CONTAINSTABLE(dbo.ch53_ft_docs, body, N&#x27;&quot;nebula&quot;&#x27;)
+UNION ALL
+SELECT &#x27;FREETEXT&#x27;, id FROM dbo.ch53_ft_docs WHERE FREETEXT(body, N&#x27;nebula&#x27;)
+UNION ALL
+SELECT &#x27;FREETEXTTABLE&#x27;, [KEY] FROM FREETEXTTABLE(dbo.ch53_ft_docs, body, N&#x27;nebula&#x27;)
+ORDER BY search_mode;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">search_mode</th><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>CONTAINS</code></td><td><code>1</code></td></tr>
+<tr><td><code>CONTAINSTABLE</code></td><td><code>1</code></td></tr>
+<tr><td><code>FREETEXT</code></td><td><code>1</code></td></tr>
+<tr><td><code>FREETEXTTABLE</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/search/query-with-full-text-search?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="character-classes" class="point" data-dialects="sqlserver">
+<h2>LIKE 与 PATINDEX 的括号字符类</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>SQL Server 的 LIKE/PATINDEX 支持字符集合、范围和否定，例如 [A-C]、[^0-9]。实际判断受排序规则影响。用 BIN2 观察码值比较，[_] 匹配字面的下划线。PATINDEX 返回匹配起点，找不到时为 0。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待匹配文本与模式" tabindex="0">
+<table class="sql-result"><caption>待匹配文本与模式</caption>
+<thead><tr><th scope="col">输入</th><th scope="col">模式</th></tr></thead>
+<tbody>
+<tr><td><code>B7</code></td><td><code>[A-C][0-9]</code></td></tr>
+<tr><td><code>A2-B</code></td><td><code>%[^0-9A-Za-z]%</code></td></tr>
+<tr><td><code>A_1</code></td><td><code>A[_]1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CASE WHEN &#x27;B7&#x27; COLLATE Latin1_General_100_BIN2 LIKE &#x27;[A-C][0-9]&#x27;
+                   THEN 1 ELSE 0 END AS range_match,
+       PATINDEX(&#x27;%[^0-9A-Za-z]%&#x27;, &#x27;A2-B&#x27; COLLATE Latin1_General_100_BIN2) AS punctuation_pos,
+       CASE WHEN &#x27;A_1&#x27; LIKE &#x27;A[_]1&#x27; THEN 1 ELSE 0 END AS literal_underscore;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CASE WHEN &#x27;B7&#x27; COLLATE Latin1_General_100_BIN2 LIKE &#x27;[A-C][0-9]&#x27;
+                   THEN 1 ELSE 0 END AS range_match,
+       PATINDEX(&#x27;%[^0-9A-Za-z]%&#x27;, &#x27;A2-B&#x27; COLLATE Latin1_General_100_BIN2) AS punctuation_pos,
+       CASE WHEN &#x27;A_1&#x27; LIKE &#x27;A[_]1&#x27; THEN 1 ELSE 0 END AS literal_underscore;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">range_match</th><th scope="col">punctuation_pos</th><th scope="col">literal_underscore</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>3</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/patindex-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="string-split" class="point" data-dialects="sqlserver">
+<h2>STRING_SPLIT 将单字符分隔的文本拆成行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+ · 函数兼容级别至少 130；ordinal 参数自 SQL Server 2022</span></p>
+<p>分隔符为单字符。第三参数 1 启用 ordinal，序号从 1 开始。需要原始顺序时仍写 ORDER BY ordinal。连续分隔符可产生空值长度为零的文本。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="拆分输入" tabindex="0">
+<table class="sql-result"><caption>拆分输入</caption>
+<thead><tr><th scope="col">字符串</th><th scope="col">分隔符</th></tr></thead>
+<tbody>
+<tr><td><code>SQL,,2025</code></td><td><code>,</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT ordinal, value FROM STRING_SPLIT(&#x27;SQL,,2025&#x27;, &#x27;,&#x27;, 1)
+ORDER BY ordinal;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT ordinal, value FROM STRING_SPLIT(&#x27;SQL,,2025&#x27;, &#x27;,&#x27;, 1)
+ORDER BY ordinal;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">ordinal</th><th scope="col">value</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>SQL</code></td></tr>
+<tr><td><code>2</code></td><td><code></code></td></tr>
+<tr><td><code>3</code></td><td><code>2025</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/string-split-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="regexp-scalar" class="point" data-dialects="sqlserver">
+<h2>REGEXP 谓词与四个标量函数</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025+ · REGEXP_LIKE 需兼容级别至少 170，其余标量函数无此门槛</span></p>
+<p>RE2 正则支持锚点、字符类、捕获与量词。SQL Server 的标志有 c、i、m、s。LIKE 判定匹配，COUNT 数匹配项，INSTR 给位置，SUBSTR 取一次匹配，REPLACE 替换。位置从 1 起，示例取第二次数字匹配。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待匹配和替换的文本" tabindex="0">
+<table class="sql-result"><caption>待匹配和替换的文本</caption>
+<thead><tr><th scope="col">输入</th><th scope="col">数字模式</th></tr></thead>
+<tbody>
+<tr><td><code>a12b345</code></td><td><code>[0-9]+</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @txt varchar(20) = &#x27;a12b345&#x27;;
+
+SELECT CASE WHEN REGEXP_LIKE(@txt, &#x27;^[a-z][0-9]+[a-z][0-9]+$&#x27;, &#x27;c&#x27;)
+                   THEN 1 ELSE 0 END AS matches_shape,
+       REGEXP_COUNT(@txt, &#x27;[0-9]+&#x27;) AS matches_count,
+       REGEXP_INSTR(@txt, &#x27;[0-9]+&#x27;, 1, 2) AS second_position,
+       REGEXP_SUBSTR(@txt, &#x27;[0-9]+&#x27;, 1, 2) AS second_token,
+       REGEXP_REPLACE(@txt, &#x27;[0-9]+&#x27;, &#x27;#&#x27;) AS redacted;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CASE WHEN REGEXP_LIKE(@txt, &#x27;^[a-z][0-9]+[a-z][0-9]+$&#x27;, &#x27;c&#x27;)
+                   THEN 1 ELSE 0 END AS matches_shape,
+       REGEXP_COUNT(@txt, &#x27;[0-9]+&#x27;) AS matches_count,
+       REGEXP_INSTR(@txt, &#x27;[0-9]+&#x27;, 1, 2) AS second_position,
+       REGEXP_SUBSTR(@txt, &#x27;[0-9]+&#x27;, 1, 2) AS second_token,
+       REGEXP_REPLACE(@txt, &#x27;[0-9]+&#x27;, &#x27;#&#x27;) AS redacted;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">matches_shape</th><th scope="col">matches_count</th><th scope="col">second_position</th><th scope="col">second_token</th><th scope="col">redacted</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td><td><code>5</code></td><td><code>345</code></td><td><code>a#b#</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/regular-expressions-functions-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="regexp-matches" class="point" data-dialects="sqlserver">
+<h2>REGEXP_MATCHES 返回位置、匹配和捕获组</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025+ · 默认要求兼容级别 170</span></p>
+<p>一条匹配对应一行，起止位置从 1 数。substring_matches 用 JSON 描述捕获组。匹配位置用于定位整段，捕获组可从 JSON 单独取出。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="带两组标记的文本" tabindex="0">
+<table class="sql-result"><caption>带两组标记的文本</caption>
+<thead><tr><th scope="col">输入</th><th scope="col">模式</th></tr></thead>
+<tbody>
+<tr><td><code>#sql #db</code></td><td><code>#([a-z]+)</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT match_id, start_position, end_position, match_value,
+       JSON_VALUE(substring_matches, &#x27;$[0].value&#x27;) AS captured
+FROM REGEXP_MATCHES(&#x27;#sql #db&#x27;, &#x27;#([a-z]+)&#x27;)
+ORDER BY match_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT match_id, start_position, end_position, match_value,
+       JSON_VALUE(substring_matches, &#x27;$[0].value&#x27;) AS captured
+FROM REGEXP_MATCHES(&#x27;#sql #db&#x27;, &#x27;#([a-z]+)&#x27;)
+ORDER BY match_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">match_id</th><th scope="col">start_position</th><th scope="col">end_position</th><th scope="col">match_value</th><th scope="col">captured</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td><td><code>4</code></td><td><code>#sql</code></td><td><code>sql</code></td></tr>
+<tr><td><code>2</code></td><td><code>6</code></td><td><code>8</code></td><td><code>#db</code></td><td><code>db</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">支持 ALLOW_BUILTIN_TVF_IN_ALL_COMPAT_LEVELS 的版本可用该数据库选项解除表值函数兼容级别限制。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/regexp-matches-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="regexp-split" class="point" data-dialects="sqlserver">
+<h2>REGEXP_SPLIT_TO_TABLE 允许多种分隔符</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025+ · 默认要求兼容级别 170</span></p>
+<p>用正则作为分隔符，将逗号或分号及其后的空格一并消耗。ordinal 是原字符串的段序号，需要按它显式排序。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待拆文本和分隔模式" tabindex="0">
+<table class="sql-result"><caption>待拆文本和分隔模式</caption>
+<thead><tr><th scope="col">文本</th><th scope="col">模式</th></tr></thead>
+<tbody>
+<tr><td><code>one, two;three</code></td><td><code>[,;] *</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT ordinal, value
+FROM REGEXP_SPLIT_TO_TABLE(&#x27;one, two;three&#x27;, &#x27;[,;] *&#x27;)
+ORDER BY ordinal;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT ordinal, value
+FROM REGEXP_SPLIT_TO_TABLE(&#x27;one, two;three&#x27;, &#x27;[,;] *&#x27;)
+ORDER BY ordinal;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">ordinal</th><th scope="col">value</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>one</code></td></tr>
+<tr><td><code>2</code></td><td><code>two</code></td></tr>
+<tr><td><code>3</code></td><td><code>three</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">支持 ALLOW_BUILTIN_TVF_IN_ALL_COMPAT_LEVELS 的版本可用该数据库选项解除表值函数兼容级别限制。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/regexp-split-to-table-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="fuzzy" class="point" data-dialects="sqlserver">
+<h2>编辑距离与 Jaro-Winkler 相似度</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025 CU11 起正式可用 · 早期 2025 版本属于预览</span></p>
+<p>EDIT_DISTANCE 计编辑次数，可设置最大可接受距离。EDIT_DISTANCE_SIMILARITY 和 JARO_WINKLER_SIMILARITY 返回 0 至 100 的整数。JARO_WINKLER_DISTANCE 给 0 至 1 的距离，较近时值较小且同前缀权重高。显式指定受支持的 Windows 排序规则，避免默认非二进制 SQL_* 排序规则。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="近似比较输入" tabindex="0">
+<table class="sql-result"><caption>近似比较输入</caption>
+<thead><tr><th scope="col">左文本</th><th scope="col">右文本</th></tr></thead>
+<tbody>
+<tr><td><code>Colour</code></td><td><code>Color</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT EDIT_DISTANCE(lhs, rhs) AS edit_steps,
+       EDIT_DISTANCE_SIMILARITY(lhs, rhs) AS edit_similarity,
+       CASE WHEN JARO_WINKLER_DISTANCE(lhs, rhs) &lt; 0.10 THEN 1 ELSE 0 END AS jaro_near,
+       CASE WHEN JARO_WINKLER_SIMILARITY(lhs, rhs) &gt;= 90 THEN 1 ELSE 0 END AS jaro_passes
+FROM (VALUES (&#x27;Colour&#x27; COLLATE Latin1_General_100_CI_AS,
+              &#x27;Color&#x27; COLLATE Latin1_General_100_CI_AS)) AS pair(lhs, rhs);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT EDIT_DISTANCE(lhs, rhs) AS edit_steps,
+       EDIT_DISTANCE_SIMILARITY(lhs, rhs) AS edit_similarity,
+       CASE WHEN JARO_WINKLER_DISTANCE(lhs, rhs) &lt; 0.10 THEN 1 ELSE 0 END AS jaro_near,
+       CASE WHEN JARO_WINKLER_SIMILARITY(lhs, rhs) &gt;= 90 THEN 1 ELSE 0 END AS jaro_passes
+FROM (VALUES (&#x27;Colour&#x27; COLLATE Latin1_General_100_CI_AS,
+              &#x27;Color&#x27; COLLATE Latin1_General_100_CI_AS)) AS pair(lhs, rhs);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">edit_steps</th><th scope="col">edit_similarity</th><th scope="col">jaro_near</th><th scope="col">jaro_passes</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>83</code></td><td><code>1</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">早期版本若尚未启用，可在专用练习库由管理员运行 ALTER DATABASE SCOPED CONFIGURATION SET PREVIEW_FEATURES = ON。Azure SQL Managed Instance 需 SQL Server 2025 或 Always-up-to-date 更新策略。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/fuzzy-string-match/overview?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#for-json">将查询结果转为 JSON</a></li>
+<li><a href="#openjson-default">从 JSON 读取各项的键、值和类型</a></li>
+<li><a href="#openjson-schema">OPENJSON WITH 将文档映射为类型化列</a></li>
+<li><a href="#json-access">检查、提取或更新 JSON</a></li>
+<li><a href="#json-construct">JSON_PATH_EXISTS 与 JSON 构造函数</a></li>
+<li><a href="#json-aggregates">把多行汇总成 JSON 数组或对象</a></li>
+<li><a href="#native-json-path">数组通配路径与 JSON_CONTAINS</a></li>
+<li><a href="#native-json-modify">直接更新原生 JSON 字段</a></li>
+<li><a href="#json-text-index">文本 JSON 的计算列索引</a></li>
+<li><a href="#json-index">CREATE JSON INDEX 按原生路径建索引</a></li>
+<li><a href="#for-xml">FOR XML PATH 输出元素和属性</a></li>
+<li><a href="#xml-methods">查询或更新 XML 并将节点拆成行</a></li>
+<li><a href="#xml-schema">XML schema collection 约束文档结构</a></li>
+<li><a href="#openxml">OPENXML 兼容旧式 XML 行集</a></li>
+<li><a href="#fulltext">全文目录、CONTAINS/FREETEXT 及表值搜索</a></li>
+<li><a href="#character-classes">LIKE 与 PATINDEX 的括号字符类</a></li>
+<li><a href="#string-split">STRING_SPLIT 将单字符分隔的文本拆成行</a></li>
+<li><a href="#regexp-scalar">REGEXP 谓词与四个标量函数</a></li>
+<li><a href="#regexp-matches">REGEXP_MATCHES 返回位置、匹配和捕获组</a></li>
+<li><a href="#regexp-split">REGEXP_SPLIT_TO_TABLE 允许多种分隔符</a></li>
+<li><a href="#fuzzy">编辑距离与 Jaro-Winkler 相似度</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="52-sqlserver-types.html">← 类型、字符串与时间</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="54-sqlserver-schema.html">表结构、约束、视图与分区 →</a></nav>
+</main>
+</body>
+</html>

@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>61 · SQL Server · SQL Server 版本与迁移附录 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 61 章 · 原生语法</p>
+<h1>SQL Server · SQL Server 版本与迁移附录</h1>
+<p class="lead">从 2016 到 2025 追踪会改变现有语句的能力。对 2025 逐项核对实际 build、数据库兼容级别、GA 或预览状态。文档核对截至 2026 年 11 月 21 日。</p>
+<div class="layout"><article class="content">
+<section id="build-compat" class="point" data-dialects="sqlserver">
+<h2>引擎版本、CU、版本类型与兼容级别</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">样例为 SQL Server 2025 CU11（2026-11-12 发布），按 2026-11-21 核对。查询本身可用于较早版本。</span></p>
+<p>先读实例主版本、完整 build、更新分支和版本类型，再读当前库兼容级别。CU 的具体功能需要对照发布说明。2025 的 RTM build 是 17.0.1000.7，CU11 是 17.0.5065.9。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="默认兼容级别对照" tabindex="0">
+<table class="sql-result"><caption>默认兼容级别对照</caption>
+<thead><tr><th scope="col">SQL Server</th><th scope="col">引擎主版本</th><th scope="col">该引擎新库的默认级别（默认 model 配置）</th></tr></thead>
+<tbody>
+<tr><td><code>2016</code></td><td><code>13</code></td><td><code>130</code></td></tr>
+<tr><td><code>2017</code></td><td><code>14</code></td><td><code>140</code></td></tr>
+<tr><td><code>2019</code></td><td><code>15</code></td><td><code>150</code></td></tr>
+<tr><td><code>2022</code></td><td><code>16</code></td><td><code>160</code></td></tr>
+<tr><td><code>2025</code></td><td><code>17</code></td><td><code>170</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>-- 后续创建持久对象的示例使用隔离练习库。若要演练，可在管理连接首次创建。
+CREATE DATABASE ch61_lab;
+GO
+ALTER DATABASE ch61_lab SET COMPATIBILITY_LEVEL = 170;
+GO
+USE ch61_lab;
+
+SELECT CONVERT(int, SERVERPROPERTY(&#x27;ProductMajorVersion&#x27;)) AS engine_major,
+       CONVERT(varchar(40), SERVERPROPERTY(&#x27;ProductVersion&#x27;)) AS build,
+       CONVERT(varchar(40), SERVERPROPERTY(&#x27;ProductUpdateLevel&#x27;)) AS update_level,
+       CONVERT(nvarchar(128), SERVERPROPERTY(&#x27;Edition&#x27;)) AS edition,
+       compatibility_level
+FROM sys.databases WHERE database_id = DB_ID();</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CONVERT(int, SERVERPROPERTY(&#x27;ProductMajorVersion&#x27;)) AS engine_major,
+       CONVERT(varchar(40), SERVERPROPERTY(&#x27;ProductVersion&#x27;)) AS build,
+       CONVERT(varchar(40), SERVERPROPERTY(&#x27;ProductUpdateLevel&#x27;)) AS update_level,
+       CONVERT(nvarchar(128), SERVERPROPERTY(&#x27;Edition&#x27;)) AS edition,
+       compatibility_level
+FROM sys.databases WHERE database_id = DB_ID();</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">engine_major</th><th scope="col">build</th><th scope="col">update_level</th><th scope="col">edition</th><th scope="col">compatibility_level</th></tr></thead>
+<tbody>
+<tr><td><code>17</code></td><td><code>17.0.5065.9</code></td><td><code>CU11</code></td><td><code>依安装版本而异</code></td><td><code>170</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">还原或附加旧库可能保留原兼容级别。如果只部署 GDR，不能据此推定已获得特定 CU 带来的新能力。各项发布日期以 build 和专项文档为准。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/troubleshoot/sql/releases/sqlserver-2025/build-versions">SQL Server 官方文档</a></p>
+</section>
+<section id="release-2016" class="point" data-dialects="sqlserver">
+<h2>2016：JSON 文本与 OPENJSON</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+，OPENJSON 需要兼容级别 ≥130。</span></p>
+<p>2016 引入 JSON 文本函数，也引入时态表、Query Store、行级安全和 Always Encrypted。这里先查询 nvarchar JSON，用 WITH 明确字段类型和路径。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="JSON 文本列" tabindex="0">
+<table class="sql-result"><caption>JSON 文本列</caption>
+<thead><tr><th scope="col">doc</th></tr></thead>
+<tbody>
+<tr><td><code>[{&quot;id&quot;:1,&quot;name&quot;:&quot;Pen&quot;}]</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT id, name
+FROM OPENJSON(N&#x27;[{&quot;id&quot;:1,&quot;name&quot;:&quot;Pen&quot;}]&#x27;)
+WITH (id int &#x27;$.id&#x27;, name nvarchar(30) &#x27;$.name&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, name
+FROM OPENJSON(N&#x27;[{&quot;id&quot;:1,&quot;name&quot;:&quot;Pen&quot;}]&#x27;)
+WITH (id int &#x27;$.id&#x27;, name nvarchar(30) &#x27;$.name&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Pen</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">旧表通常使用 nvarchar(max) 并通过 ISJSON 做验证。不要把 SQL Server 2016 的 JSON 文本能力与 2025 的原生 json 列类型混为同一迁移门槛。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/openjson-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="release-2017" class="point" data-dialects="sqlserver">
+<h2>2017：STRING_AGG 与兼容级别</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2017+；STRING_AGG 可在任意兼容级别使用，WITHIN GROUP 需要级别 ≥110。</span></p>
+<p>2017 提供 STRING_AGG、CONCAT_WS、TRIM，并扩展到受支持的 Linux 平台。迁移手写拼接时先核对排序、NULL 和返回类型。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="拼接输入" tabindex="0">
+<table class="sql-result"><caption>拼接输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>Pen</code></td></tr>
+<tr><td><code>1</code></td><td><code>Book</code></td></tr>
+<tr><td><code>3</code></td><td><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT STRING_AGG(CONVERT(nvarchar(max), name), N&#x27;,&#x27;)
+       WITHIN GROUP (ORDER BY id) AS labels
+FROM (VALUES (2, N&#x27;Pen&#x27;), (1, N&#x27;Book&#x27;), (3, NULL)) AS s(id, name);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT STRING_AGG(CONVERT(nvarchar(max), name), N&#x27;,&#x27;)
+       WITHIN GROUP (ORDER BY id) AS labels
+FROM (VALUES (2, N&#x27;Pen&#x27;), (1, N&#x27;Book&#x27;), (3, NULL)) AS s(id, name);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">labels</th></tr></thead>
+<tbody>
+<tr><td><code>Book,Pen</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">STRING_AGG 跳过 NULL。转换成 nvarchar(max) 可避免较短字符串返回类型上限影响长的聚合结果。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/string-agg-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="release-2019" class="point" data-dialects="sqlserver">
+<h2>2019：UTF-8 排序规则与现有列迁移</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2019+；在受支持的排序规则下使用 UTF-8 varchar。</span></p>
+<p>2019 支持名称以 _UTF8 结尾的排序规则，让 char/varchar 可存 Unicode。此版本的查询处理器也引入如标量 UDF 内联等优化，在改变兼容级别前后比较真实计划。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="示例字符" tabindex="0">
+<table class="sql-result"><caption>示例字符</caption>
+<thead><tr><th scope="col">字符</th><th scope="col">使用的排序规则</th></tr></thead>
+<tbody>
+<tr><td><code>汉</code></td><td><code>Latin1_General_100_CI_AS_SC_UTF8</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT DATALENGTH(CONVERT(varchar(12),
+          N&#x27;汉&#x27; COLLATE Latin1_General_100_CI_AS_SC_UTF8)) AS utf8_bytes,
+       DATALENGTH(CONVERT(nvarchar(12), N&#x27;汉&#x27;)) AS utf16_bytes;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATALENGTH(CONVERT(varchar(12),
+          N&#x27;汉&#x27; COLLATE Latin1_General_100_CI_AS_SC_UTF8)) AS utf8_bytes,
+       DATALENGTH(CONVERT(nvarchar(12), N&#x27;汉&#x27;)) AS utf16_bytes;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">utf8_bytes</th><th scope="col">utf16_bytes</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">VARCHAR 的声明长度是字节上限。迁移列前用 DATALENGTH、唯一约束和代表性字符验证长度及比较语义。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/collations/collation-and-unicode-support?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="release-2022" class="point" data-dialects="sqlserver">
+<h2>2022：序列生成、日期分桶和 NULL 窗口行为</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+；GENERATE_SERIES 要求兼容级别 ≥160。LAG/LEAD 的 IGNORE NULLS 在 2022 CU4 有相关修复。</span></p>
+<p>2022 增加 GENERATE_SERIES、DATETRUNC、DATE_BUCKET 等函数。生成日期序列后可以按周或日对齐数据。使 DATE_BUCKET 的 origin 与时间参数为同一类型。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="起点与步长" tabindex="0">
+<table class="sql-result"><caption>起点与步长</caption>
+<thead><tr><th scope="col">start</th><th scope="col">stop</th><th scope="col">step</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td><code>2</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT value AS n,
+       DATEADD(day, value, CONVERT(date, &#x27;20250201&#x27;)) AS dt,
+       DATETRUNC(month, DATEADD(day, value, CONVERT(date, &#x27;20250201&#x27;))) AS month_start
+FROM GENERATE_SERIES(0, 2)
+ORDER BY value;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT value AS n,
+       DATEADD(day, value, CONVERT(date, &#x27;20250201&#x27;)) AS dt,
+       DATETRUNC(month, DATEADD(day, value, CONVERT(date, &#x27;20250201&#x27;))) AS month_start
+FROM GENERATE_SERIES(0, 2)
+ORDER BY value;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">n</th><th scope="col">dt</th><th scope="col">month_start</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td><code>2025-02-01</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td><code>1</code></td><td><code>2025-02-02</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td><code>2</code></td><td><code>2025-02-03</code></td><td><code>2025-02-01</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">TIME 系列表可用 DATE_BUCKET 指定间隔和对齐原点。迁移语句时，结合专题中的窗口示例验证排序并列、NULL 与空窗口。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/generate-series-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="native-json" class="point" data-dialects="sqlserver">
+<h2>2025：原生 json、类型化读取和局部修改</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025（17.x），截至 2026-11-21 官方注明原生 json 和 modify 为 GA。原生类型在所有数据库兼容级别可用。</span></p>
+<p>json 列用原生二进制格式存储对象或数组。JSON_VALUE 的 RETURNING 可从原生 json 取出指定 SQL 类型。SET 列.modify 可更新已存在的属性。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="写入前的 JSON" tabindex="0">
+<table class="sql-result"><caption>写入前的 JSON</caption>
+<thead><tr><th scope="col">id</th><th scope="col">doc</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>{&quot;label&quot;:&quot;Pen&quot;,&quot;qty&quot;:2}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE ch61_lab;
+CREATE TABLE dbo.ch61_documents (id int PRIMARY KEY CLUSTERED, doc json NOT NULL);
+INSERT INTO dbo.ch61_documents VALUES (1, &#x27;{&quot;label&quot;:&quot;Pen&quot;,&quot;qty&quot;:2}&#x27;);
+
+UPDATE dbo.ch61_documents SET doc.modify(&#x27;$.qty&#x27;, 3) WHERE id = 1;
+SELECT id, JSON_VALUE(doc, &#x27;$.qty&#x27; RETURNING int) AS quantity
+FROM dbo.ch61_documents WHERE id = 1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, JSON_VALUE(doc, &#x27;$.qty&#x27; RETURNING int) AS quantity
+FROM dbo.ch61_documents WHERE id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">quantity</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">查询 UPDATE 之前应得到 2。写入需要目标表 UPDATE 权限。旧客户端使用原生类型前验证驱动与结果类型支持。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/json-data-type?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="json-index" class="point" data-dialects="sqlserver">
+<h2>2025：JSON 索引、搜索及数组通配符</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025（17.x）。当前官方 JSON 概览列为 GA。该示例用兼容级别 170，CREATE JSON INDEX 需要目标表 ALTER 权限。</span></p>
+<p>CREATE JSON INDEX 可按指定路径为原生 json 列创建专用索引。表必须具备适用的聚集键。JSON_CONTAINS 查给定路径的内容。数组通配符和 WITH ARRAY WRAPPER 适用于这里声明的原生 json 输入。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="用上一节文档表" tabindex="0">
+<table class="sql-result"><caption>用上一节文档表</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th><th scope="col">Tags 演示文档</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Pen</code></td><td><code>{&quot;tags&quot;:[&quot;sql&quot;,&quot;tools&quot;]}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE ch61_lab;
+CREATE JSON INDEX ch61_doc_idx ON dbo.ch61_documents(doc) FOR (&#x27;$.label&#x27;);
+
+DECLARE @tags json = &#x27;{&quot;tags&quot;:[&quot;sql&quot;,&quot;tools&quot;]}&#x27;;
+SELECT d.id, i.name AS json_index,
+       JSON_QUERY(@tags, &#x27;$.tags[*]&#x27; WITH ARRAY WRAPPER) AS tags
+FROM dbo.ch61_documents AS d
+JOIN sys.indexes AS i ON i.object_id = OBJECT_ID(N&#x27;dbo.ch61_documents&#x27;)
+                     AND i.name = N&#x27;ch61_doc_idx&#x27;
+WHERE JSON_CONTAINS(d.doc, &#x27;Pen&#x27;, &#x27;$.label&#x27;) = 1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT d.id, i.name AS json_index,
+       JSON_QUERY(@tags, &#x27;$.tags[*]&#x27; WITH ARRAY WRAPPER) AS tags
+FROM dbo.ch61_documents AS d
+JOIN sys.indexes AS i ON i.object_id = OBJECT_ID(N&#x27;dbo.ch61_documents&#x27;)
+                     AND i.name = N&#x27;ch61_doc_idx&#x27;
+WHERE JSON_CONTAINS(d.doc, &#x27;Pen&#x27;, &#x27;$.label&#x27;) = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">json_index</th><th scope="col">tags</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>ch61_doc_idx</code></td><td><code>[&quot;sql&quot;,&quot;tools&quot;]</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">查询验证匹配与索引元数据。执行计划是否选索引取决于谓词、数据和成本。路径重叠或在同一列上建第二个 JSON 索引受限制。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-json-index-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="vectors" class="point" data-dialects="sqlserver">
+<h2>2025：VECTOR 与精确向量距离</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025（17.x）GA，默认 float32 向量与精确距离无需启用 PREVIEW_FEATURES。</span></p>
+<p>VECTOR(n) 包含固定维数的数值向量。VECTOR_DISTANCE 比较两者，统一使用同一嵌入模型、维数和距离度量。对小规模或要求精确的查询可直接按计算距离排序。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="比较两个方向" tabindex="0">
+<table class="sql-result"><caption>比较两个方向</caption>
+<thead><tr><th scope="col">query_vector</th><th scope="col">candidate</th></tr></thead>
+<tbody>
+<tr><td><code>[1,0]</code></td><td><code>[1,0]</code></td></tr>
+<tr><td><code>[1,0]</code></td><td><code>[0,1]</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @q vector(2) = &#x27;[1,0]&#x27;;
+DECLARE @identical vector(2) = &#x27;[1,0]&#x27;;
+DECLARE @orthogonal vector(2) = &#x27;[0,1]&#x27;;
+SELECT CAST(VECTOR_DISTANCE(&#x27;cosine&#x27;, @q, @identical) AS decimal(5,2)) AS same_distance,
+       CAST(VECTOR_DISTANCE(&#x27;cosine&#x27;, @q, @orthogonal) AS decimal(5,2)) AS orthogonal_distance;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CAST(VECTOR_DISTANCE(&#x27;cosine&#x27;, @q, @identical) AS decimal(5,2)) AS same_distance,
+       CAST(VECTOR_DISTANCE(&#x27;cosine&#x27;, @q, @orthogonal) AS decimal(5,2)) AS orthogonal_distance;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">same_distance</th><th scope="col">orthogonal_distance</th></tr></thead>
+<tbody>
+<tr><td><code>0.00</code></td><td><code>1.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">float16 类型是同一版本中的另一项预览能力。向量维数、驱动原生类型及替代字符串表示见官方 VECTOR 数据类型页。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/vector-distance-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="fuzzy" class="point" data-dialects="sqlserver">
+<h2>2025 CU11：模糊匹配从预览转为 GA</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025 RTM–CU10 为需 PREVIEW_FEATURES 的预览，CU11（17.0.5065.9）起 GA，无需该开关。样例使用兼容级别 170。</span></p>
+<p>EDIT_DISTANCE 返回编辑距离，EDIT_DISTANCE_SIMILARITY、JARO_WINKLER_SIMILARITY 返回 0–100 的近似相似度，JARO_WINKLER_DISTANCE 返回距离。支持的排序规则会影响字符比较。核对正式发布路径时，应使用没有开启 PREVIEW_FEATURES 的独立练习库。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="固定输入" tabindex="0">
+<table class="sql-result"><caption>固定输入</caption>
+<thead><tr><th scope="col">字符串 A</th><th scope="col">字符串 B</th><th scope="col">比较排序规则</th></tr></thead>
+<tbody>
+<tr><td><code>book</code></td><td><code>books</code></td><td><code>Latin1_General_100_CI_AS</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT EDIT_DISTANCE(&#x27;book&#x27; COLLATE Latin1_General_100_CI_AS,
+                     &#x27;books&#x27; COLLATE Latin1_General_100_CI_AS) AS one_insert,
+       JARO_WINKLER_SIMILARITY(&#x27;book&#x27; COLLATE Latin1_General_100_CI_AS,
+                               &#x27;book&#x27; COLLATE Latin1_General_100_CI_AS) AS exact_score;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT EDIT_DISTANCE(&#x27;book&#x27; COLLATE Latin1_General_100_CI_AS,
+                     &#x27;books&#x27; COLLATE Latin1_General_100_CI_AS) AS one_insert,
+       JARO_WINKLER_SIMILARITY(&#x27;book&#x27; COLLATE Latin1_General_100_CI_AS,
+                               &#x27;book&#x27; COLLATE Latin1_General_100_CI_AS) AS exact_score;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">one_insert</th><th scope="col">exact_score</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>100</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">非二进制 SQL_* 排序规则不适用于该函数组，可用支持的 Windows 排序规则。用人工核对的数据验证阈值，距离和相似度含义不同。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/sql-server/preview-features-faq?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="vector-preview" class="point" data-dialects="sqlserver">
+<h2>2025：向量索引与近似检索</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025 本地实例的向量索引和 VECTOR_SEARCH 在 CU11 时仍是预览，须启用 PREVIEW_FEATURES。示例针对支持 TOP_N 的早期索引；最新版索引使用 TOP (N) WITH APPROXIMATE。</span></p>
+<p>DiskANN 是近似最近邻索引。索引与查询的度量应一致。章节演练用向量距离为 0 的输入检查查询流程，实际近似查找要用业务数据衡量召回率。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="练习向量" tabindex="0">
+<table class="sql-result"><caption>练习向量</caption>
+<thead><tr><th scope="col">id</th><th scope="col">embedding</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>[1,1]</code></td></tr>
+<tr><td><code>2</code></td><td><code>[1,2]</code></td></tr>
+<tr><td><code>…</code></td><td><code>…</code></td></tr>
+<tr><td><code>100</code></td><td><code>[1,100]</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE ch61_lab;
+ALTER DATABASE SCOPED CONFIGURATION SET PREVIEW_FEATURES = ON;
+GO
+CREATE TABLE dbo.ch61_vectors (
+  id int PRIMARY KEY CLUSTERED,
+  embedding vector(2) NOT NULL
+);
+INSERT INTO dbo.ch61_vectors (id, embedding)
+SELECT value, CAST(JSON_ARRAY(1, value) AS vector(2))
+FROM GENERATE_SERIES(1, 100);
+CREATE VECTOR INDEX ch61_vectors_ann ON dbo.ch61_vectors(embedding)
+  WITH (METRIC = &#x27;euclidean&#x27;, TYPE = &#x27;DiskANN&#x27;);
+
+DECLARE @q vector(2) = &#x27;[1,1]&#x27;;
+SELECT TOP (1) d.id, CAST(s.distance AS decimal(10,4)) AS distance
+FROM VECTOR_SEARCH(TABLE = dbo.ch61_vectors AS d, COLUMN = embedding,
+                   SIMILAR_TO = @q, METRIC = &#x27;euclidean&#x27;, TOP_N = 1) AS s
+ORDER BY s.distance, d.id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT TOP (1) d.id, CAST(s.distance AS decimal(10,4)) AS distance
+FROM VECTOR_SEARCH(TABLE = dbo.ch61_vectors AS d, COLUMN = embedding,
+                   SIMILAR_TO = @q, METRIC = &#x27;euclidean&#x27;, TOP_N = 1) AS s
+ORDER BY s.distance, d.id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">distance</th></tr></thead>
+<tbody>
+<tr><td><code>通常 1</code></td><td><code>通常 0.0000</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">Microsoft 文档按平台区分索引版本。新版语法不接 TOP_N，且可能有 100 行门槛。先用 sys.vector_indexes、实际 build 和相应平台说明确认索引版本。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/vector-search-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="regexp" class="point" data-dialects="sqlserver">
+<h2>2025：REGEXP 谓词、提取和替换</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025（17.x）。REGEXP_LIKE 和表值 REGEXP_MATCHES、REGEXP_SPLIT_TO_TABLE 需要兼容级别 ≥170。REGEXP_COUNT/INSTR/REPLACE/SUBSTR 等其他标量函数可用较低级别。</span></p>
+<p>用 REGEXP_LIKE 判断是否匹配，用 REGEXP_SUBSTR 取片段，REGEXP_REPLACE 做替换。用 CASE 把谓词变为可显示的 0/1。该实现使用 RE2 语义，不应直接搬用 MySQL ICU 模式。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待处理文本" tabindex="0">
+<table class="sql-result"><caption>待处理文本</caption>
+<thead><tr><th scope="col">文本</th><th scope="col">目标样式</th></tr></thead>
+<tbody>
+<tr><td><code>A-123</code></td><td><code>大写前缀、连字符、三个数字</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CASE WHEN REGEXP_LIKE(&#x27;A-123&#x27;, &#x27;^[A-Z]-[0-9]{3}$&#x27;) THEN 1 ELSE 0 END AS accepted,
+       REGEXP_SUBSTR(&#x27;A-123&#x27;, &#x27;[0-9]+&#x27;) AS digits,
+       REGEXP_REPLACE(&#x27;A-123&#x27;, &#x27;[0-9]+&#x27;, &#x27;[id]&#x27;) AS masked;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CASE WHEN REGEXP_LIKE(&#x27;A-123&#x27;, &#x27;^[A-Z]-[0-9]{3}$&#x27;) THEN 1 ELSE 0 END AS accepted,
+       REGEXP_SUBSTR(&#x27;A-123&#x27;, &#x27;[0-9]+&#x27;) AS digits,
+       REGEXP_REPLACE(&#x27;A-123&#x27;, &#x27;[0-9]+&#x27;, &#x27;[id]&#x27;) AS masked;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">accepted</th><th scope="col">digits</th><th scope="col">masked</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>123</code></td><td><code>A-[id]</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">匹配区分大小写与模式标志有关。RE2 语法对某些 ICU 功能和复杂正则的行为不同，迁移时用正反样例核对。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/regexp-like-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="date-and-scalar" class="point" data-dialects="sqlserver">
+<h2>2025：CURRENT_DATE、bigint DATEADD 与标量新写法</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025（17.x）。示例使用兼容级别 170。</span></p>
+<p>CURRENT_DATE 直接返回实例日期。DATEADD 可接 bigint 增量，结果仍受目标日期类型范围限制。新版 SUBSTRING 可省略长度，|| 是 ANSI 字符串连接运算符，NULL 传播。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="固定输入" tabindex="0">
+<table class="sql-result"><caption>固定输入</caption>
+<thead><tr><th scope="col">日期起点</th><th scope="col">纳秒增量</th><th scope="col">文本</th></tr></thead>
+<tbody>
+<tr><td><code>2025-01-01 00:00:00</code></td><td><code>3000000000</code></td><td><code>SQL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CURRENT_DATE AS instance_day,
+       DATEADD(nanosecond, CONVERT(bigint, 3000000000),
+               CONVERT(datetime2(7), &#x27;2025-01-01T00:00:00&#x27;)) AS plus_three_seconds,
+       SUBSTRING(&#x27;SQL&#x27;, 2) AS suffix,
+       &#x27;S&#x27; || &#x27;QL&#x27; AS joined;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CURRENT_DATE AS instance_day,
+       DATEADD(nanosecond, CONVERT(bigint, 3000000000),
+               CONVERT(datetime2(7), &#x27;2025-01-01T00:00:00&#x27;)) AS plus_three_seconds,
+       SUBSTRING(&#x27;SQL&#x27;, 2) AS suffix,
+       &#x27;S&#x27; || &#x27;QL&#x27; AS joined;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">instance_day</th><th scope="col">plus_three_seconds</th><th scope="col">suffix</th><th scope="col">joined</th></tr></thead>
+<tbody>
+<tr><td><code>随实例日期</code></td><td><code>2025-01-01 00:00:03.0000000</code></td><td><code>QL</code></td><td><code>SQL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">较早版本取日期用 CAST(GETDATE() AS date)，SUBSTRING 应传长度。构造字符串时按是否需要 NULL 传播选择 CONCAT 或适合的连接运算。UNISTR 和 BASE64_ENCODE/BASE64_DECODE 也是 2025 新函数。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2025?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="aggregate-additions" class="point" data-dialects="sqlserver">
+<h2>2025：PRODUCT 与 JSON 聚合</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025（17.x）；此处以兼容级别 170 为练习基线。</span></p>
+<p>PRODUCT 对非 NULL 的数值求积。JSON_ARRAYAGG 可按指定顺序构造数组，JSON_OBJECTAGG 按键构造对象。明确给出 NULL ON NULL 或 ABSENT ON NULL，便于协作者理解结果形状。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="聚合输入" tabindex="0">
+<table class="sql-result"><caption>聚合输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">k</th><th scope="col">v</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>a</code></td><td><code>2</code></td></tr>
+<tr><td><code>2</code></td><td><code>b</code></td><td><code>3</code></td></tr>
+<tr><td><code>3</code></td><td><code>c</code></td><td><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT PRODUCT(v) AS product,
+       JSON_ARRAYAGG(v ORDER BY id NULL ON NULL) AS item_values,
+       JSON_OBJECTAGG(k:v ABSENT ON NULL) AS items
+FROM (VALUES (1, &#x27;a&#x27;, 2), (2, &#x27;b&#x27;, 3), (3, &#x27;c&#x27;, NULL)) AS x(id, k, v);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT PRODUCT(v) AS product,
+       JSON_ARRAYAGG(v ORDER BY id NULL ON NULL) AS item_values,
+       JSON_OBJECTAGG(k:v ABSENT ON NULL) AS items
+FROM (VALUES (1, &#x27;a&#x27;, 2), (2, &#x27;b&#x27;, 3), (3, &#x27;c&#x27;, NULL)) AS x(id, k, v);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product</th><th scope="col">item_values</th><th scope="col">items</th></tr></thead>
+<tbody>
+<tr><td><code>6</code></td><td><code>[2,3,null]</code></td><td><code>{&quot;a&quot;:2,&quot;b&quot;:3}</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">JSON 对象成员顺序不作为验收条件。数组的 ORDER BY 决定成员顺序，RETURNING JSON 可让聚合结果使用原生 json 类型。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2025?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="external-model" class="point" data-dialects="sqlserver">
+<h2>2025：创建外部模型对象并核对元数据</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025（17.x）GA。模型创建需 CREATE EXTERNAL MODEL 或 ALTER ANY EXTERNAL MODEL。远程模型需 TLS、匹配的数据库范围凭据与授权端点。</span></p>
+<p>CREATE EXTERNAL MODEL 注册受控的嵌入模型 REST 端点。SELECT 元数据只读本地目录。AI_GENERATE_EMBEDDINGS 另需执行模型权限并可能把文字发送到端点。必须换成允许列表中的真实同域 TLS 端点及凭据。实际推理还要求实例的 external rest endpoint enabled 设置。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="外部模型对象" tabindex="0">
+<table class="sql-result"><caption>外部模型对象</caption>
+<thead><tr><th scope="col">名称</th><th scope="col">API</th><th scope="col">类型</th></tr></thead>
+<tbody>
+<tr><td><code>ch61_embed</code></td><td><code>Azure OpenAI</code></td><td><code>EMBEDDINGS</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE ch61_lab;
+-- 替换部署端点；先由管理员在同一库配置同名凭据，勿把实际密钥拼入脚本。
+CREATE EXTERNAL MODEL ch61_embed
+WITH (
+  LOCATION = &#x27;https://YOUR-RESOURCE.cognitiveservices.azure.com/openai/deployments/embedding-demo/embeddings?api-version=2024-02-01&#x27;,
+  API_FORMAT = &#x27;Azure OpenAI&#x27;, MODEL_TYPE = EMBEDDINGS,
+  MODEL = &#x27;text-embedding-3-small&#x27;,
+  CREDENTIAL = [https://YOUR-RESOURCE.cognitiveservices.azure.com/]
+);
+
+SELECT name, api_format, UPPER(model_type_desc) AS model_type
+FROM sys.external_models WHERE name = N&#x27;ch61_embed&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, api_format, UPPER(model_type_desc) AS model_type
+FROM sys.external_models WHERE name = N&#x27;ch61_embed&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">api_format</th><th scope="col">model_type</th></tr></thead>
+<tbody>
+<tr><td><code>ch61_embed</code></td><td><code>Azure OpenAI</code></td><td><code>EMBEDDINGS</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">若另行调用可使用 AI_GENERATE_EMBEDDINGS(N&#x27;练习文本&#x27; USE MODEL ch61_embed)。这一步需要模型 EXECUTE、可达端点以及适用的远端身份权限。模型输出维数依配置。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-external-model-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="legacy-lob" class="point" data-dialects="sqlserver">
+<h2>迁移旧 LOB 类型</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">旧 LOB 类型仍见于已有库。此处在临时表验证向现代 MAX 类型的转换。</span></p>
+<p>text、ntext、image 已弃用。将接口和列调整到 varchar(max)、nvarchar(max)、varbinary(max)，再验证字符、字节、驱动和索引行为。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="旧类型样例" tabindex="0">
+<table class="sql-result"><caption>旧类型样例</caption>
+<thead><tr><th scope="col">ntext</th><th scope="col">image</th></tr></thead>
+<tbody>
+<tr><td><code>汉字</code></td><td><code>0xCAFE</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #ch61_legacy_lob (body ntext, payload image);
+INSERT INTO #ch61_legacy_lob VALUES (N&#x27;汉字&#x27;, 0xCAFE);
+
+SELECT CONVERT(nvarchar(max), body) AS body_new,
+       DATALENGTH(CONVERT(varbinary(max), payload)) AS payload_bytes
+FROM #ch61_legacy_lob;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CONVERT(nvarchar(max), body) AS body_new,
+       DATALENGTH(CONVERT(varbinary(max), payload)) AS payload_bytes
+FROM #ch61_legacy_lob;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">body_new</th><th scope="col">payload_bytes</th></tr></thead>
+<tbody>
+<tr><td><code>汉字</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">检查原先的 TEXTPTR、READTEXT、UPDATETEXT、WRITETEXT 调用，改用现代类型的常规读取、UPDATE 或适用的 .WRITE。切换较大实际表之前在恢复副本测量锁、日志与复制影响。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/ntext-text-and-image-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="legacy-catalog-ddl" class="point" data-dialects="sqlserver">
+<h2>迁移旧系统对象与 DDL 形式</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">现代 DROP INDEX 语法适用于 SQL Server 2005+；SQL Server Native Client 从 SQL Server 2022 起不再随服务器发布。</span></p>
+<p>把旧 sysobjects/sysindexes 兼容视图改为 sys.objects/sys.indexes。DROP INDEX 使用 INDEX 名 ON 对象名。旧登录/用户/角色成员过程迁移到 CREATE LOGIN、CREATE USER、ALTER ROLE ADD MEMBER。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="练习表索引" tabindex="0">
+<table class="sql-result"><caption>练习表索引</caption>
+<thead><tr><th scope="col">对象</th><th scope="col">索引</th></tr></thead>
+<tbody>
+<tr><td><code>#ch61_indexes</code></td><td><code>ch61_ix</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #ch61_indexes (id int NOT NULL, label varchar(20) NOT NULL);
+CREATE INDEX ch61_ix ON #ch61_indexes(label);
+SELECT COUNT(*) AS existing_index
+FROM tempdb.sys.indexes
+WHERE object_id = OBJECT_ID(N&#x27;tempdb..#ch61_indexes&#x27;) AND name = N&#x27;ch61_ix&#x27;;
+
+DROP INDEX ch61_ix ON #ch61_indexes;
+SELECT COUNT(*) AS existing_index
+FROM tempdb.sys.indexes
+WHERE object_id = OBJECT_ID(N&#x27;tempdb..#ch61_indexes&#x27;) AND name = N&#x27;ch61_ix&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS existing_index
+FROM tempdb.sys.indexes
+WHERE object_id = OBJECT_ID(N&#x27;tempdb..#ch61_indexes&#x27;) AND name = N&#x27;ch61_ix&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">existing_index</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">初次查询索引数为 1。仍能执行的弃用功能与某版本已经移除的功能应分别盘点。比如 UPGRADE 移除情况查本版本 Discontinued Database Engine functionality。驱动迁移查 MSOLEDBSQL 19 与证书配置。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/database-engine/deprecated-database-engine-features-in-sql-server-2025?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="migration-review" class="point" data-dialects="sqlserver">
+<h2>数据库升级后做行为与查询计划回归</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">Query Store 自 SQL Server 2016 提供，SQL Server 2022+ 新建库默认启用。换环境应实读状态。</span></p>
+<p>还原数据库副本，检查兼容级别与旧功能使用，保存代表性结果、延迟和计划，再调整到目标级别。先读取 Query Store 状态作为回归测试的前置检查。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="测试前置" tabindex="0">
+<table class="sql-result"><caption>测试前置</caption>
+<thead><tr><th scope="col">数据库</th><th scope="col">测试门槛</th></tr></thead>
+<tbody>
+<tr><td><code>ch61_lab</code></td><td><code>2025 练习实例、170、账号可读取数据库元数据</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE ch61_lab;
+
+SELECT d.name, d.compatibility_level, q.actual_state_desc AS query_store_state
+FROM sys.databases AS d
+CROSS JOIN sys.database_query_store_options AS q
+WHERE d.database_id = DB_ID();</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT d.name, d.compatibility_level, q.actual_state_desc AS query_store_state
+FROM sys.databases AS d
+CROSS JOIN sys.database_query_store_options AS q
+WHERE d.database_id = DB_ID();</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">compatibility_level</th><th scope="col">query_store_state</th></tr></thead>
+<tbody>
+<tr><td><code>ch61_lab</code></td><td><code>170</code></td><td><code>取决于实际配置</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">升级测试同时覆盖 SQL 语义、查询计划、权限、驱动、连接、备份链和定时任务。兼容级别帮助分阶段验证部分行为，不能恢复已经移除的功能，也不会让升级后的备份可由旧引擎还原。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql-compatibility-level?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#build-compat">核对实例版本和兼容级别</a></li>
+<li><a href="#release-2016">2016 起用 OPENJSON 将文档拆成行</a></li>
+<li><a href="#release-2017">2017 起用 STRING_AGG 拼接多行文本</a></li>
+<li><a href="#release-2019">2019：UTF-8 排序规则与现有列迁移</a></li>
+<li><a href="#release-2022">2022：序列生成、日期分桶和 NULL 窗口行为</a></li>
+<li><a href="#native-json">2025：原生 json、类型化读取和局部修改</a></li>
+<li><a href="#json-index">2025：JSON 索引、搜索及数组通配符</a></li>
+<li><a href="#vectors">2025 起计算精确向量距离</a></li>
+<li><a href="#fuzzy">2025 CU11：模糊匹配从预览转为 GA</a></li>
+<li><a href="#vector-preview">2025：向量索引与近似检索</a></li>
+<li><a href="#regexp">2025：REGEXP 谓词、提取和替换</a></li>
+<li><a href="#date-and-scalar">2025：CURRENT_DATE、bigint DATEADD 与标量新写法</a></li>
+<li><a href="#aggregate-additions">2025 起求乘积或汇总 JSON</a></li>
+<li><a href="#external-model">2025：创建外部模型对象并核对元数据</a></li>
+<li><a href="#legacy-lob">将旧大对象列迁移到 MAX 类型</a></li>
+<li><a href="#legacy-catalog-ddl">迁移旧系统对象与 DDL 形式</a></li>
+<li><a href="#migration-review">数据库升级后做行为与查询计划回归</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="60-sqlserver-administration.html">← 实例、备份、系统对象和外部数据</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="63-sqlserver-utilities.html">诊断与对象实用语句 →</a></nav>
+</main>
+</body>
+</html>

@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>06 · 例程、数据完整性与事务 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="sql-roadmap.html">SQL 学习路径</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker"><a href="sql-roadmap.html">SQL 学习路径</a> · 第 6 阶段</p>
+<h1>例程、数据完整性与事务</h1>
+<p class="lead">在专用练习环境观察权限、事务边界和并发读取。</p>
+<div class="layout">
+<article class="content">
+<section class="point" id="routines" data-roadmap-nodes="w7FNjdwqjY7X69aJqqBy4">
+<h2>存储过程和函数 · 把读取逻辑命名</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_temp_init (id INT);
+CREATE FUNCTION pg_temp.path_qty(p_order INT, p_product INT) RETURNS INT
+LANGUAGE SQL AS $fn$
+  SELECT qty FROM sql_notes_lab.order_items WHERE order_id = p_order AND product_id = p_product
+$fn$;
+SELECT pg_temp.path_qty(101, 1) AS qty;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新练习连接。账号需创建例程、执行例程和读取底表的权限。确认例程名未被使用。SQL Server 使用 SSMS 或 sqlcmd 按 GO 分批。CREATE 失败时停止，确认本段创建成功后才执行清理。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT pg_temp.path_qty(101, 1) AS qty;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE PROCEDURE path_qty(IN p_order INT, IN p_product INT)
+SELECT qty FROM order_items WHERE order_id = p_order AND product_id = p_product;
+CALL path_qty(101, 1);
+DROP PROCEDURE path_qty;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新练习连接。账号需创建例程、执行例程和读取底表的权限。确认例程名未被使用。SQL Server 使用 SSMS 或 sqlcmd 按 GO 分批。CREATE 失败时停止，确认本段创建成功后才执行清理。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>CALL path_qty(101, 1);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE PROCEDURE dbo.path_qty @order_id INT, @product_id INT
+AS
+SELECT qty FROM dbo.order_items WHERE order_id = @order_id AND product_id = @product_id;
+GO
+EXEC dbo.path_qty @order_id = 101, @product_id = 1;
+DROP PROCEDURE dbo.path_qty;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SSMS SQL 查询窗口，或 sqlcmd 客户端<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新练习连接。账号需创建例程、执行例程和读取底表的权限。确认例程名未被使用。SQL Server 使用 SSMS 或 sqlcmd 按 GO 分批。CREATE 失败时停止，确认本段创建成功后才执行清理。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXEC dbo.path_qty @order_id = 101, @product_id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>函数适合在表达式里返回值，过程由客户端显式调用。本节演示一个最小例程，展开下方对照可练另一种。</p>
+<details class="roadmap-routine-extra"><summary>对照练习 · 同一读取逻辑的另一种例程</summary>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_proc_init (id INT);
+CREATE PROCEDURE pg_temp.path_qty_proc(INOUT qty INT)
+LANGUAGE SQL AS $fn$
+  SELECT i.qty FROM sql_notes_lab.order_items AS i WHERE i.order_id = 101 AND i.product_id = 1
+$fn$;
+CALL pg_temp.path_qty_proc(0);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新练习连接。使用 PostgreSQL 11 或更新版本，账号应能创建临时表和例程，并能读取订单明细。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>CALL pg_temp.path_qty_proc(0);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE FUNCTION path_qty_fn(p_order INT, p_product INT) RETURNS INT
+READS SQL DATA
+RETURN (SELECT qty FROM order_items WHERE order_id = p_order AND product_id = p_product);
+SELECT path_qty_fn(101, 1) AS qty;
+DROP FUNCTION path_qty_fn;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新练习连接。确认函数名未被使用，并检查 CREATE ROUTINE 与 EXECUTE 权限。服务器开启二进制日志时还需满足存储函数创建规则。若 CREATE 失败，停止执行，保留原有对象。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT path_qty_fn(101, 1) AS qty;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE FUNCTION dbo.path_qty_fn(@order_id INT, @product_id INT) RETURNS INT
+AS
+BEGIN
+  RETURN (SELECT qty FROM dbo.order_items WHERE order_id = @order_id AND product_id = @product_id);
+END;
+GO
+SELECT dbo.path_qty_fn(101, 1) AS qty;
+DROP FUNCTION dbo.path_qty_fn;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SSMS SQL 查询窗口，或 sqlcmd 客户端<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新练习连接。确认 dbo.path_qty_fn 未被使用。需有 CREATE FUNCTION 权限及对 dbo 模式的 ALTER 权限。按 GO 分批，CREATE 失败时停止。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT dbo.path_qty_fn(101, 1) AS qty;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div></details>
+<p class="sources"><a href="23-procedures.html">过程与参数</a><span data-dialects="postgresql"> · <a href="46-postgresql-routines.html">PostgreSQL 例程</a></span><span data-dialects="sqlserver"> · <a href="57-sqlserver-routines.html">SQL Server 例程</a></span></p>
+</section>
+<section class="point" id="integrity" data-roadmap-nodes="R1ktDJpXOz0PTllAcBrdu mBQ3Z8GlFcpIena3IB7D_">
+<h2>数据完整性 · 检查明细是否都有订单</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT COUNT(*) AS orphan_lines FROM sql_notes_lab.order_items AS i
+WHERE NOT EXISTS (SELECT 1 FROM sql_notes_lab.orders AS o WHERE o.order_id = i.order_id);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS orphan_lines FROM sql_notes_lab.order_items AS i
+WHERE NOT EXISTS (SELECT 1 FROM sql_notes_lab.orders AS o WHERE o.order_id = i.order_id);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">orphan_lines</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT COUNT(*) AS orphan_lines FROM order_items AS i
+WHERE NOT EXISTS (SELECT 1 FROM orders AS o WHERE o.order_id = i.order_id);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS orphan_lines FROM order_items AS i
+WHERE NOT EXISTS (SELECT 1 FROM orders AS o WHERE o.order_id = i.order_id);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">orphan_lines</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT COUNT(*) AS orphan_lines FROM dbo.order_items AS i
+WHERE NOT EXISTS (SELECT 1 FROM dbo.orders AS o WHERE o.order_id = i.order_id);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS orphan_lines FROM dbo.order_items AS i
+WHERE NOT EXISTS (SELECT 1 FROM dbo.orders AS o WHERE o.order_id = i.order_id);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">orphan_lines</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>这是可审计的完整性检查。外键在写入时守住订单存在性，业务规则如数量范围用 CHECK 补充。</p>
+
+<p class="sources"><a href="21-tables.html#p2">相关笔记</a></p>
+</section>
+<section class="point" id="grant-revoke" data-roadmap-nodes="03qMopxzjx_-dZbYw9b7J">
+<h2>GRANT 与 REVOKE · 授予并撤销读取权限</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE ROLE path_order_reader NOLOGIN;
+GRANT SELECT ON sql_notes_lab.orders TO path_order_reader;
+SELECT CASE WHEN has_table_privilege(&#x27;path_order_reader&#x27;, &#x27;sql_notes_lab.orders&#x27;, &#x27;SELECT&#x27;) THEN 1 ELSE 0 END AS explicit_read;
+REVOKE SELECT ON sql_notes_lab.orders FROM path_order_reader;
+DROP ROLE path_order_reader;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。仅在独立练习实例由有创建角色和授权权限的管理员执行。先确认角色名 path_order_reader 未被占用。建议按句执行，第一句失败时停止。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CASE WHEN has_table_privilege(&#x27;path_order_reader&#x27;, &#x27;sql_notes_lab.orders&#x27;, &#x27;SELECT&#x27;) THEN 1 ELSE 0 END AS explicit_read;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">explicit_read</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE ROLE &#x27;path_order_reader&#x27;;
+GRANT SELECT ON learn_sql_lab.orders TO &#x27;path_order_reader&#x27;;
+SELECT COUNT(*) AS explicit_read FROM information_schema.TABLE_PRIVILEGES
+WHERE TABLE_SCHEMA = &#x27;learn_sql_lab&#x27; AND TABLE_NAME = &#x27;orders&#x27;
+  AND PRIVILEGE_TYPE = &#x27;SELECT&#x27; AND GRANTEE = CONCAT(CHAR(39), &#x27;path_order_reader&#x27;, CHAR(39), &#x27;@&#x27;, CHAR(39), &#x27;%&#x27;, CHAR(39));
+REVOKE SELECT ON learn_sql_lab.orders FROM &#x27;path_order_reader&#x27;;
+DROP ROLE &#x27;path_order_reader&#x27;;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。仅在独立练习实例由有创建角色和授权权限的管理员执行。先确认角色名 path_order_reader 未被占用。建议按句执行，第一句失败时停止。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS explicit_read FROM information_schema.TABLE_PRIVILEGES
+WHERE TABLE_SCHEMA = &#x27;learn_sql_lab&#x27; AND TABLE_NAME = &#x27;orders&#x27;
+  AND PRIVILEGE_TYPE = &#x27;SELECT&#x27; AND GRANTEE = CONCAT(CHAR(39), &#x27;path_order_reader&#x27;, CHAR(39), &#x27;@&#x27;, CHAR(39), &#x27;%&#x27;, CHAR(39));</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">explicit_read</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE ROLE path_order_reader;
+GRANT SELECT ON OBJECT::dbo.orders TO path_order_reader;
+SELECT COUNT(*) AS explicit_read
+FROM sys.database_permissions
+WHERE grantee_principal_id = DATABASE_PRINCIPAL_ID(&#x27;path_order_reader&#x27;)
+  AND major_id = OBJECT_ID(&#x27;dbo.orders&#x27;) AND permission_name = &#x27;SELECT&#x27; AND state_desc = &#x27;GRANT&#x27;;
+REVOKE SELECT ON OBJECT::dbo.orders FROM path_order_reader;
+DROP ROLE path_order_reader;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。仅在独立练习实例由有创建角色和授权权限的管理员执行。先确认角色名 path_order_reader 未被占用。建议按句执行，第一句失败时停止。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS explicit_read
+FROM sys.database_permissions
+WHERE grantee_principal_id = DATABASE_PRINCIPAL_ID(&#x27;path_order_reader&#x27;)
+  AND major_id = OBJECT_ID(&#x27;dbo.orders&#x27;) AND permission_name = &#x27;SELECT&#x27; AND state_desc = &#x27;GRANT&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">explicit_read</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>给临时演练角色授予订单表读取权限，然后读目录结果，再撤销和移除本段新建的角色。使用角色集中管理权限。</p>
+
+<p class="sources"><a href="28-access-control.html">相关笔记</a></p>
+</section>
+<section class="point" id="security" data-roadmap-nodes="vhBZqqmUcEon6-Vwvla4q">
+<h2>数据库安全实践 · 读取当前执行身份</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT CURRENT_USER AS database_identity;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期观察" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CURRENT_USER AS database_identity;</code><span class="sql-caption-context">预期观察</span></span></caption>
+<thead><tr><th scope="col">database_identity</th></tr></thead>
+<tbody>
+<tr><td><code>当前数据库执行身份，值随连接而异</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT CURRENT_USER() AS database_identity;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期观察" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CURRENT_USER() AS database_identity;</code><span class="sql-caption-context">预期观察</span></span></caption>
+<thead><tr><th scope="col">database_identity</th></tr></thead>
+<tbody>
+<tr><td><code>当前数据库执行身份，值随连接而异</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CURRENT_USER AS database_identity;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期观察" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CURRENT_USER AS database_identity;</code><span class="sql-caption-context">预期观察</span></span></caption>
+<thead><tr><th scope="col">database_identity</th></tr></thead>
+<tbody>
+<tr><td><code>当前数据库执行身份，值随连接而异</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>部署前确认会话身份和授权范围。应用使用专用低权限角色，账号凭据交给配置管理，业务值走参数绑定。</p>
+
+<p class="sources"><a href="28-access-control.html">相关笔记</a></p>
+</section>
+<section class="point" id="begin" data-roadmap-nodes="OdaBXz2XBAVLsQ-m7xtAM 7sTW1vwUhCFOMXYjScVEt">
+<h2>BEGIN · 开始事务</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+SELECT status
+FROM sql_notes_lab.orders WHERE order_id = 101;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。使用当前无事务的新连接。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM sql_notes_lab.orders WHERE order_id = 101;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>START TRANSACTION;
+SELECT status
+FROM orders WHERE order_id = 101;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。使用当前无事务的新连接。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM orders WHERE order_id = 101;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+SELECT status
+FROM dbo.orders WHERE order_id = 101;
+ROLLBACK TRANSACTION;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。使用当前无事务的新连接。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM dbo.orders WHERE order_id = 101;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>BEGIN 建立事务边界。练习中最后执行回滚结束事务。</p>
+
+<p class="sources"><a href="26-transactions.html">相关笔记</a></p>
+</section>
+<section class="point" id="commit" data-roadmap-nodes="3cMECz5QPVDOFrk5duObs">
+<h2>COMMIT · 确认临时演练表的写入</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_commit (id INT);
+BEGIN;
+INSERT INTO path_commit VALUES (1);
+COMMIT;
+SELECT id FROM path_commit;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。MySQL 使用 InnoDB（练习环境默认引擎）。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id FROM path_commit;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE path_commit (id INT);
+START TRANSACTION;
+INSERT INTO path_commit VALUES (1);
+COMMIT;
+SELECT id FROM path_commit;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。MySQL 使用 InnoDB（练习环境默认引擎）。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id FROM path_commit;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #path_commit (id INT);
+BEGIN TRANSACTION;
+INSERT INTO #path_commit VALUES (1);
+COMMIT;
+SELECT id FROM #path_commit;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。MySQL 使用 InnoDB（练习环境默认引擎）。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id FROM #path_commit;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>COMMIT 使事务中的修改生效。此例提交的对象只在当前连接存在。</p>
+
+<p class="sources"><a href="26-transactions.html">相关笔记</a></p>
+</section>
+<section class="point" id="rollback" data-roadmap-nodes="xbD67KVlt3UhHpKh8HLx8">
+<h2>ROLLBACK · 撤销状态变更</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+UPDATE sql_notes_lab.orders SET status = &#x27;paid&#x27; WHERE order_id = 102;
+ROLLBACK;
+SELECT status
+FROM sql_notes_lab.orders WHERE order_id = 102;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。需 SELECT 和 UPDATE 权限。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM sql_notes_lab.orders WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>START TRANSACTION;
+UPDATE orders SET status = &#x27;paid&#x27; WHERE order_id = 102;
+ROLLBACK;
+SELECT status
+FROM orders WHERE order_id = 102;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。需 SELECT 和 UPDATE 权限。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM orders WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+UPDATE dbo.orders SET status = &#x27;paid&#x27; WHERE order_id = 102;
+ROLLBACK TRANSACTION;
+SELECT status
+FROM dbo.orders WHERE order_id = 102;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。需 SELECT 和 UPDATE 权限。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM dbo.orders WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>订单 102 仍未付款。回滚只撤销当前未提交事务。</p>
+
+<p class="sources"><a href="26-transactions.html#quick-rollback">相关笔记</a></p>
+</section>
+<section class="point" id="savepoint" data-roadmap-nodes="pJtYvXUo81aZfPuRjIbMq">
+<h2>SAVEPOINT · 只撤销保存点之后的操作</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+UPDATE sql_notes_lab.orders SET status = &#x27;paid&#x27; WHERE order_id = 102;
+SAVEPOINT path_point;
+UPDATE sql_notes_lab.orders SET status = &#x27;pending&#x27; WHERE order_id = 102;
+ROLLBACK TO SAVEPOINT path_point;
+SELECT status
+FROM sql_notes_lab.orders WHERE order_id = 102;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。需 SELECT 和 UPDATE 权限。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM sql_notes_lab.orders WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>START TRANSACTION;
+UPDATE orders SET status = &#x27;paid&#x27; WHERE order_id = 102;
+SAVEPOINT path_point;
+UPDATE orders SET status = &#x27;pending&#x27; WHERE order_id = 102;
+ROLLBACK TO SAVEPOINT path_point;
+SELECT status
+FROM orders WHERE order_id = 102;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。需 SELECT 和 UPDATE 权限。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM orders WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+UPDATE dbo.orders SET status = &#x27;paid&#x27; WHERE order_id = 102;
+SAVE TRANSACTION path_point;
+UPDATE dbo.orders SET status = &#x27;pending&#x27; WHERE order_id = 102;
+ROLLBACK TRANSACTION path_point;
+SELECT status
+FROM dbo.orders WHERE order_id = 102;
+ROLLBACK TRANSACTION;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。需 SELECT 和 UPDATE 权限。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM dbo.orders WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>撤销第二次更新后，事务中还看得到第一次更新。最后整笔回滚，保留原练习数据。</p>
+
+<p class="sources"><a href="26-transactions.html">相关笔记</a></p>
+</section>
+<section class="point" id="acid" data-roadmap-nodes="igg34gLPl3HYVAmRNFGcV">
+<h2>ACID · 观察两次修改一起撤销</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+UPDATE sql_notes_lab.order_items SET qty = qty + 1 WHERE order_id = 101;
+ROLLBACK;
+SELECT COUNT(*) AS lines_count, SUM(qty) AS total_qty FROM sql_notes_lab.order_items WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。需 SELECT 和 UPDATE 权限。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS lines_count, SUM(qty) AS total_qty FROM sql_notes_lab.order_items WHERE order_id = 101;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">lines_count</th><th scope="col">total_qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>START TRANSACTION;
+UPDATE order_items SET qty = qty + 1 WHERE order_id = 101;
+ROLLBACK;
+SELECT COUNT(*) AS lines_count, SUM(qty) AS total_qty FROM order_items WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。需 SELECT 和 UPDATE 权限。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS lines_count, SUM(qty) AS total_qty FROM order_items WHERE order_id = 101;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">lines_count</th><th scope="col">total_qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>BEGIN TRANSACTION;
+UPDATE dbo.order_items SET qty = qty + 1 WHERE order_id = 101;
+ROLLBACK TRANSACTION;
+SELECT COUNT(*) AS lines_count, SUM(qty) AS total_qty FROM dbo.order_items WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。需 SELECT 和 UPDATE 权限。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS lines_count, SUM(qty) AS total_qty FROM dbo.order_items WHERE order_id = 101;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">lines_count</th><th scope="col">total_qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>回滚后两行一起恢复，体现原子性。约束维护一致性。隔离控制并发下的可见性。持久性保证提交结果受数据库持久化机制保护。</p>
+
+<p class="sources"><a href="26-transactions.html">相关笔记</a></p>
+</section>
+<section class="point" id="isolation" data-roadmap-nodes="ujeq8EIFcrqkBjoFizsJM">
+<h2>隔离级别 · 读取已提交的订单</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN ISOLATION LEVEL READ COMMITTED;
+SELECT status
+FROM sql_notes_lab.orders WHERE order_id = 102;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。执行后结束该练习连接，避免会话级设置影响其他任务。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM sql_notes_lab.orders WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+START TRANSACTION;
+SELECT status
+FROM orders WHERE order_id = 102;
+ROLLBACK;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。执行后结束该练习连接，避免会话级设置影响其他任务。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM orders WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+BEGIN TRANSACTION;
+SELECT status
+FROM dbo.orders WHERE order_id = 102;
+ROLLBACK TRANSACTION;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。执行后结束该练习连接，避免会话级设置影响其他任务。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT status
+FROM dbo.orders WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>READ COMMITTED 禁止脏读。SQL Server 示例的 SET 作用于会话。结果表用于核对基线查询。打开第二个连接，按下方笔记观察并发写入前后的可见性和锁等待。</p>
+
+<p class="sources"><span data-dialects="postgresql"><a href="47-postgresql-transactions.html#snapshot">双连接练习</a></span><span data-dialects="mysql"><a href="26-transactions.html#p6">双连接练习</a></span><span data-dialects="sqlserver"><a href="58-sqlserver-transactions.html#rcsi">双连接练习</a></span></p>
+</section>
+<section class="panel">
+<h2>做完后自测</h2>
+<p>更新明细后仍未提交，这时运行哪条命令能恢复原数量？</p>
+<details><summary>核对答案</summary><p>ROLLBACK 撤销未提交的修改。同一个连接随后查询，数量恢复为 2。</p></details>
+<p>如果实际结果和笔记不同，记下数据库版本、SQL 和错误提示，再来问我。</p>
+<p class="sources"><span data-dialects="postgresql"><a href="https://www.postgresql.org/docs/current/sql.html">PostgreSQL 官方参考</a></span><span data-dialects="mysql"><a href="https://dev.mysql.com/doc/refman/8.4/en/sql-statements.html">MySQL 官方参考</a></span><span data-dialects="sqlserver"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-reference?view=sql-server-ver17">SQL Server 官方参考</a></span> · <a href="https://roadmap.sh/sql">原始 SQL 路线</a></p>
+</section>
+</article>
+<nav class="jump" aria-label="本阶段知识点"><strong>本阶段知识点</strong><ol><li><a href="#routines">存储过程和函数 封装查询逻辑</a></li><li><a href="#integrity">数据完整性 筛查无订单的明细</a></li><li><a href="#grant-revoke">GRANT / REVOKE 授予和收回权限</a></li><li><a href="#security">CURRENT_USER 核对执行身份</a></li><li><a href="#begin">BEGIN 开启事务</a></li><li><a href="#commit">COMMIT 确认事务写入</a></li><li><a href="#rollback">ROLLBACK 撤销未提交写入</a></li><li><a href="#savepoint">SAVEPOINT 撤销部分操作</a></li><li><a href="#acid">ACID 验证修改一起回滚</a></li><li><a href="#isolation">READ COMMITTED 读取已提交的数据</a></li></ol></nav>
+</div>
+<nav class="pager" aria-label="学习阶段"><a href="sql-roadmap-05-views-indexes.html">← 视图与索引</a><a href="sql-roadmap.html">学习路径</a><a href="sql-roadmap-07-advanced.html">性能、窗口函数与高级查询 →</a></nav>
+</main>
+</body>
+</html>

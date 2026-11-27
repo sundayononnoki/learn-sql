@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>49 · PostgreSQL · PostgreSQL 版本与迁移附录 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 49 章 · 原生语法</p>
+<h1>PostgreSQL · PostgreSQL 版本与迁移附录</h1>
+<p class="lead">确认 PostgreSQL 18 和 19 的版本门槛，用小例验证兼容风险。升级时逐项检查语法、数据以及运行环境。</p>
+<div class="layout"><article class="content">
+<section id="version-gates" class="point" data-dialects="postgresql">
+<h2>用服务器版本给脚本选语法</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">示例结果以 PostgreSQL 19 为准</span></p>
+<p>先检查当前连接的服务器版本。psql --version 是客户端版本。用 server_version_num 做整数比较并向较旧服务器发备选 SQL。服务器会解析整条语句，CASE 不能让旧版解析器跳过不认识的子句。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="比较门槛" tabindex="0">
+<table class="sql-result"><caption>比较门槛</caption>
+<thead><tr><th scope="col">版本</th><th scope="col">server_version_num 的下限</th></tr></thead>
+<tbody>
+<tr><td><code>18</code></td><td><code>180000</code></td></tr>
+<tr><td><code>19</code></td><td><code>190000</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT current_setting(&#x27;server_version_num&#x27;)::int &gt;= 180000 AS has_pg18,
+       current_setting(&#x27;server_version_num&#x27;)::int &gt;= 190000 AS has_pg19;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT current_setting(&#x27;server_version_num&#x27;)::int &gt;= 180000 AS has_pg18,
+       current_setting(&#x27;server_version_num&#x27;)::int &gt;= 190000 AS has_pg19;</code></span></caption>
+<thead><tr><th scope="col">has_pg18</th><th scope="col">has_pg19</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">18.x 得 true、false。版本门槛不能替代扩展安装和管理员权限检查。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-info.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="generated-18" class="point" data-dialects="postgresql">
+<h2>生成列明确选择 VIRTUAL 或 STORED</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 18+ 的 VIRTUAL</span></p>
+<p>18 加入 VIRTUAL 并将不写限定词的生成列默认为 VIRTUAL。查询时计算虚拟列，写入时计算存储列。用 information_schema 核对表达式，用 pg_attribute 的 attgenerated 区分存储方式。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="写入值" tabindex="0">
+<table class="sql-result"><caption>写入值</caption>
+<thead><tr><th scope="col">price</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>12.50</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg49_calculated (
+  price numeric(8,2), qty int,
+  virtual_total numeric(10,2) GENERATED ALWAYS AS (price * qty) VIRTUAL,
+  stored_total numeric(10,2) GENERATED ALWAYS AS (price * qty) STORED
+);
+INSERT INTO pg49_calculated (price, qty) VALUES (12.50, 2);
+
+SELECT virtual_total, stored_total FROM pg49_calculated;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT virtual_total, stored_total FROM pg49_calculated;</code></span></caption>
+<thead><tr><th scope="col">virtual_total</th><th scope="col">stored_total</th></tr></thead>
+<tbody>
+<tr><td><code>25.00</code></td><td><code>25.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">在 12–17 练习中保留显式 STORED，删除本卡虚拟列。虚拟列的表达式和数据类型还受额外限制。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/ddl-generated-columns.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="uuid-18" class="point" data-dialects="postgresql">
+<h2>核对 uuidv7 生成的版本与时间戳</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 18+ 的 uuidv7()</span></p>
+<p>uuidv7 生成带时间成分、可按时间排序的 UUID。这里验证 UUID 的版本和时间戳可提取，避免依赖某次生成的固定值。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个生成器" tabindex="0">
+<table class="sql-result"><caption>两个生成器</caption>
+<thead><tr><th scope="col">函数</th><th scope="col">版本</th></tr></thead>
+<tbody>
+<tr><td><code>uuidv7()</code></td><td><code>7</code></td></tr>
+<tr><td><code>gen_random_uuid()</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sample AS (SELECT uuidv7() AS time_id, gen_random_uuid() AS random_id)
+SELECT uuid_extract_version(time_id) AS time_version,
+       uuid_extract_timestamp(time_id) IS NOT NULL AS has_timestamp,
+       uuid_extract_version(random_id) AS random_version
+FROM sample;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sample AS (SELECT uuidv7() AS time_id, gen_random_uuid() AS random_id)
+SELECT uuid_extract_version(time_id) AS time_version,
+       uuid_extract_timestamp(time_id) IS NOT NULL AS has_timestamp,
+       uuid_extract_version(random_id) AS random_version
+FROM sample;</code></span></caption>
+<thead><tr><th scope="col">time_version</th><th scope="col">has_timestamp</th><th scope="col">random_version</th></tr></thead>
+<tbody>
+<tr><td><code>7</code></td><td><code>true</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">17 可用 gen_random_uuid() 生成 v4，但不会得到 v7 的时间排序特性。不要把 v7 的顺序当作跨机器的严格事件排序。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-uuid.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="returning-18" class="point" data-dialects="postgresql">
+<h2>RETURNING 同时返回 OLD 与 NEW</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 18+</span></p>
+<p>18 开始可在 DML RETURNING 直接引用 OLD、NEW，并可为它们改名。UPDATE 有前后两份行，普通 INSERT 没有旧行，DELETE 没有新行。需要读取旧版 UPDATE 前值时，可在同一事务先锁行、取值，再 UPDATE ... RETURNING。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="更新前" tabindex="0">
+<table class="sql-result"><caption>更新前</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg49_stock (id int PRIMARY KEY, qty int);
+INSERT INTO pg49_stock VALUES (1, 5);
+
+UPDATE pg49_stock SET qty = qty + 2 WHERE id = 1
+RETURNING WITH (OLD AS o, NEW AS n) o.qty AS before_qty, n.qty AS after_qty;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>UPDATE pg49_stock SET qty = qty + 2 WHERE id = 1
+RETURNING WITH (OLD AS o, NEW AS n) o.qty AS before_qty, n.qty AS after_qty;</code></span></caption>
+<thead><tr><th scope="col">before_qty</th><th scope="col">after_qty</th></tr></thead>
+<tbody>
+<tr><td><code>5</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/dml-returning.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="temporal-18" class="point" data-dialects="postgresql">
+<h2>WITHOUT OVERLAPS 与 PERIOD 按时间覆盖做约束</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 18+</span></p>
+<p>18 原生时间约束用 range 或 multirange 表达区段。WITHOUT OVERLAPS 要求相同 stream 的区段不相交。PERIOD 外键要求该 stream 的父行共同覆盖整个子区段。示例用两个内置范围类型，让 GiST 同时支持等值键和重叠检测。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个连续的父区间" tabindex="0">
+<table class="sql-result"><caption>两个连续的父区间</caption>
+<thead><tr><th scope="col">stream</th><th scope="col">下界</th><th scope="col">上界</th></tr></thead>
+<tbody>
+<tr><td><code>[1,2)</code></td><td><code>2026-01-01</code></td><td><code>2026-02-01</code></td></tr>
+<tr><td><code>[1,2)</code></td><td><code>2026-02-01</code></td><td><code>2026-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg49_parent (
+  stream int4range, valid_on daterange,
+  PRIMARY KEY (stream, valid_on WITHOUT OVERLAPS)
+);
+CREATE TEMP TABLE pg49_child (
+  stream int4range, valid_on daterange,
+  FOREIGN KEY (stream, PERIOD valid_on)
+    REFERENCES pg49_parent (stream, PERIOD valid_on)
+);
+INSERT INTO pg49_parent VALUES
+  (&#x27;[1,2)&#x27;, &#x27;[2026-01-01,2026-02-01)&#x27;),
+  (&#x27;[1,2)&#x27;, &#x27;[2026-02-01,2026-03-01)&#x27;);
+
+INSERT INTO pg49_child VALUES (&#x27;[1,2)&#x27;, &#x27;[2026-01-15,2026-02-15)&#x27;)
+RETURNING lower(valid_on) AS starts_on, upper(valid_on) AS ends_before;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO pg49_child VALUES (&#x27;[1,2)&#x27;, &#x27;[2026-01-15,2026-02-15)&#x27;)
+RETURNING lower(valid_on) AS starts_on, upper(valid_on) AS ends_before;</code></span></caption>
+<thead><tr><th scope="col">starts_on</th><th scope="col">ends_before</th></tr></thead>
+<tbody>
+<tr><td><code>2026-01-15</code></td><td><code>2026-02-15</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">旧版可用 EXCLUDE 禁止重叠，跨多行的时间覆盖还要另行保证。普通键与范围组合可能需要 btree_gist 来支持普通键的 GiST 等值运算。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-createtable.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="ignore-nulls-19" class="point" data-dialects="postgresql">
+<h2>窗口函数按需忽略 NULL</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>19 支持为 lead、lag、first_value、last_value、nth_value 指定 IGNORE NULLS 或 RESPECT NULLS。后者是默认。例子显式定义整个分区作为框架，让第 2 行也属于每一行的候选范围。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入顺序" tabindex="0">
+<table class="sql-result"><caption>输入顺序</caption>
+<thead><tr><th scope="col">id</th><th scope="col">val</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>7</code></td></tr>
+<tr><td><code>3</code></td><td><code>9</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT id, FIRST_VALUE(val) RESPECT NULLS OVER w AS respecting,
+       FIRST_VALUE(val) IGNORE NULLS OVER w AS ignoring
+FROM (VALUES (1, NULL::int), (2, 7), (3, 9)) AS src(id, val)
+WINDOW w AS (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, FIRST_VALUE(val) RESPECT NULLS OVER w AS respecting,
+       FIRST_VALUE(val) IGNORE NULLS OVER w AS ignoring
+FROM (VALUES (1, NULL::int), (2, 7), (3, 9)) AS src(id, val)
+WINDOW w AS (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">respecting</th><th scope="col">ignoring</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td><td><code>7</code></td></tr>
+<tr><td><code>2</code></td><td class="sql-null"><code>NULL</code></td><td><code>7</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">在较旧版本，可先用 WHERE val IS NOT NULL 找出第一值，再按原有粒度联回。lag、lead 及不同框架应单独核算。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-window.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="do-select-19" class="point" data-dialects="postgresql">
+<h2>ON CONFLICT DO SELECT 读取既有行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>19 在冲突分支读取而无需触发实际 UPDATE，语句须包含 RETURNING。若键 1 已有原值，提议改写的值不会被写入。需继续在事务中操作时，可在 DO SELECT 后显式指定 FOR UPDATE 等行锁。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="冲突输入" tabindex="0">
+<table class="sql-result"><caption>冲突输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">已有值</th><th scope="col">尝试值</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>old</code></td><td><code>new</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg49_get_or_create (id int PRIMARY KEY, label text);
+INSERT INTO pg49_get_or_create VALUES (1, &#x27;old&#x27;);
+
+INSERT INTO pg49_get_or_create (id, label) VALUES (1, &#x27;new&#x27;)
+ON CONFLICT (id) DO SELECT
+RETURNING id, label;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO pg49_get_or_create (id, label) VALUES (1, &#x27;new&#x27;)
+ON CONFLICT (id) DO SELECT
+RETURNING id, label;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>old</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">18 及更早可设计明确的 INSERT ... DO NOTHING 与后续查询，注意并发、可见性与重试。无意义 UPDATE 也可能触发触发器和写入。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-insert.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="copy-in-19" class="point" data-dialects="postgresql">
+<h2>COPY FROM 跳过多行表头并处理不可转换值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>以下整段在 psql 运行。COPY FROM 的 HEADER 2 丢弃前两行。ON_ERROR SET_NULL 将无法转换的字段值置为 NULL，再继续处理该行。这里的 qty 允许 NULL。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="CSV 输入" tabindex="0">
+<table class="sql-result"><caption>CSV 输入</caption>
+<thead><tr><th scope="col">行号</th><th scope="col">内容</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>delivery file</code></td></tr>
+<tr><td><code>2</code></td><td><code>id,qty</code></td></tr>
+<tr><td><code>3</code></td><td><code>1,7</code></td></tr>
+<tr><td><code>4</code></td><td><code>2,unknown</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg49_csv (id int, qty int);
+COPY pg49_csv FROM STDIN WITH (FORMAT csv, HEADER 2, ON_ERROR SET_NULL);
+delivery file
+id,qty
+1,7
+2,unknown
+\.
+
+SELECT id, qty FROM pg49_csv ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, qty FROM pg49_csv ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>7</code></td></tr>
+<tr><td><code>2</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">另有 ON_ERROR IGNORE 跳过整行，REJECT_LIMIT 可限制允许的错误数量。类型转换以外的结构和约束错误仍需处理。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-copy.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="copy-out-19" class="point" data-dialects="postgresql">
+<h2>COPY TO 直接输出 JSON 数组</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>19 的 COPY TO 支持 FORMAT JSON。FORCE_ARRAY 将整个流包成一个有序 JSON 数组。用 TO STDOUT 在 psql 中观察数据，不需要服务器文件路径。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="查询两行" tabindex="0">
+<table class="sql-result"><caption>查询两行</caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>COPY (SELECT id FROM (VALUES (2), (1)) AS src(id) ORDER BY id)
+TO STDOUT WITH (FORMAT JSON, FORCE_ARRAY);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>COPY (SELECT id FROM (VALUES (2), (1)) AS src(id) ORDER BY id)
+TO STDOUT WITH (FORMAT JSON, FORCE_ARRAY);</code></span></caption>
+<thead><tr><th scope="col">标准输出（合并换行展示）</th></tr></thead>
+<tbody>
+<tr><td><code>[{&quot;id&quot;:1},{&quot;id&quot;:2}]</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">真实流含换行。旧版可用 json_agg(id ORDER BY id) 输出单值。如需相同对象形状，用 json_agg(json_build_object(&#x27;id&#x27;, id) ORDER BY id)。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-copy.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="operations-19" class="point" data-dialects="postgresql">
+<h2>19 的维护、复制和备用库能力</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>19 提供原生 REPACK (CONCURRENTLY)、WAIT FOR LSN、CREATE PUBLICATION ... FOR ALL SEQUENCES 与 ALTER SUBSCRIPTION ... REFRESH SEQUENCES。第 48 章提供独立操作例。下面只读辨认并发重写和 WAL 配置。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="查找的配置项" tabindex="0">
+<table class="sql-result"><caption>查找的配置项</caption>
+<thead><tr><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>max_repack_replication_slots</code></td></tr>
+<tr><td><code>wal_level</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT name FROM pg_settings
+WHERE name IN (&#x27;max_repack_replication_slots&#x27;, &#x27;wal_level&#x27;)
+ORDER BY name;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name FROM pg_settings
+WHERE name IN (&#x27;max_repack_replication_slots&#x27;, &#x27;wal_level&#x27;)
+ORDER BY name;</code></span></caption>
+<thead><tr><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>max_repack_replication_slots</code></td></tr>
+<tr><td><code>wal_level</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">早期 VACUUM FULL、CLUSTER 在 19 仍可用。启用逻辑复制仍须检查 WAL sender 与槽的配置。WAIT 用于物理实例的 WAL 位置，逻辑订阅的序列对齐是另一流程。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/release-19.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="json-array-change" class="point" data-dialects="postgresql">
+<h2>升级核对 JSON_ARRAY 无输入行的结果</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19 行为</span></p>
+<p>19 将 JSON_ARRAY 查询无行时的结果改为 JSON 空数组，18 的同一写法返回 SQL NULL。跨版本需要空数组时，可补 COALESCE。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="子查询输入" tabindex="0">
+<table class="sql-result"><caption>子查询输入</caption>
+<thead><tr><th scope="col">条件</th><th scope="col">行数</th></tr></thead>
+<tbody>
+<tr><td><code>WHERE false</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT JSON_ARRAY(SELECT 1 WHERE false) IS NULL AS empty_is_sql_null,
+       COALESCE(JSON_ARRAY(SELECT 1 WHERE false), &#x27;[]&#x27;::json)::text AS normalized;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT JSON_ARRAY(SELECT 1 WHERE false) IS NULL AS empty_is_sql_null,
+       COALESCE(JSON_ARRAY(SELECT 1 WHERE false), &#x27;[]&#x27;::json)::text AS normalized;</code></span></caption>
+<thead><tr><th scope="col">empty_is_sql_null</th><th scope="col">normalized</th></tr></thead>
+<tbody>
+<tr><td><code>false</code></td><td><code>[]</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">18 的第一列为 true。通过 COALESCE，第二列两版都为 []。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/release-19.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="strings-and-auth" class="point" data-dialects="postgresql">
+<h2>区分已移除的旧模式与仍可用的旧认证</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19 行为</span></p>
+<p>19 服务器端禁止将 standard_conforming_strings 设为 off，兼容旧服务器的客户端行为仍保留。18 标记 MD5 密码为弃用，19 在成功的 MD5 密码认证后默认发警告。新设置优先用 SCRAM-SHA-256，迁移时同步核对驱动与 pg_hba.conf。该变量在 18 已存在。19 的变化包括 MD5 身份验证成功后也给出警告。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="要检验的能力" tabindex="0">
+<table class="sql-result"><caption>要检验的能力</caption>
+<thead><tr><th scope="col">配置名</th></tr></thead>
+<tbody>
+<tr><td><code>standard_conforming_strings</code></td></tr>
+<tr><td><code>md5_password_warnings</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT current_setting(&#x27;standard_conforming_strings&#x27;) AS standard_strings,
+       current_setting(&#x27;md5_password_warnings&#x27;, true) IS NOT NULL AS warning_setting_present;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT current_setting(&#x27;standard_conforming_strings&#x27;) AS standard_strings,
+       current_setting(&#x27;md5_password_warnings&#x27;, true) IS NOT NULL AS warning_setting_present;</code></span></caption>
+<thead><tr><th scope="col">standard_strings</th><th scope="col">warning_setting_present</th></tr></thead>
+<tbody>
+<tr><td><code>on</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">确实需要反斜杠转义时用 E 字符串或驱动参数。修改认证要用独立的练习实例验证，当前查询仅看状态。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/release-19.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="upgrade-check" class="point" data-dialects="postgresql">
+<h2>跨主要版本升级先准备回归基线</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>主要版本迁移采用 pg_upgrade、转储/恢复或逻辑复制。pg_upgrade --check 需要已准备的旧、新集群目录和相应版本二进制。不能用小版本路径替代主版本迁移流程。升级前后分别运行下面的最小业务核对。先按五分钟上手导入练习数据。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="练习数据基线" tabindex="0">
+<table class="sql-result"><caption>练习数据基线</caption>
+<thead><tr><th scope="col">表</th><th scope="col">初始行数</th></tr></thead>
+<tbody>
+<tr><td><code>orders</code></td><td><code>4</code></td></tr>
+<tr><td><code>order_items</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>-- 终端模板，替换为已准备的隔离集群：
+-- pg_upgrade --check -b /old/bin -B /new/bin -d /old/data -D /new/data
+
+SELECT (SELECT count(*) FROM sql_notes_lab.orders) AS orders,
+       (SELECT count(*) FROM sql_notes_lab.order_items) AS items;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT (SELECT count(*) FROM sql_notes_lab.orders) AS orders,
+       (SELECT count(*) FROM sql_notes_lab.order_items) AS items;</code></span></caption>
+<thead><tr><th scope="col">orders</th><th scope="col">items</th></tr></thead>
+<tbody>
+<tr><td><code>4</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">生产基线还应包括关键总额、外键、扩展版本及应用查询。回看发行说明中的语法变动和数据层边界。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/pgupgrade.html">PostgreSQL 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#version-gates">用服务器版本给脚本选语法</a></li>
+<li><a href="#generated-18">选择读取时计算或写入时保存生成列</a></li>
+<li><a href="#uuid-18">核对 uuidv7 生成的版本与时间戳</a></li>
+<li><a href="#returning-18">读取同一次写入的旧值和新值</a></li>
+<li><a href="#temporal-18">WITHOUT OVERLAPS 与 PERIOD 按时间覆盖做约束</a></li>
+<li><a href="#ignore-nulls-19">窗口函数按需忽略 NULL</a></li>
+<li><a href="#do-select-19">ON CONFLICT DO SELECT 读取既有行</a></li>
+<li><a href="#copy-in-19">COPY FROM 跳过多行表头并处理不可转换值</a></li>
+<li><a href="#copy-out-19">COPY TO 直接输出 JSON 数组</a></li>
+<li><a href="#operations-19">核对 PostgreSQL 19 的重整、复制和回放功能</a></li>
+<li><a href="#json-array-change">升级核对 JSON_ARRAY 无输入行的结果</a></li>
+<li><a href="#strings-and-auth">区分已移除的旧模式与仍可用的旧认证</a></li>
+<li><a href="#upgrade-check">跨主要版本升级先准备回归基线</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="48-postgresql-administration.html">← 管理、系统对象、复制与扩展</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="62-postgresql-utilities.html">对象生命周期与会话工具 →</a></nav>
+</main>
+</body>
+</html>

@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>48 · PostgreSQL · 管理、系统对象、复制与扩展 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 48 章 · 原生语法</p>
+<h1>PostgreSQL · 管理、系统对象、复制与扩展</h1>
+<p class="lead">先用系统目录和统计核对运行状态，再在专用实例练习维护、跨库访问和复制。涉及多个端点的步骤按注释分开运行。</p>
+<div class="layout"><article class="content">
+<section id="catalog" class="point" data-dialects="postgresql">
+<h2>用 pg_catalog 辨认对象和表的结构</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>information_schema 适合移植式查列，pg_catalog 提供 PostgreSQL 特有属性。通过 pg_namespace 联结模式，避免把同名表混在一起。定义变更通过 DDL 完成。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="已初始化的表" tabindex="0">
+<table class="sql-result"><caption>已初始化的表</caption>
+<thead><tr><th scope="col">schema</th><th scope="col">table</th><th scope="col">业务列数</th></tr></thead>
+<tbody>
+<tr><td><code>sql_notes_lab</code></td><td><code>products</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT n.nspname AS schema_name, c.relname AS table_name, c.relkind,
+       count(*) FILTER (WHERE a.attnum &gt; 0 AND NOT a.attisdropped) AS columns
+FROM pg_catalog.pg_class AS c
+JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+JOIN pg_catalog.pg_attribute AS a ON a.attrelid = c.oid
+WHERE n.nspname = &#x27;sql_notes_lab&#x27; AND c.relname = &#x27;products&#x27;
+GROUP BY n.nspname, c.relname, c.relkind;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT n.nspname AS schema_name, c.relname AS table_name, c.relkind,
+       count(*) FILTER (WHERE a.attnum &gt; 0 AND NOT a.attisdropped) AS columns
+FROM pg_catalog.pg_class AS c
+JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+JOIN pg_catalog.pg_attribute AS a ON a.attrelid = c.oid
+WHERE n.nspname = &#x27;sql_notes_lab&#x27; AND c.relname = &#x27;products&#x27;
+GROUP BY n.nspname, c.relname, c.relkind;</code></span></caption>
+<thead><tr><th scope="col">schema_name</th><th scope="col">table_name</th><th scope="col">relkind</th><th scope="col">columns</th></tr></thead>
+<tbody>
+<tr><td><code>sql_notes_lab</code></td><td><code>products</code></td><td><code>r</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">relkind = r 代表普通表。可再用 pg_get_indexdef(indexrelid) 显示索引定义。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/catalogs.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="server-stats" class="point" data-dialects="postgresql">
+<h2>用 pg_stat_* 区分活动会话和累计统计</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>pg_stat_activity 指向当前后端活动。pg_stat_user_tables 的 seq_scan、n_dead_tup 随时间与采样变化。普通账户查看其他角色会话时部分列受限，读全体统计可由管理员按需授予 pg_read_all_stats。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="观察对象" tabindex="0">
+<table class="sql-result"><caption>观察对象</caption>
+<thead><tr><th scope="col">对象</th><th scope="col">范围</th></tr></thead>
+<tbody>
+<tr><td><code>本会话</code></td><td><code>当前活动</code></td></tr>
+<tr><td><code>products</code></td><td><code>表统计视图</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT (SELECT state FROM pg_stat_activity WHERE pid = pg_backend_pid()) AS my_state,
+       EXISTS (
+         SELECT 1 FROM pg_stat_user_tables
+         WHERE schemaname = &#x27;sql_notes_lab&#x27; AND relname = &#x27;products&#x27;
+       ) AS tracked_table;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT (SELECT state FROM pg_stat_activity WHERE pid = pg_backend_pid()) AS my_state,
+       EXISTS (
+         SELECT 1 FROM pg_stat_user_tables
+         WHERE schemaname = &#x27;sql_notes_lab&#x27; AND relname = &#x27;products&#x27;
+       ) AS tracked_table;</code></span></caption>
+<thead><tr><th scope="col">my_state</th><th scope="col">tracked_table</th></tr></thead>
+<tbody>
+<tr><td><code>active</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">以启用 track_activities 的服务器为例。核对等待时查 wait_event_type、wait_event 和 pg_blocking_pids(pid)。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/monitoring-stats.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="maintenance" class="point" data-dialects="postgresql">
+<h2>VACUUM、ANALYZE、REINDEX 与 CLUSTER</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>在自动提交下逐条执行，只维护本连接的临时表。普通 VACUUM 回收可复用空间并保护事务 ID 周转。ANALYZE 更新规划统计，REINDEX 重建索引，CLUSTER 按索引重写。安排永久表维护时须考虑锁和长事务。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入两行" tabindex="0">
+<table class="sql-result"><caption>输入两行</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>b</code></td></tr>
+<tr><td><code>1</code></td><td><code>a</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg48_house (id integer PRIMARY KEY, label text);
+INSERT INTO pg48_house VALUES (2, &#x27;b&#x27;), (1, &#x27;a&#x27;);
+ANALYZE pg_temp.pg48_house;
+VACUUM (ANALYZE) pg_temp.pg48_house;
+REINDEX TABLE pg_temp.pg48_house;
+CLUSTER pg_temp.pg48_house USING pg48_house_pkey;
+
+SELECT indexrelid::regclass::text AS index_name, indisclustered
+FROM pg_index WHERE indrelid = &#x27;pg_temp.pg48_house&#x27;::regclass;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT indexrelid::regclass::text AS index_name, indisclustered
+FROM pg_index WHERE indrelid = &#x27;pg_temp.pg48_house&#x27;::regclass;</code></span></caption>
+<thead><tr><th scope="col">index_name</th><th scope="col">indisclustered</th></tr></thead>
+<tbody>
+<tr><td><code>pg48_house_pkey</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">目录标记最近选择的聚簇索引。查询需要稳定行序时仍写 ORDER BY。VACUUM 不能放入显式事务块。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/maintenance.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="repack" class="point" data-dialects="postgresql">
+<h2>REPACK 重写表，可选分析与索引重排</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>仅对专用测试表使用。默认 REPACK 持有 ACCESS EXCLUSIVE 锁。并发版允许重写期间进行其他访问，切换阶段仍需要短暂强锁。CONCURRENTLY 受表结构和 max_repack_replication_slots 等前提限制。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="初始测试表" tabindex="0">
+<table class="sql-result"><caption>初始测试表</caption>
+<thead><tr><th scope="col">id</th><th scope="col">note</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>b</code></td></tr>
+<tr><td><code>1</code></td><td><code>a</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TABLE sql_notes_lab.pg48_repack (id integer PRIMARY KEY, note text);
+INSERT INTO sql_notes_lab.pg48_repack VALUES (2, &#x27;b&#x27;), (1, &#x27;a&#x27;);
+REPACK (VERBOSE, ANALYZE) sql_notes_lab.pg48_repack USING INDEX pg48_repack_pkey;
+
+SELECT id, note FROM sql_notes_lab.pg48_repack ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, note FROM sql_notes_lab.pg48_repack ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">note</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>a</code></td></tr>
+<tr><td><code>2</code></td><td><code>b</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">逐条在自动提交下运行。另可在已启用所需槽配置的专用实例演练 REPACK (CONCURRENTLY) sql_notes_lab.pg48_repack。日常维护仍需 VACUUM。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-repack.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="system-settings" class="point" data-dialects="postgresql">
+<h2>查看配置来源，理解 ALTER SYSTEM 与 CHECKPOINT</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">CHECKPOINT 的 MODE、FLUSH_UNLOGGED 为 PostgreSQL 19+</span></p>
+<p>先用只读查询核对。ALTER SYSTEM 修改实例配置文件，具体参数可能需要 reload 或重启。CHECKPOINT 触发 WAL 检查点，可能增加 I/O。两种管理命令只适合有相应权限的独立试验实例。配置来源在默认环境显示 default，改过设置的实例按实际输出。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待核对的参数" tabindex="0">
+<table class="sql-result"><caption>待核对的参数</caption>
+<thead><tr><th scope="col">name</th><th scope="col">管理入口</th></tr></thead>
+<tbody>
+<tr><td><code>log_lock_waits</code></td><td><code>配置文件或 ALTER SYSTEM</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>-- 可选：仅在无该参数专用覆盖的 PostgreSQL 19 管理实验中执行。
+-- ALTER SYSTEM SET log_lock_waits = &#x27;on&#x27;;
+-- SELECT pg_reload_conf();
+-- CHECKPOINT (MODE SPREAD, FLUSH_UNLOGGED FALSE);
+-- 结束：ALTER SYSTEM RESET log_lock_waits; 再执行 SELECT pg_reload_conf();
+
+SELECT name, context, source, pending_restart FROM pg_settings
+WHERE name = &#x27;log_lock_waits&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, context, source, pending_restart FROM pg_settings
+WHERE name = &#x27;log_lock_waits&#x27;;</code></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">context</th><th scope="col">source</th><th scope="col">pending_restart</th></tr></thead>
+<tbody>
+<tr><td><code>log_lock_waits</code></td><td><code>superuser</code></td><td><code>default</code></td><td><code>false</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">CHECKPOINT 需要超级用户或 pg_checkpoint 权限。ALTER SYSTEM 不受 SQL 回滚保护。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-altersystem.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="database-tablespace" class="point" data-dialects="postgresql">
+<h2>数据库、默认表空间和物理位置</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>数据库是连接边界。CREATE DATABASE 可指定 TEMPLATE、ENCODING、TABLESPACE。CREATE TABLESPACE 使用服务器目录，目录必须已存在、为空且由 PostgreSQL 的系统账户拥有。只有超级用户能创建表空间。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="连接前提" tabindex="0">
+<table class="sql-result"><caption>连接前提</caption>
+<thead><tr><th scope="col">database</th><th scope="col">默认表空间</th></tr></thead>
+<tbody>
+<tr><td><code>postgres</code></td><td><code>pg_default（常见默认安装）</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>-- 可选管理员语法，先在隔离服务器准备自有空目录。
+-- CREATE TABLESPACE pg48_space LOCATION &#x27;/srv/postgresql/lab48-space&#x27;;
+-- CREATE DATABASE pg48_db TEMPLATE template0 TABLESPACE pg48_space;
+
+SELECT d.datname AS database_name, t.spcname AS default_space
+FROM pg_database AS d JOIN pg_tablespace AS t ON t.oid = d.dattablespace
+WHERE d.datname = current_database();</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT d.datname AS database_name, t.spcname AS default_space
+FROM pg_database AS d JOIN pg_tablespace AS t ON t.oid = d.dattablespace
+WHERE d.datname = current_database();</code></span></caption>
+<thead><tr><th scope="col">database_name</th><th scope="col">default_space</th></tr></thead>
+<tbody>
+<tr><td><code>postgres</code></td><td><code>pg_default</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">展示默认安装的例值。创建数据库和表空间在事务外执行。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/manage-ag-tablespaces.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="collation" class="point" data-dialects="postgresql">
+<h2>新建排序规则并回查提供方</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>排序规则会影响文本比较以及按其排序的索引。此处从内置 C 规则复制一个测试名称。升级时核对规则的提供方和版本。语义发生变化时先重建受影响对象，再刷新记录版本。创建排序规则需要目标模式上的 CREATE 权限。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="已有规则" tabindex="0">
+<table class="sql-result"><caption>已有规则</caption>
+<thead><tr><th scope="col">源规则</th><th scope="col">新规则</th></tr></thead>
+<tbody>
+<tr><td><code>pg_catalog.&quot;C&quot;</code></td><td><code>pg48_c_order</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+CREATE COLLATION sql_notes_lab.pg48_c_order FROM pg_catalog.&quot;C&quot;;
+
+SELECT collname,
+       collprovider = (
+         SELECT collprovider FROM pg_collation WHERE oid = &#x27;pg_catalog.&quot;C&quot;&#x27;::regcollation
+       ) AS same_provider
+FROM pg_collation WHERE oid = &#x27;sql_notes_lab.pg48_c_order&#x27;::regcollation;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT collname,
+       collprovider = (
+         SELECT collprovider FROM pg_collation WHERE oid = &#x27;pg_catalog.&quot;C&quot;&#x27;::regcollation
+       ) AS same_provider
+FROM pg_collation WHERE oid = &#x27;sql_notes_lab.pg48_c_order&#x27;::regcollation;</code></span></caption>
+<thead><tr><th scope="col">collname</th><th scope="col">same_provider</th></tr></thead>
+<tbody>
+<tr><td><code>pg48_c_order</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">看完执行 ROLLBACK。用 ALTER COLLATION ... REFRESH VERSION 更新记录的规则版本。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-createcollation.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="foreign-data" class="point" data-dialects="postgresql">
+<h2>FDW、外部服务器、映射和导入模式</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>本地须已安装 postgres_fdw 组件，并有授权访问的 PostgreSQL 专用源实例。先在源实例建练习模式和只读远端用户。替换端口、库、角色和占位口令。本地导入外部表定义后即可查询源端数据。首次安装 postgres_fdw 需管理员。IMPORT FOREIGN SCHEMA 通常还需外部服务器 USAGE 与目标模式 CREATE 权限。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="对象关系" tabindex="0">
+<table class="sql-result"><caption>对象关系</caption>
+<thead><tr><th scope="col">远端模式</th><th scope="col">本地模式</th><th scope="col">表</th></tr></thead>
+<tbody>
+<tr><td><code>sql_notes_lab</code></td><td><code>pg48_foreign</code></td><td><code>products</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+CREATE EXTENSION IF NOT EXISTS postgres_fdw;
+CREATE SERVER pg48_remote FOREIGN DATA WRAPPER postgres_fdw
+  OPTIONS (host &#x27;127.0.0.1&#x27;, port &#x27;5433&#x27;, dbname &#x27;postgres&#x27;);
+CREATE USER MAPPING FOR CURRENT_USER SERVER pg48_remote
+  OPTIONS (user &#x27;lab_fdw_ro&#x27;, password &#x27;填写专用练习账户口令&#x27;);
+CREATE SCHEMA pg48_foreign;
+IMPORT FOREIGN SCHEMA sql_notes_lab LIMIT TO (products)
+  FROM SERVER pg48_remote INTO pg48_foreign;
+
+SELECT foreign_table_name, foreign_server_name
+FROM information_schema.foreign_tables WHERE foreign_table_schema = &#x27;pg48_foreign&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT foreign_table_name, foreign_server_name
+FROM information_schema.foreign_tables WHERE foreign_table_schema = &#x27;pg48_foreign&#x27;;</code></span></caption>
+<thead><tr><th scope="col">foreign_table_name</th><th scope="col">foreign_server_name</th></tr></thead>
+<tbody>
+<tr><td><code>products</code></td><td><code>pg48_remote</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">远端账户需能访问源模式和表。本地执行者须有创建外部服务器和导入外部定义的权限。观察完 ROLLBACK。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/postgres-fdw.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pub-sub-slot" class="point" data-dialects="postgresql">
+<h2>逻辑复制通过发布、订阅和槽传递表数据</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>准备两个独立试验实例，两端分别建匹配的表和模式。发布端需要逻辑复制、WAL sender、槽和复制账户的相应配置。订阅通过发布端可认证的练习账户连接，凭据在实例上按需配置。 发布端需数据库 CREATE 与发布表所有权。订阅端用具数据库 CREATE 和 pg_create_subscription 权限的管理员。FOR ALL SEQUENCES 需要超级用户。订阅端需 pg_create_subscription 与当前数据库 CREATE，发布端需 REPLICATION 和初始快照所需 SELECT。非超级用户的订阅连接须显式配置口令，替换为专用凭据。在各自的实例执行指定片段。初始复制为异步过程，先等订阅初始化完成，再按结果表对应 SQL 查询。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="初始表" tabindex="0">
+<table class="sql-result"><caption>初始表</caption>
+<thead><tr><th scope="col">发布端 id</th><th scope="col">订阅端</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>空</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>A · 发布端。</figcaption><pre><code>CREATE TABLE sql_notes_lab.pg48_repl (id integer PRIMARY KEY);
+INSERT INTO sql_notes_lab.pg48_repl VALUES (1);
+CREATE PUBLICATION pg48_pub FOR TABLE sql_notes_lab.pg48_repl;</code></pre></figure>
+<figure><figcaption>B · 订阅端。CREATE SUBSCRIPTION 在自动提交下单独执行。</figcaption><pre><code>CREATE TABLE sql_notes_lab.pg48_repl (id integer PRIMARY KEY);
+CREATE SUBSCRIPTION pg48_sub
+  CONNECTION &#x27;host=127.0.0.1 port=5433 dbname=postgres user=replica_lab&#x27;
+  PUBLICATION pg48_pub WITH (slot_name = &#x27;pg48_sub_slot&#x27;);
+SELECT id FROM sql_notes_lab.pg48_repl ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id FROM sql_notes_lab.pg48_repl ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">在 B 初始同步后查询。A 用 SELECT slot_name, slot_type, active FROM pg_replication_slots WHERE slot_name = &#x27;pg48_sub_slot&#x27;。B 看 pg_stat_subscription。空闲复制槽也可能保留 WAL，演练结束按实例管理流程解除实验订阅和槽。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/logical-replication.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="sequence-replication" class="point" data-dialects="postgresql">
+<h2>按需同步逻辑复制中的序列</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>使用上一节的独立发布 A 与订阅 B，两端序列参数须一致。19 支持把所有序列加入发布，初始同步和刷新由订阅端发起。发布端的后续 nextval 不会持续同步到订阅端。 FOR ALL SEQUENCES 由发布端超级用户在专用实例执行。FOR ALL SEQUENCES 需要超级用户。订阅端需 pg_create_subscription 与当前数据库 CREATE，发布端需 REPLICATION 和初始快照所需 SELECT。非超级用户的订阅连接须显式配置口令，替换为专用凭据。在各自的实例执行指定片段。初始复制为异步过程，先等订阅初始化完成，再按结果表对应 SQL 查询。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="初始化" tabindex="0">
+<table class="sql-result"><caption>初始化</caption>
+<thead><tr><th scope="col">对象</th><th scope="col">起始值</th></tr></thead>
+<tbody>
+<tr><td><code>pg48_seq</code></td><td><code>10</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>A · 发布端。</figcaption><pre><code>CREATE SEQUENCE sql_notes_lab.pg48_seq START WITH 10;
+SELECT nextval(&#x27;sql_notes_lab.pg48_seq&#x27;);
+SELECT nextval(&#x27;sql_notes_lab.pg48_seq&#x27;);
+CREATE PUBLICATION pg48_seqs FOR ALL SEQUENCES;</code></pre></figure>
+<figure><figcaption>B · 订阅端。在自动提交下进行订阅变更。</figcaption><pre><code>CREATE SEQUENCE sql_notes_lab.pg48_seq START WITH 10;
+ALTER SUBSCRIPTION pg48_sub ADD PUBLICATION pg48_seqs;
+SELECT last_value, is_called FROM sql_notes_lab.pg48_seq;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT last_value, is_called FROM sql_notes_lab.pg48_seq;</code></span></caption>
+<thead><tr><th scope="col">last_value</th><th scope="col">is_called</th></tr></thead>
+<tbody>
+<tr><td><code>11</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">等同步进程退出后在 B 查询。再次同步已知序列用 ALTER SUBSCRIPTION pg48_sub REFRESH SEQUENCES。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/logical-replication-sequences.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="standby-wait" class="point" data-dialects="postgresql">
+<h2>用 WAIT FOR LSN 在备用库等 WAL 重放</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>先在主库提交业务写入，再查询目标 LSN，把真实值粘贴到已连备用库的 psql。WAIT 返回成功后再开始查询。使用 standby_replay 才确认 WAL 已应用，standby_write 和 standby_flush 是不同保障。在各自的实例执行指定片段。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个端点" tabindex="0">
+<table class="sql-result"><caption>两个端点</caption>
+<thead><tr><th scope="col">主库</th><th scope="col">物理备用库</th></tr></thead>
+<tbody>
+<tr><td><code>提交后取 LSN</code></td><td><code>等待 LSN 被重放</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>A · 主库提交后查询并复制 LSN。</figcaption><pre><code>SELECT pg_current_wal_insert_lsn() AS target_lsn;</code></pre></figure>
+<figure><figcaption>B · 只在已连物理备用库的 psql 运行。</figcaption><pre><code>\prompt &#x27;目标 LSN: &#x27; target_lsn
+WAIT FOR LSN :&#x27;target_lsn&#x27; WITH (MODE &#x27;standby_replay&#x27;, TIMEOUT &#x27;5s&#x27;, NO_THROW);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WAIT FOR LSN :&#x27;target_lsn&#x27; WITH (MODE &#x27;standby_replay&#x27;, TIMEOUT &#x27;5s&#x27;, NO_THROW);</code></span></caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>success</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">也可能返回 timeout 或 not in recovery，应用须检查状态。WAIT 的状态显示方式依客户端。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-wait.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="extensions-tools" class="point" data-dialects="postgresql">
+<h2>安装官方模块和使用 psql 元命令</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>模块的服务器文件必须已安装。pg_available_extensions 显示可用模块，pg_extension 显示当前数据库已安装模块。hstore 是受信任的随附模块，创建者需有目标库的 CREATE 权限。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="模块试验" tabindex="0">
+<table class="sql-result"><caption>模块试验</caption>
+<thead><tr><th scope="col">扩展</th><th scope="col">安装位置</th></tr></thead>
+<tbody>
+<tr><td><code>hstore</code></td><td><code>sql_notes_lab</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+CREATE EXTENSION hstore WITH SCHEMA sql_notes_lab;
+
+SELECT e.extname, n.nspname AS schema_name
+FROM pg_extension AS e JOIN pg_namespace AS n ON n.oid = e.extnamespace
+WHERE e.extname = &#x27;hstore&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT e.extname, n.nspname AS schema_name
+FROM pg_extension AS e JOIN pg_namespace AS n ON n.oid = e.extnamespace
+WHERE e.extname = &#x27;hstore&#x27;;</code></span></caption>
+<thead><tr><th scope="col">extname</th><th scope="col">schema_name</th></tr></thead>
+<tbody>
+<tr><td><code>hstore</code></td><td><code>sql_notes_lab</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">前提是本库尚未安装 hstore，观察后 ROLLBACK。psql 可用 \dx 列扩展、\d+ sql_notes_lab.products 展开表、\conninfo 确认连接。升级版本用 ALTER EXTENSION ... UPDATE。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/contrib.html">PostgreSQL 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#catalog">用 pg_catalog 辨认对象和表的结构</a></li>
+<li><a href="#server-stats">用 pg_stat_* 区分活动会话和累计统计</a></li>
+<li><a href="#maintenance">回收表空间、更新统计和重建索引</a></li>
+<li><a href="#repack">REPACK 重写表，可选分析与索引重排</a></li>
+<li><a href="#system-settings">查看配置来源，理解 ALTER SYSTEM 与 CHECKPOINT</a></li>
+<li><a href="#database-tablespace">核对数据库默认的存储位置</a></li>
+<li><a href="#collation">新建排序规则并回查提供方</a></li>
+<li><a href="#foreign-data">映射远程账号并把外部表导入模式</a></li>
+<li><a href="#pub-sub-slot">逻辑复制通过发布、订阅和槽传递表数据</a></li>
+<li><a href="#sequence-replication">按需同步逻辑复制中的序列</a></li>
+<li><a href="#standby-wait">用 WAIT FOR LSN 在备用库等 WAL 重放</a></li>
+<li><a href="#extensions-tools">安装官方模块和使用 psql 元命令</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="47-postgresql-transactions.html">← 事务、锁、权限与会话</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="49-postgresql-versions.html">PostgreSQL 版本与迁移附录 →</a></nav>
+</main>
+</body>
+</html>

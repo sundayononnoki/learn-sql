@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>05 · 视图与索引 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="sql-roadmap.html">SQL 学习路径</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker"><a href="sql-roadmap.html">SQL 学习路径</a> · 第 5 阶段</p>
+<h1>视图与索引</h1>
+<p class="lead">保存常用查询，再用索引和执行计划理解数据库如何找到行。</p>
+<div class="layout">
+<article class="content">
+<section class="point" id="view-create" data-roadmap-nodes="2tyezwOIxV6O84N-Q3Awh PcsGK4VBh0zNQIPZvNES4">
+<h2>CREATE VIEW · 保存待付款查询</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP VIEW path_view_create AS
+SELECT order_id, status
+FROM sql_notes_lab.orders WHERE status = &#x27;pending&#x27;;
+SELECT order_id, status FROM path_view_create;
+DROP VIEW path_view_create;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, status FROM path_view_create;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE VIEW path_view_create AS
+SELECT order_id, status
+FROM orders WHERE status = &#x27;pending&#x27;;
+SELECT order_id, status FROM path_view_create;
+DROP VIEW path_view_create;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, status FROM path_view_create;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE VIEW dbo.path_view_create AS
+SELECT order_id, status
+FROM dbo.orders WHERE status = &#x27;pending&#x27;;
+GO
+SELECT order_id, status FROM dbo.path_view_create;
+DROP VIEW dbo.path_view_create;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SSMS SQL 查询窗口，或 sqlcmd 客户端<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, status FROM dbo.path_view_create;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>普通视图在读取时执行保存的查询。示例最后移除本段自己创建的视图。</p>
+
+<p class="sources"><a href="22-views.html">相关笔记</a></p>
+</section>
+<section class="point" id="view-change" data-roadmap-nodes="3eE-l-P93nOXoWfLr8PSW">
+<h2>修改视图定义 · 改查已付款订单</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP VIEW path_view_change AS
+SELECT order_id, status
+FROM sql_notes_lab.orders WHERE status = &#x27;pending&#x27;;
+CREATE OR REPLACE TEMP VIEW path_view_change AS
+SELECT order_id, status
+FROM sql_notes_lab.orders WHERE status = &#x27;paid&#x27; AND order_id = 101;
+SELECT order_id, status FROM path_view_change;
+DROP VIEW path_view_change;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, status FROM path_view_change;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE VIEW path_view_change AS
+SELECT order_id, status
+FROM orders WHERE status = &#x27;pending&#x27;;
+ALTER VIEW path_view_change AS
+SELECT order_id, status
+FROM orders WHERE status = &#x27;paid&#x27; AND order_id = 101;
+SELECT order_id, status FROM path_view_change;
+DROP VIEW path_view_change;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, status FROM path_view_change;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE VIEW dbo.path_view_change AS
+SELECT order_id, status
+FROM dbo.orders WHERE status = &#x27;pending&#x27;;
+GO
+ALTER VIEW dbo.path_view_change AS
+SELECT order_id, status
+FROM dbo.orders WHERE status = &#x27;paid&#x27; AND order_id = 101;
+GO
+SELECT order_id, status FROM dbo.path_view_change;
+DROP VIEW dbo.path_view_change;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SSMS SQL 查询窗口，或 sqlcmd 客户端<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, status FROM dbo.path_view_change;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>普通视图在读取时执行保存的查询。示例最后移除本段自己创建的视图。</p>
+
+<p class="sources"><a href="22-views.html">相关笔记</a></p>
+</section>
+<section class="point" id="view-drop" data-roadmap-nodes="MIOuWWcCjLAmgzog2DBC3">
+<h2>DROP VIEW · 移除本例视图</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP VIEW path_view_drop AS
+SELECT order_id, status
+FROM sql_notes_lab.orders WHERE status = &#x27;pending&#x27;;
+DROP VIEW path_view_drop;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期状态" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>DROP VIEW path_view_drop;</code><span class="sql-caption-context">预期状态</span></span></caption>
+<thead><tr><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>演示视图已移除</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE VIEW path_view_drop AS
+SELECT order_id, status
+FROM orders WHERE status = &#x27;pending&#x27;;
+DROP VIEW path_view_drop;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期状态" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>DROP VIEW path_view_drop;</code><span class="sql-caption-context">预期状态</span></span></caption>
+<thead><tr><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>演示视图已移除</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE VIEW dbo.path_view_drop AS
+SELECT order_id, status
+FROM dbo.orders WHERE status = &#x27;pending&#x27;;
+GO
+DROP VIEW dbo.path_view_drop;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SSMS SQL 查询窗口，或 sqlcmd 客户端<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期状态" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>DROP VIEW dbo.path_view_drop;</code><span class="sql-caption-context">预期状态</span></span></caption>
+<thead><tr><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>演示视图已移除</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>普通视图在读取时执行保存的查询。示例最后移除本段自己创建的视图。</p>
+
+<p class="sources"><a href="22-views.html">相关笔记</a></p>
+</section>
+<section class="point" id="indexes" data-roadmap-nodes="LcljR70T-OnzSrJJDqOWf NtxGd6Vx-REBclry7lZuE">
+<h2>CREATE INDEX · 为查找键建立索引</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE path_index (order_id INT);
+CREATE INDEX path_ix ON path_index (order_id);
+INSERT INTO path_index SELECT order_id FROM sql_notes_lab.orders;
+SELECT order_id FROM path_index WHERE order_id = 102;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新连接。创建临时表和索引，读取练习订单。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id FROM path_index WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE path_index (order_id INT);
+CREATE INDEX path_ix ON path_index (order_id);
+INSERT INTO path_index SELECT order_id FROM orders;
+SELECT order_id FROM path_index WHERE order_id = 102;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新连接。创建临时表和索引，读取练习订单。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id FROM path_index WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #path_index (order_id INT);
+CREATE INDEX path_ix ON #path_index (order_id);
+INSERT INTO #path_index SELECT order_id FROM dbo.orders;
+SELECT order_id FROM #path_index WHERE order_id = 102;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新连接。创建临时表和索引，读取练习订单。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id FROM #path_index WHERE order_id = 102;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>索引附属于表。它可能降低读取成本，也增加写入与存储成本。这里表很小，查询返回同一行，数据库是否选择索引要看计划。</p>
+
+<p class="sources"><a href="30-performance.html">相关笔记</a></p>
+</section>
+<section class="point" id="query-optimization" data-roadmap-nodes="Ps9Yv2s-bKvEegGAbPsiA">
+<h2>查询优化 · 先取得执行计划</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>EXPLAIN (COSTS OFF) SELECT order_id FROM sql_notes_lab.orders WHERE order_id &gt;= 103 ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。已连接练习库。SQL Server 需要 SHOWPLAN 权限，使用 SSMS 或 sqlcmd 逐批执行。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期观察" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXPLAIN (COSTS OFF) SELECT order_id FROM sql_notes_lab.orders WHERE order_id &gt;= 103 ORDER BY order_id;</code><span class="sql-caption-context">预期观察</span></span></caption>
+<thead><tr><th scope="col">观察项</th><th scope="col">预期</th></tr></thead>
+<tbody>
+<tr><td><code>读取对象</code></td><td><code>orders</code></td></tr>
+<tr><td><code>过滤条件</code></td><td><code>order_id &gt;= 103</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>EXPLAIN SELECT order_id FROM orders WHERE order_id &gt;= 103 ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。已连接练习库。SQL Server 需要 SHOWPLAN 权限，使用 SSMS 或 sqlcmd 逐批执行。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期观察" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXPLAIN SELECT order_id FROM orders WHERE order_id &gt;= 103 ORDER BY order_id;</code><span class="sql-caption-context">预期观察</span></span></caption>
+<thead><tr><th scope="col">观察项</th><th scope="col">预期</th></tr></thead>
+<tbody>
+<tr><td><code>读取对象</code></td><td><code>orders</code></td></tr>
+<tr><td><code>过滤条件</code></td><td><code>order_id &gt;= 103</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET SHOWPLAN_TEXT ON;
+GO
+SELECT order_id FROM dbo.orders WHERE order_id &gt;= 103 ORDER BY order_id;
+GO
+SET SHOWPLAN_TEXT OFF;
+GO</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SSMS SQL 查询窗口，或 sqlcmd 客户端<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。已连接练习库。SQL Server 需要 SHOWPLAN 权限，使用 SSMS 或 sqlcmd 逐批执行。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期观察" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id FROM dbo.orders WHERE order_id &gt;= 103 ORDER BY order_id;</code><span class="sql-caption-context">预期观察</span></span></caption>
+<thead><tr><th scope="col">观察项</th><th scope="col">预期</th></tr></thead>
+<tbody>
+<tr><td><code>读取对象</code></td><td><code>orders</code></td></tr>
+<tr><td><code>过滤条件</code></td><td><code>order_id &gt;= 103</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>使用计划估算才能对照不同写法。小表可能选择扫描，执行计划与统计信息、引擎及数据量有关。</p>
+
+<p class="sources"><a href="30-performance.html#dial-plans">相关笔记</a></p>
+</section>
+<section class="panel">
+<h2>做完后自测</h2>
+<p>在视图结果里新增一列，会自动在底表新增列吗？</p>
+<details><summary>核对答案</summary><p>普通视图保存查询定义。增加投影列要修改视图定义，底表结构由 ALTER TABLE 管理。</p></details>
+<p>如果实际结果和笔记不同，记下数据库版本、SQL 和错误提示，再来问我。</p>
+<p class="sources"><span data-dialects="postgresql"><a href="https://www.postgresql.org/docs/current/sql.html">PostgreSQL 官方参考</a></span><span data-dialects="mysql"><a href="https://dev.mysql.com/doc/refman/8.4/en/sql-statements.html">MySQL 官方参考</a></span><span data-dialects="sqlserver"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-reference?view=sql-server-ver17">SQL Server 官方参考</a></span> · <a href="https://roadmap.sh/sql">原始 SQL 路线</a></p>
+</section>
+</article>
+<nav class="jump" aria-label="本阶段知识点"><strong>本阶段知识点</strong><ol><li><a href="#view-create">CREATE VIEW 保存常用查询</a></li><li><a href="#view-change">修改视图 更换保存的查询</a></li><li><a href="#view-drop">DROP VIEW 删除视图</a></li><li><a href="#indexes">CREATE INDEX 为查询键建索引</a></li><li><a href="#query-optimization">执行计划 检查数据库如何查找订单</a></li></ol></nav>
+</div>
+<nav class="pager" aria-label="学习阶段"><a href="sql-roadmap-04-functions.html">← 字符串、数值、条件与日期</a><a href="sql-roadmap.html">学习路径</a><a href="sql-roadmap-06-transactions.html">例程、数据完整性与事务 →</a></nav>
+</main>
+</body>
+</html>

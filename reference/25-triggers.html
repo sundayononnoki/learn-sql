@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>使用触发器 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 25 章 · 原书第 181–186 页</p>
+<h1>使用触发器</h1>
+<p class="lead" data-dialects="mysql">触发器跟随 INSERT、UPDATE、DELETE 事件逐行执行，用 NEW 和 OLD 读取变更前后值。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-triggers"><h2>INSERT 触发器：访问 NEW</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>BEFORE 可校正 NEW，自动生成的 NEW.id 此时为 0。AFTER 可记录已分配的自增 ID。触发器定义在普通表上，名字在库内唯一，创建需有 TRIGGER 权限。每条受影响的行触发一次。示例先创建独立表。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TABLE ch25_items (
+  id INT AUTO_INCREMENT PRIMARY KEY, label VARCHAR(40) NOT NULL
+) ENGINE=InnoDB;
+CREATE TABLE ch25_log (
+  log_id INT AUTO_INCREMENT PRIMARY KEY, action_name VARCHAR(10),
+  item_id INT, old_label VARCHAR(40), new_label VARCHAR(40)
+) ENGINE=InnoDB;
+CREATE TRIGGER ch25_trim BEFORE INSERT ON ch25_items FOR EACH ROW
+  SET NEW.label = TRIM(NEW.label);
+CREATE TRIGGER ch25_insert AFTER INSERT ON ch25_items FOR EACH ROW
+  INSERT INTO ch25_log (action_name, item_id, new_label)
+  VALUES (&#x27;insert&#x27;, NEW.id, NEW.label);
+INSERT INTO ch25_items (label) VALUES (&#x27; Ada &#x27;);
+SELECT item_id, new_label FROM ch25_log;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="数据变化 · 插入" tabindex="0">
+<table class="sql-result"><caption>数据变化 · 插入</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>写入参数</code></td><td class="sql-na"><span aria-label="不适用">—</span></td><td><code>␠Ada␠</code></td></tr>
+<tr><td><code>插入后</code></td><td class="sql-number"><code>1</code></td><td><code>Ada</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT item_id, new_label FROM ch25_log;</code></span></caption>
+<thead><tr><th scope="col">item_id</th><th scope="col">new_label</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Ada</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　<code>ch25_items</code> 和 <code>ch25_log</code> 尚未创建。准备插入的标签 <code> Ada </code> 带首尾空格。</p><p><strong>执行后</strong>　商品行标签被修剪为 <code>Ada</code>。日志记录 <code>item_id=1, new_label=Ada</code>。</p>
+<p class="outcome">第一次执行时记录 id 1，标签 Ada，前后空格已去掉。INSERT 没有 OLD。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-triggers"><h2>UPDATE 触发器：比较 OLD 与 NEW</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>UPDATE 同时具有变更前后的值。OLD 只读。需要同时看到两者时，可写入审计表。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TRIGGER ch25_update AFTER UPDATE ON ch25_items FOR EACH ROW
+  INSERT INTO ch25_log (action_name, item_id, old_label, new_label)
+  VALUES (&#x27;update&#x27;, NEW.id, OLD.label, NEW.label);
+UPDATE ch25_items SET label = &#x27;Ada SQL&#x27; WHERE id = 1;
+SELECT old_label, new_label FROM ch25_log WHERE action_name = &#x27;update&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="数据变化 · ch25_items" tabindex="0">
+<table class="sql-result"><caption>数据变化 · ch25_items</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td class="sql-number"><code>1</code></td><td><code>Ada</code></td></tr>
+<tr><td><code>更新后</code></td><td class="sql-number"><code>1</code></td><td><code>Ada SQL</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT old_label, new_label FROM ch25_log WHERE action_name = &#x27;update&#x27;;</code></span></caption>
+<thead><tr><th scope="col">old_label</th><th scope="col">new_label</th></tr></thead>
+<tbody>
+<tr><td><code>Ada</code></td><td><code>Ada SQL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　编号 1 的旧标签为 <code>Ada</code>。</p><p><strong>执行后</strong>　标签变为 <code>Ada SQL</code>，UPDATE 日志记录 <code>Ada | Ada SQL</code>。</p>
+<p class="outcome">记录 Ada → Ada SQL。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-triggers"><h2>DELETE 触发器：访问 OLD</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>DELETE 只有 OLD。使用 InnoDB 时，触发器中的写入也随原事务提交或回滚。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TRIGGER ch25_delete BEFORE DELETE ON ch25_items FOR EACH ROW
+  INSERT INTO ch25_log (action_name, item_id, old_label)
+  VALUES (&#x27;delete&#x27;, OLD.id, OLD.label);
+START TRANSACTION;
+DELETE FROM ch25_items WHERE id = 1;
+SELECT old_label FROM ch25_log WHERE action_name = &#x27;delete&#x27;;
+ROLLBACK;
+SELECT COUNT(*) FROM ch25_log WHERE action_name = &#x27;delete&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="数据变化 · ch25_items / ch25_log" tabindex="0">
+<table class="sql-result"><caption>数据变化 · ch25_items / ch25_log</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">商品 1</th><th scope="col">delete 日志行数</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>Ada SQL</code></td><td class="sql-number"><code>0</code></td></tr>
+<tr><td><code>事务内删除后</code></td><td><code>无匹配行</code></td><td class="sql-number"><code>1</code></td></tr>
+<tr><td><code>回滚后</code></td><td><code>Ada SQL</code></td><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT old_label FROM ch25_log WHERE action_name = &#x27;delete&#x27;;</code></span></caption>
+<thead><tr><th scope="col">old_label</th></tr></thead>
+<tbody>
+<tr><td><code>Ada SQL</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT COUNT(*) FROM ch25_log WHERE action_name = &#x27;delete&#x27;;</code></span></caption>
+<thead><tr><th scope="col">COUNT(*)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　编号 1 仍为 <code>Ada SQL</code>，没有 delete 日志。</p><p><strong>执行后</strong>　删除时先记下旧值。回滚后商品仍在，delete 日志计数回到 <code>0</code>。</p>
+<p class="outcome">回滚前记录 Ada SQL，回滚后删除日志数为 0，原行仍在。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-triggers"><h2>检查、顺序与移除</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>较新的 MySQL 可为同一表的同一事件和时机创建多个触发器，必要时用 PRECEDES/FOLLOWS 指定顺序。用 SHOW TRIGGERS 检查，用 DROP TRIGGER 移除定义。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SHOW TRIGGERS WHERE `Table` = &#x27;ch25_items&#x27;;
+SELECT TRIGGER_NAME, ACTION_ORDER FROM information_schema.TRIGGERS
+WHERE TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = &#x27;ch25_items&#x27;
+ORDER BY EVENT_MANIPULATION, ACTION_TIMING, ACTION_ORDER;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　已创建 INSERT 的两个触发器及 UPDATE、DELETE 的各一个。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SHOW TRIGGERS WHERE `Table` = &#x27;ch25_items&#x27;;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Trigger</th><th scope="col">Event</th><th scope="col">Table</th><th scope="col">Statement</th><th scope="col">Timing</th><th scope="col">Created</th><th scope="col">sql_mode</th><th scope="col">Definer</th><th scope="col">character_set_client</th><th scope="col">collation_connection</th><th scope="col">Database Collation</th></tr></thead>
+<tbody>
+<tr><td><code>ch25_trim</code></td><td><code>INSERT</code></td><td><code>ch25_items</code></td><td><code>SET NEW.label = TRIM(NEW.label)</code></td><td><code>BEFORE</code></td><td><code>2026-11-20 23:47:55.94</code></td><td><code>ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION</code></td><td><code>root@localhost</code></td><td><code>utf8mb4</code></td><td><code>utf8mb4_0900_ai_ci</code></td><td><code>utf8mb4_0900_ai_ci</code></td></tr>
+<tr><td><code>ch25_insert</code></td><td><code>INSERT</code></td><td><code>ch25_items</code></td><td><code>INSERT INTO ch25_log (action_name, item_id, new_label)
+  VALUES (&#x27;insert&#x27;, NEW.id, NEW.label)</code></td><td><code>AFTER</code></td><td><code>2026-11-20 23:47:55.95</code></td><td><code>ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION</code></td><td><code>root@localhost</code></td><td><code>utf8mb4</code></td><td><code>utf8mb4_0900_ai_ci</code></td><td><code>utf8mb4_0900_ai_ci</code></td></tr>
+<tr><td><code>ch25_update</code></td><td><code>UPDATE</code></td><td><code>ch25_items</code></td><td><code>INSERT INTO ch25_log (action_name, item_id, old_label, new_label)
+  VALUES (&#x27;update&#x27;, NEW.id, OLD.label, NEW.label)</code></td><td><code>AFTER</code></td><td><code>2026-11-20 23:47:55.95</code></td><td><code>ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION</code></td><td><code>root@localhost</code></td><td><code>utf8mb4</code></td><td><code>utf8mb4_0900_ai_ci</code></td><td><code>utf8mb4_0900_ai_ci</code></td></tr>
+<tr><td><code>ch25_delete</code></td><td><code>DELETE</code></td><td><code>ch25_items</code></td><td><code>INSERT INTO ch25_log (action_name, item_id, old_label)
+  VALUES (&#x27;delete&#x27;, OLD.id, OLD.label)</code></td><td><code>BEFORE</code></td><td><code>2026-11-20 23:47:55.95</code></td><td><code>ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION</code></td><td><code>root@localhost</code></td><td><code>utf8mb4</code></td><td><code>utf8mb4_0900_ai_ci</code></td><td><code>utf8mb4_0900_ai_ci</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT TRIGGER_NAME, ACTION_ORDER FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND EVENT_OBJECT_TABLE = &#x27;ch25_items&#x27; ORDER BY EVENT_MANIPULATION, ACTION_TIMING, ACTION_ORDER;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">TRIGGER_NAME</th><th scope="col">ACTION_ORDER</th></tr></thead>
+<tbody>
+<tr><td><code>ch25_trim</code></td><td class="sql-number"><code>1</code></td></tr>
+<tr><td><code>ch25_insert</code></td><td class="sql-number"><code>1</code></td></tr>
+<tr><td><code>ch25_update</code></td><td class="sql-number"><code>1</code></td></tr>
+<tr><td><code>ch25_delete</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　列出四个定义。这四个触发器每种事件及其对应时机只有一个，ACTION_ORDER 都为 1。</p>
+</details>
+</div>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code data-kind="sql-manual">DROP TRIGGER IF EXISTS ch25_trim;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="对象变化 · 触发器" tabindex="0">
+<table class="sql-result"><caption>对象变化 · 触发器</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">ch25_trim</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>存在</code></td></tr>
+<tr><td><code>DROP 后</code></td><td><code>已移除</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　<code>ch25_trim</code> 独立负责 BEFORE INSERT 修剪。</p><p><strong>执行后</strong>　移除后少这一个触发器，原来写入的标签保持不变。</p>
+<p class="outcome">前一步列出四个触发器。移除 trim 后再查会少一个 BEFORE INSERT。</p>
+</details>
+</div></section>
+<section id="p5" class="point" data-dialects="mysql" data-alternate-anchor="dial-triggers"><h2>多语句校验和变更失败</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>BEGIN…END 里可以做多步校验。触发器以定义者上下文执行，不自行提交事务。可调用符合触发器限制的过程，例如不向客户端返回结果集、无动态 SQL 的过程。</p>
+<figure><figcaption>mysql 客户端</figcaption><pre><code data-kind="mysql">DELIMITER $$
+CREATE TRIGGER ch25_check BEFORE UPDATE ON ch25_items FOR EACH ROW
+BEGIN
+  SET NEW.label = TRIM(NEW.label);
+  IF NEW.label = &#x27;&#x27; THEN
+    SIGNAL SQLSTATE &#x27;45000&#x27; SET MESSAGE_TEXT = &#x27;empty label&#x27;;
+  END IF;
+END$$
+DELIMITER ;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="对象变化 · 触发器" tabindex="0">
+<table class="sql-result"><caption>对象变化 · 触发器</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">ch25_check</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>不存在</code></td></tr>
+<tr><td><code>CREATE 后</code></td><td><code>BEFORE UPDATE</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　此时已有 AFTER UPDATE 审计，尚无 BEFORE UPDATE 空标签检查。</p><p><strong>执行后</strong>　新增 <code>ch25_check</code>，后续更新会先修剪并验证标签。创建时没有改动数据行。</p>
+</details>
+</div>
+<figure><figcaption>SQL · 预期报错</figcaption><pre><code data-kind="sql-error">UPDATE ch25_items SET label = &#x27;  &#x27; WHERE id = 1;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="数据变化 · ch25_items" tabindex="0">
+<table class="sql-result"><caption>数据变化 · ch25_items</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td class="sql-number"><code>1</code></td><td><code>Ada SQL</code></td></tr>
+<tr><td><code>ERROR 1644 后</code></td><td class="sql-number"><code>1</code></td><td><code>Ada SQL</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>UPDATE ch25_items SET label = &#x27;  &#x27; WHERE id = 1;</code><span class="sql-caption-context">预期报错</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">标签</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1644</code></td><td><code>Ada SQL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　编号 1 的标签为 <code>Ada SQL</code>，尝试将它设为两个空格。</p><p><strong>执行后</strong>　修剪成空串后触发 <code>ERROR 1644</code>。原标签仍为 <code>Ada SQL</code>，没有新增更新日志。</p>
+</details>
+</div>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT label FROM ch25_items WHERE id = 1;
+SELECT COUNT(*) FROM ch25_log WHERE action_name = &#x27;update&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　已有一笔成功 UPDATE，随后的空标签更新被拒绝。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT label FROM ch25_items WHERE id = 1;</code></span></caption>
+<thead><tr><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>Ada SQL</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT COUNT(*) FROM ch25_log WHERE action_name = &#x27;update&#x27;;</code></span></caption>
+<thead><tr><th scope="col">COUNT(*)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　label 查询得到 <code>Ada SQL</code>，UPDATE 日志计数为 <code>1</code>。</p>
+<p class="outcome">空标签预期错误 1644。标签仍是 Ada SQL，既有更新日志仍只有一条。</p>
+</details>
+</div></section>
+<section id="dial-triggers" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>触发器的行级与语句级处理</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>PostgreSQL 可设 FOR EACH ROW，用 OLD / NEW 比较一行。SQL Server 的 DML 触发器按语句执行，inserted / deleted 是一批行，本例用更新中保持不变的唯一键 id 配对旧行和新行。一条 UPDATE 修改两行，日志也应有两行。首次运行时，练习库内这两张新表应尚未创建。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="来源表 · 更新前" tabindex="0">
+<table class="sql-result"><caption>来源表 · 更新前</caption><thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody><tr><td><code>1</code></td><td><code>5</code></td></tr><tr><td><code>2</code></td><td><code>8</code></td></tr></tbody></table></div>
+<div class="sql-grid-viewport" role="region" aria-label="日志表 · 更新前" tabindex="0">
+<table class="sql-result"><caption>日志表 · 更新前</caption><thead><tr><th scope="col">数据行数</th></tr></thead>
+<tbody><tr><td><code>0</code></td></tr></tbody></table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TABLE pg_notes_trig_source (id int PRIMARY KEY, qty int);
+CREATE TABLE pg_notes_trig_log (id int, old_qty int, new_qty int);
+INSERT INTO pg_notes_trig_source VALUES (1,5),(2,8);
+CREATE OR REPLACE FUNCTION pg_notes_log_update() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  INSERT INTO pg_notes_trig_log VALUES (NEW.id,OLD.qty,NEW.qty);
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER notes_log_update AFTER UPDATE ON pg_notes_trig_source
+FOR EACH ROW EXECUTE FUNCTION pg_notes_log_update();
+UPDATE pg_notes_trig_source SET qty=qty+2 WHERE id IN (1,2);
+SELECT id,old_qty,new_qty FROM pg_notes_trig_log ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,old_qty,new_qty FROM pg_notes_trig_log ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">old_qty</th><th scope="col">new_qty</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>5</code></td><td class="sql-number"><code>7</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>8</code></td><td class="sql-number"><code>10</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL Server · SSMS / sqlcmd</figcaption><pre><code>CREATE TABLE dbo.notes_trig_source (id int PRIMARY KEY, qty int);
+CREATE TABLE dbo.notes_trig_log (id int, old_qty int, new_qty int);
+INSERT INTO dbo.notes_trig_source VALUES (1,5),(2,8);
+GO
+CREATE OR ALTER TRIGGER dbo.notes_log_update ON dbo.notes_trig_source AFTER UPDATE AS
+BEGIN
+  SET NOCOUNT ON;
+  INSERT INTO dbo.notes_trig_log(id,old_qty,new_qty)
+  SELECT i.id,d.qty,i.qty FROM inserted AS i JOIN deleted AS d ON i.id=d.id;
+END;
+GO
+UPDATE dbo.notes_trig_source SET qty=qty+2 WHERE id IN (1,2);
+SELECT id,old_qty,new_qty FROM dbo.notes_trig_log ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,old_qty,new_qty FROM dbo.notes_trig_log ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">old_qty</th><th scope="col">new_qty</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>5</code></td><td class="sql-number"><code>7</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>8</code></td><td class="sql-number"><code>10</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-createtrigger.html">PostgreSQL CREATE TRIGGER</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/triggers/use-the-inserted-and-deleted-tables">SQL Server inserted / deleted</a></p>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>记录删除前的标签应取哪个伪记录的哪列？</p><details><summary>查看答案</summary><p>在 DELETE 触发器里取 OLD.label。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SHOW CREATE TRIGGER ch25_delete;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　删除触发器已建立，删除事件能读取旧行。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SHOW CREATE TRIGGER ch25_delete;</code></span></caption>
+<thead><tr><th scope="col">Trigger</th><th scope="col">sql_mode</th><th scope="col">SQL Original Statement</th><th scope="col">character_set_client</th><th scope="col">collation_connection</th><th scope="col">Database Collation</th><th scope="col">Created</th></tr></thead>
+<tbody>
+<tr><td><code>ch25_delete</code></td><td><code>ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION</code></td><td><code>CREATE DEFINER=`root`@`localhost` TRIGGER `ch25_delete` BEFORE DELETE ON `ch25_items` FOR EACH ROW INSERT INTO ch25_log (action_name, item_id, old_label)
+  VALUES (&#x27;delete&#x27;, OLD.id, OLD.label)</code></td><td><code>utf8mb4</code></td><td><code>utf8mb4_0900_ai_ci</code></td><td><code>utf8mb4_0900_ai_ci</code></td><td><code>2026-11-20 23:47:55.95</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　定义显示写审计时取 <code>OLD.label</code>。</p>
+<p class="outcome">定义可看到 INSERT 到日志表时取 OLD.label。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/triggers.html">触发器</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/create-trigger.html">CREATE TRIGGER</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/trigger-syntax.html">触发器语法</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="mysql"><a href="#p1">INSERT 触发器：访问 NEW</a></li><li data-dialects="mysql"><a href="#p2">UPDATE 触发器：比较 OLD 与 NEW</a></li><li data-dialects="mysql"><a href="#p3">DELETE 触发器：访问 OLD</a></li><li data-dialects="mysql"><a href="#p4">检查触发器顺序并移除触发器</a></li><li data-dialects="mysql"><a href="#p5">用触发器校验并拒绝无效写入</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-triggers">触发器的行级与语句级处理</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="24-cursors.html">← 使用游标</a><a href="../v1.html">章节目录</a><a rel="next" href="26-transactions.html">管理事务处理 →</a></nav>
+</main>
+</body></html>

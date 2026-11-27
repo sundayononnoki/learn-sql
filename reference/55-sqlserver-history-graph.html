@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>55 · SQL Server · 时态、变更跟踪、图与账本 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 55 章 · 原生语法</p>
+<h1>SQL Server · 时态、变更跟踪、图与账本</h1>
+<p class="lead">按目的选择历史快照、同步变更、关系路径或可验证记账。逐卡在隔离数据库运行，CDC 与账本使用有对应权限的管理员准备环境。</p>
+<div class="layout"><article class="content">
+<section id="system-versioning" class="point" data-dialects="sqlserver">
+<h2>SYSTEM_VERSIONING 与 PERIOD</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+ · 创建表权限 · 在没有外层事务的练习连接运行</span></p>
+<p>时态表用 datetime2 的 ROW START/END 表示 UTC 有效时间，SYSTEM_VERSIONING 自动把被更新或删除的旧版本放入历史表。系统时间以事务开始时间为基准。此例用分开的自动提交语句并留出间隔，避免同一笔事务产生零长度历史版本。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="当前版本和拟更新数量" tabindex="0">
+<table class="sql-result"><caption>当前版本和拟更新数量</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">更新为</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET IMPLICIT_TRANSACTIONS OFF;
+CREATE TABLE dbo.d55_temporal (
+    id int PRIMARY KEY, qty int NOT NULL,
+    valid_from datetime2(7) GENERATED ALWAYS AS ROW START HIDDEN NOT NULL,
+    valid_to datetime2(7) GENERATED ALWAYS AS ROW END HIDDEN NOT NULL,
+    PERIOD FOR SYSTEM_TIME (valid_from, valid_to)
+) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.d55_temporal_history));
+INSERT dbo.d55_temporal(id, qty) VALUES (1, 2);
+WAITFOR DELAY &#x27;00:00:00.100&#x27;;
+UPDATE dbo.d55_temporal SET qty = 4 WHERE id = 1;
+
+SELECT id, qty,
+       CASE WHEN valid_to = CONVERT(datetime2(7), &#x27;9999-12-31T23:59:59.9999999&#x27;)
+            THEN &#x27;current&#x27; ELSE &#x27;history&#x27; END AS version_kind
+FROM dbo.d55_temporal FOR SYSTEM_TIME ALL
+ORDER BY valid_from, valid_to;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, qty,
+       CASE WHEN valid_to = CONVERT(datetime2(7), &#x27;9999-12-31T23:59:59.9999999&#x27;)
+            THEN &#x27;current&#x27; ELSE &#x27;history&#x27; END AS version_kind
+FROM dbo.d55_temporal FOR SYSTEM_TIME ALL
+ORDER BY valid_from, valid_to;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">version_kind</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td><td><code>history</code></td></tr>
+<tr><td><code>1</code></td><td><code>4</code></td><td><code>current</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/tables/creating-a-system-versioned-temporal-table?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="temporal-point" class="point" data-dialects="sqlserver">
+<h2>AS OF 与 ALL</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+ · 使用一致的历史表结构 · 本例当前表为空，读历史表需相应权限</span></p>
+<p>AS OF 读取某个 UTC 时点有效的行，判定为 valid_from &lt;= 时点 &lt; valid_to。ALL 同时扫描当前和历史版本，过滤零长度版本。本例先为练习表装入固定历史时段，使时点查询可重复。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="人工预置的历史区间（UTC）" tabindex="0">
+<table class="sql-result"><caption>人工预置的历史区间（UTC）</caption>
+<thead><tr><th scope="col">price</th><th scope="col">valid_from</th><th scope="col">valid_to</th></tr></thead>
+<tbody>
+<tr><td><code>10</code></td><td><code>2025-01-01</code></td><td><code>2025-01-02</code></td></tr>
+<tr><td><code>12</code></td><td><code>2025-01-02</code></td><td><code>2025-01-03</code></td></tr>
+<tr><td><code>14</code></td><td><code>2025-01-03</code></td><td><code>2025-01-05</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d55_price_history (
+    id int NOT NULL, price int NOT NULL,
+    valid_from datetime2(0) NOT NULL, valid_to datetime2(0) NOT NULL
+);
+INSERT dbo.d55_price_history VALUES
+    (1, 10, &#x27;2025-01-01T00:00:00&#x27;, &#x27;2025-01-02T00:00:00&#x27;),
+    (1, 12, &#x27;2025-01-02T00:00:00&#x27;, &#x27;2025-01-03T00:00:00&#x27;),
+    (1, 14, &#x27;2025-01-03T00:00:00&#x27;, &#x27;2025-01-05T00:00:00&#x27;);
+CREATE TABLE dbo.d55_price (
+    id int NOT NULL PRIMARY KEY,
+    price int NOT NULL,
+    valid_from datetime2(0) GENERATED ALWAYS AS ROW START NOT NULL,
+    valid_to datetime2(0) GENERATED ALWAYS AS ROW END NOT NULL,
+    PERIOD FOR SYSTEM_TIME (valid_from, valid_to)
+) WITH (SYSTEM_VERSIONING = ON
+         (HISTORY_TABLE = dbo.d55_price_history, DATA_CONSISTENCY_CHECK = ON));
+
+SELECT &#x27;AS OF&#x27; AS reading, id, price
+FROM dbo.d55_price FOR SYSTEM_TIME AS OF &#x27;2025-01-02T00:00:00&#x27;
+UNION ALL
+SELECT &#x27;ALL&#x27;, id, price FROM dbo.d55_price FOR SYSTEM_TIME ALL
+ORDER BY reading, price;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;AS OF&#x27; AS reading, id, price
+FROM dbo.d55_price FOR SYSTEM_TIME AS OF &#x27;2025-01-02T00:00:00&#x27;
+UNION ALL
+SELECT &#x27;ALL&#x27;, id, price FROM dbo.d55_price FOR SYSTEM_TIME ALL
+ORDER BY reading, price;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">reading</th><th scope="col">id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>ALL</code></td><td><code>1</code></td><td><code>10</code></td></tr>
+<tr><td><code>ALL</code></td><td><code>1</code></td><td><code>12</code></td></tr>
+<tr><td><code>ALL</code></td><td><code>1</code></td><td><code>14</code></td></tr>
+<tr><td><code>AS OF</code></td><td><code>1</code></td><td><code>12</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/tables/temporal/query-data?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="temporal-range" class="point" data-dialects="sqlserver">
+<h2>FROM TO、BETWEEN 与 CONTAINED IN</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+ · 同时使用当前表与历史表的相应权限</span></p>
+<p>FROM TO 查与半开时间窗重叠的版本。BETWEEN 还包含恰好在上界生效的版本。CONTAINED IN 只保留完整落在给定边界内的版本，起止点都可落在边界。本例三个历史版本共享相邻端点，用相同输入对照三种模式。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="人工预置的历史区间（UTC）" tabindex="0">
+<table class="sql-result"><caption>人工预置的历史区间（UTC）</caption>
+<thead><tr><th scope="col">price</th><th scope="col">valid_from</th><th scope="col">valid_to</th></tr></thead>
+<tbody>
+<tr><td><code>10</code></td><td><code>2025-01-01</code></td><td><code>2025-01-02</code></td></tr>
+<tr><td><code>12</code></td><td><code>2025-01-02</code></td><td><code>2025-01-03</code></td></tr>
+<tr><td><code>14</code></td><td><code>2025-01-03</code></td><td><code>2025-01-05</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="查询时间窗（UTC）" tabindex="0">
+<table class="sql-result"><caption>查询时间窗（UTC）</caption>
+<thead><tr><th scope="col">from</th><th scope="col">to</th></tr></thead>
+<tbody>
+<tr><td><code>2025-01-02</code></td><td><code>2025-01-03</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d55_range_history (
+    id int NOT NULL, price int NOT NULL,
+    valid_from datetime2(0) NOT NULL, valid_to datetime2(0) NOT NULL
+);
+INSERT dbo.d55_range_history VALUES
+    (1, 10, &#x27;2025-01-01T00:00:00&#x27;, &#x27;2025-01-02T00:00:00&#x27;),
+    (1, 12, &#x27;2025-01-02T00:00:00&#x27;, &#x27;2025-01-03T00:00:00&#x27;),
+    (1, 14, &#x27;2025-01-03T00:00:00&#x27;, &#x27;2025-01-05T00:00:00&#x27;);
+CREATE TABLE dbo.d55_range (
+    id int NOT NULL PRIMARY KEY,
+    price int NOT NULL,
+    valid_from datetime2(0) GENERATED ALWAYS AS ROW START NOT NULL,
+    valid_to datetime2(0) GENERATED ALWAYS AS ROW END NOT NULL,
+    PERIOD FOR SYSTEM_TIME (valid_from, valid_to)
+) WITH (SYSTEM_VERSIONING = ON
+         (HISTORY_TABLE = dbo.d55_range_history, DATA_CONSISTENCY_CHECK = ON));
+
+SELECT &#x27;FROM TO&#x27; AS reading, price FROM dbo.d55_range
+FOR SYSTEM_TIME FROM &#x27;2025-01-02T00:00:00&#x27; TO &#x27;2025-01-03T00:00:00&#x27;
+UNION ALL
+SELECT &#x27;BETWEEN&#x27;, price FROM dbo.d55_range
+FOR SYSTEM_TIME BETWEEN &#x27;2025-01-02T00:00:00&#x27; AND &#x27;2025-01-03T00:00:00&#x27;
+UNION ALL
+SELECT &#x27;CONTAINED IN&#x27;, price FROM dbo.d55_range
+FOR SYSTEM_TIME CONTAINED IN (&#x27;2025-01-02T00:00:00&#x27;, &#x27;2025-01-03T00:00:00&#x27;)
+ORDER BY reading, price;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;FROM TO&#x27; AS reading, price FROM dbo.d55_range
+FOR SYSTEM_TIME FROM &#x27;2025-01-02T00:00:00&#x27; TO &#x27;2025-01-03T00:00:00&#x27;
+UNION ALL
+SELECT &#x27;BETWEEN&#x27;, price FROM dbo.d55_range
+FOR SYSTEM_TIME BETWEEN &#x27;2025-01-02T00:00:00&#x27; AND &#x27;2025-01-03T00:00:00&#x27;
+UNION ALL
+SELECT &#x27;CONTAINED IN&#x27;, price FROM dbo.d55_range
+FOR SYSTEM_TIME CONTAINED IN (&#x27;2025-01-02T00:00:00&#x27;, &#x27;2025-01-03T00:00:00&#x27;)
+ORDER BY reading, price;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">reading</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>BETWEEN</code></td><td><code>12</code></td></tr>
+<tr><td><code>BETWEEN</code></td><td><code>14</code></td></tr>
+<tr><td><code>CONTAINED IN</code></td><td><code>12</code></td></tr>
+<tr><td><code>FROM TO</code></td><td><code>12</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/tables/temporal-tables?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="rowversion" class="point" data-dialects="sqlserver">
+<h2>rowversion 检查乐观并发</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server · 同一批次模拟两个客户端读到同一标记</span></p>
+<p>rowversion 是数据库内产生的 8 字节变更标记。客户端读取主键及标记，回写时一并放在 WHERE 里。第一个写入更新标记，第二个写入仍携带旧标记，因此匹配零行。应用收到零行后重读并决定如何解决冲突。rowversion 的旧类型名称是 timestamp。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两次写入共享起初读到的标记" tabindex="0">
+<table class="sql-result"><caption>两次写入共享起初读到的标记</caption>
+<thead><tr><th scope="col">id</th><th scope="col">初始 qty</th><th scope="col">先提交</th><th scope="col">随后尝试</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td><td><code>4</code></td><td><code>9</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d55_stock (id int PRIMARY KEY, qty int NOT NULL, token rowversion);
+INSERT dbo.d55_stock(id, qty) VALUES (1, 2);
+DECLARE @token binary(8) = (SELECT token FROM dbo.d55_stock WHERE id = 1);
+UPDATE dbo.d55_stock SET qty = 4 WHERE id = 1 AND token = @token;
+DECLARE @first int = @@ROWCOUNT;
+UPDATE dbo.d55_stock SET qty = 9 WHERE id = 1 AND token = @token;
+DECLARE @stale int = @@ROWCOUNT;
+
+SELECT @first AS first_update, @stale AS stale_update, qty FROM dbo.d55_stock WHERE id = 1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @first AS first_update, @stale AS stale_update, qty FROM dbo.d55_stock WHERE id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">first_update</th><th scope="col">stale_update</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>0</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/rowversion-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="change-tracking" class="point" data-dialects="sqlserver">
+<h2>Change Tracking 与 CHANGETABLE</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+（本例使用 ALTER DATABASE CURRENT） · 仅在隔离库启用 · 读取需主键列 SELECT 和 VIEW CHANGE TRACKING</span></p>
+<p>Change Tracking 给出受影响的键、变更类别和可选列掩码，业务列值从当前表读。用 LEFT JOIN 保留已删除的键。同步客户端先核对 CHANGE_TRACKING_MIN_VALID_VERSION，过旧的起点须重新同步。真实同步应在同一一致快照内验证版本、找水位并读变化。请使用自动提交且无外层事务的练习连接。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="记录同步水位后发生的变更" tabindex="0">
+<table class="sql-result"><caption>记录同步水位后发生的变更</caption>
+<thead><tr><th scope="col">id</th><th scope="col">变更前 qty</th><th scope="col">操作</th><th scope="col">变更后 qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td><td><code>U</code></td><td><code>11</code></td></tr>
+<tr><td><code>2</code></td><td><code>20</code></td><td><code>D</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>ALTER DATABASE CURRENT SET CHANGE_TRACKING = ON (CHANGE_RETENTION = 2 DAYS, AUTO_CLEANUP = ON);
+CREATE TABLE dbo.d55_ct (id int PRIMARY KEY, qty int NOT NULL, label varchar(8) NOT NULL);
+ALTER TABLE dbo.d55_ct ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+INSERT dbo.d55_ct VALUES (1, 10, &#x27;first&#x27;), (2, 20, &#x27;second&#x27;);
+DECLARE @since bigint = CHANGE_TRACKING_CURRENT_VERSION();
+UPDATE dbo.d55_ct SET qty = 11 WHERE id = 1;
+DELETE dbo.d55_ct WHERE id = 2;
+
+SELECT c.id, c.SYS_CHANGE_OPERATION AS operation, t.qty,
+       CASE WHEN c.SYS_CHANGE_OPERATION = &#x27;U&#x27; THEN
+           CHANGE_TRACKING_IS_COLUMN_IN_MASK(
+               COLUMNPROPERTY(OBJECT_ID(N&#x27;dbo.d55_ct&#x27;), &#x27;qty&#x27;, &#x27;ColumnId&#x27;),
+               c.SYS_CHANGE_COLUMNS)
+       END AS qty_updated
+FROM CHANGETABLE(CHANGES dbo.d55_ct, @since) AS c
+LEFT JOIN dbo.d55_ct AS t ON t.id = c.id
+ORDER BY c.id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT c.id, c.SYS_CHANGE_OPERATION AS operation, t.qty,
+       CASE WHEN c.SYS_CHANGE_OPERATION = &#x27;U&#x27; THEN
+           CHANGE_TRACKING_IS_COLUMN_IN_MASK(
+               COLUMNPROPERTY(OBJECT_ID(N&#x27;dbo.d55_ct&#x27;), &#x27;qty&#x27;, &#x27;ColumnId&#x27;),
+               c.SYS_CHANGE_COLUMNS)
+       END AS qty_updated
+FROM CHANGETABLE(CHANGES dbo.d55_ct, @since) AS c
+LEFT JOIN dbo.d55_ct AS t ON t.id = c.id
+ORDER BY c.id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">operation</th><th scope="col">qty</th><th scope="col">qty_updated</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>U</code></td><td><code>11</code></td><td><code>1</code></td></tr>
+<tr><td><code>2</code></td><td><code>D</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-functions/changetable-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="cdc" class="point" data-dialects="sqlserver">
+<h2>CDC 读取日志捕捉的旧值与新值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016 SP1+ Standard 或 Enterprise（对应 Developer 可用于测试） · 启用数据库需 sysadmin，启用表需 db_owner 或 sysadmin · 需 SQL Server Agent · 用支持 GO 的客户端</span></p>
+<p>CDC 将事务日志中的数据变化异步写入变更表。SQL Server 实例启动 SQL Server Agent 后，由捕捉作业处理。以 all update old 取 INSERT、UPDATE 旧行和 UPDATE 新行。操作 1 表示 DELETE。本例等待捕捉最多 30 秒，超时后先确认 Agent 和捕捉工作正常，再单独执行结果查询。使用无外层事务的自动提交会话。默认捕获作业适用于未配置事务发布的练习库，启用后可用 sys.sp_cdc_help_change_data_capture 核对捕获实例。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="单一捕捉实例中的两次提交" tabindex="0">
+<table class="sql-result"><caption>单一捕捉实例中的两次提交</caption>
+<thead><tr><th scope="col">id</th><th scope="col">操作</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>INSERT</code></td><td><code>10</code></td></tr>
+<tr><td><code>1</code></td><td><code>UPDATE</code></td><td><code>12</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>IF (SELECT is_cdc_enabled FROM sys.databases WHERE database_id = DB_ID()) = 0
+    EXEC sys.sp_cdc_enable_db;
+CREATE TABLE dbo.d55_cdc (id int NOT NULL PRIMARY KEY, qty int NOT NULL);
+EXEC sys.sp_cdc_enable_table
+    @source_schema = N&#x27;dbo&#x27;, @source_name = N&#x27;d55_cdc&#x27;,
+    @role_name = NULL, @capture_instance = N&#x27;d55_cdc&#x27;, @supports_net_changes = 0;
+INSERT dbo.d55_cdc VALUES (1, 10);
+UPDATE dbo.d55_cdc SET qty = 12 WHERE id = 1;
+GO
+DECLARE @seconds int = 0;
+WHILE @seconds &lt; 30 AND NOT EXISTS (
+    SELECT 1 FROM cdc.d55_cdc_CT WHERE [__$operation] = 4
+)
+BEGIN
+    WAITFOR DELAY &#x27;00:00:01&#x27;;
+    SET @seconds += 1;
+END;
+IF NOT EXISTS (SELECT 1 FROM cdc.d55_cdc_CT WHERE [__$operation] = 4)
+    THROW 50001, &#x27;The CDC capture job has not reached the sample update.&#x27;, 1;
+
+SELECT [__$operation] AS operation, id, qty
+FROM cdc.fn_cdc_get_all_changes_d55_cdc(
+    sys.fn_cdc_get_min_lsn(N&#x27;d55_cdc&#x27;),
+    sys.fn_cdc_get_max_lsn(),
+    N&#x27;all update old&#x27;)
+ORDER BY [__$start_lsn], [__$seqval], [__$operation];</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT [__$operation] AS operation, id, qty
+FROM cdc.fn_cdc_get_all_changes_d55_cdc(
+    sys.fn_cdc_get_min_lsn(N&#x27;d55_cdc&#x27;),
+    sys.fn_cdc_get_max_lsn(),
+    N&#x27;all update old&#x27;)
+ORDER BY [__$start_lsn], [__$seqval], [__$operation];</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">operation</th><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>1</code></td><td><code>10</code></td></tr>
+<tr><td><code>3</code></td><td><code>1</code></td><td><code>10</code></td></tr>
+<tr><td><code>4</code></td><td><code>1</code></td><td><code>12</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-functions/cdc-fn-cdc-get-all-changes-capture-instance-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="graph-match" class="point" data-dialects="sqlserver">
+<h2>AS NODE、AS EDGE、MATCH 与边约束</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2017+ 有 NODE、EDGE、MATCH · CONNECTION 边约束需 SQL Server 2019+</span></p>
+<p>节点存实体，边存有方向的关系。通过节点伪列 $node_id 写入边的 $from_id 和 $to_id。CONNECTION 限定此边允许哪些类型作为两端。上线时可给边的两端建索引并验证查询计划。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="一条边" tabindex="0">
+<table class="sql-result"><caption>一条边</caption>
+<thead><tr><th scope="col">person</th><th scope="col">relationship</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td><code>Ana</code></td><td><code>lives</code></td><td><code>Tokyo</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d55_person (id int PRIMARY KEY, label varchar(10) NOT NULL) AS NODE;
+CREATE TABLE dbo.d55_city (id int PRIMARY KEY, label varchar(10) NOT NULL) AS NODE;
+CREATE TABLE dbo.d55_lives AS EDGE;
+ALTER TABLE dbo.d55_lives ADD CONSTRAINT EC_d55_lives
+    CONNECTION (dbo.d55_person TO dbo.d55_city);
+INSERT dbo.d55_person(id, label) VALUES (1, &#x27;Ana&#x27;), (2, &#x27;Bo&#x27;);
+INSERT dbo.d55_city(id, label) VALUES (1, &#x27;Tokyo&#x27;);
+INSERT dbo.d55_lives($from_id, $to_id)
+SELECT p.$node_id, c.$node_id
+FROM dbo.d55_person AS p CROSS JOIN dbo.d55_city AS c
+WHERE p.id = 1 AND c.id = 1;
+
+SELECT p.label AS person, c.label AS city
+FROM dbo.d55_person AS p, dbo.d55_lives AS e, dbo.d55_city AS c
+WHERE MATCH(p-(e)-&gt;c);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT p.label AS person, c.label AS city
+FROM dbo.d55_person AS p, dbo.d55_lives AS e, dbo.d55_city AS c
+WHERE MATCH(p-(e)-&gt;c);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">person</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td><code>Ana</code></td><td><code>Tokyo</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/graphs/sql-graph-edge-constraints?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="shortest-path" class="point" data-dialects="sqlserver">
+<h2>SHORTEST_PATH 与 GRAPH PATH</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2019+ · 样例每个目标只有一条最短路线</span></p>
+<p>用 SHORTEST_PATH 求最少边数的路径。+ 表示一跳或多跳，{1,n} 限制最大跳数。同长最短路径存在多条时返回其中一条。FOR PATH 指定重复模式里的集合，需通过 GRAPH PATH 聚合读取路径属性。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两条有向边" tabindex="0">
+<table class="sql-result"><caption>两条有向边</caption>
+<thead><tr><th scope="col">from</th><th scope="col">to</th></tr></thead>
+<tbody>
+<tr><td><code>A</code></td><td><code>B</code></td></tr>
+<tr><td><code>B</code></td><td><code>C</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d55_station (id int PRIMARY KEY, label varchar(5) NOT NULL) AS NODE;
+CREATE TABLE dbo.d55_route AS EDGE;
+INSERT dbo.d55_station(id, label) VALUES (1,&#x27;A&#x27;), (2,&#x27;B&#x27;), (3,&#x27;C&#x27;);
+INSERT dbo.d55_route($from_id, $to_id)
+SELECT src.$node_id, dst.$node_id
+FROM dbo.d55_station AS src
+JOIN dbo.d55_station AS dst ON dst.id = src.id + 1;
+
+SELECT LAST_VALUE(dst.label) WITHIN GROUP (GRAPH PATH) AS destination,
+       STRING_AGG(dst.label, &#x27;&gt;&#x27;) WITHIN GROUP (GRAPH PATH) AS path_nodes,
+       COUNT(dst.id) WITHIN GROUP (GRAPH PATH) AS hops
+FROM dbo.d55_station AS src,
+     dbo.d55_route FOR PATH AS e,
+     dbo.d55_station FOR PATH AS dst
+WHERE MATCH(SHORTEST_PATH(src(-(e)-&gt;dst)+)) AND src.id = 1
+ORDER BY hops;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT LAST_VALUE(dst.label) WITHIN GROUP (GRAPH PATH) AS destination,
+       STRING_AGG(dst.label, &#x27;&gt;&#x27;) WITHIN GROUP (GRAPH PATH) AS path_nodes,
+       COUNT(dst.id) WITHIN GROUP (GRAPH PATH) AS hops
+FROM dbo.d55_station AS src,
+     dbo.d55_route FOR PATH AS e,
+     dbo.d55_station FOR PATH AS dst
+WHERE MATCH(SHORTEST_PATH(src(-(e)-&gt;dst)+)) AND src.id = 1
+ORDER BY hops;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">destination</th><th scope="col">path_nodes</th><th scope="col">hops</th></tr></thead>
+<tbody>
+<tr><td><code>B</code></td><td><code>B</code></td><td><code>1</code></td></tr>
+<tr><td><code>C</code></td><td><code>B&gt;C</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/graphs/sql-graph-shortest-path?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="append-ledger" class="point" data-dialects="sqlserver">
+<h2>只追加账本表</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+ · 同库提交事务 · 创建账本对象权限</span></p>
+<p>APPEND_ONLY = ON 允许通过 INSERT 增加事件，不能用 UPDATE 或 DELETE 修改既有行。系统记录账本交易及语句序列元数据。不需要保存旧版本的历史表。创建本例需 CREATE TABLE 与 ENABLE LEDGER 权限，并用独立练习库。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待追加事件" tabindex="0">
+<table class="sql-result"><caption>待追加事件</caption>
+<thead><tr><th scope="col">id</th><th scope="col">event_name</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>received</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d55_append (id int NOT NULL PRIMARY KEY, event_name varchar(16) NOT NULL)
+WITH (LEDGER = ON (APPEND_ONLY = ON));
+INSERT dbo.d55_append(id, event_name) VALUES (1, &#x27;received&#x27;);
+
+SELECT a.id, a.event_name, t.ledger_type_desc
+FROM dbo.d55_append AS a
+CROSS JOIN sys.tables AS t WHERE t.object_id = OBJECT_ID(N&#x27;dbo.d55_append&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT a.id, a.event_name, t.ledger_type_desc
+FROM dbo.d55_append AS a
+CROSS JOIN sys.tables AS t WHERE t.object_id = OBJECT_ID(N&#x27;dbo.d55_append&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">event_name</th><th scope="col">ledger_type_desc</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>received</code></td><td><code>APPEND_ONLY_LEDGER_TABLE</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/security/ledger/ledger-append-only-ledger-tables?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="updatable-ledger" class="point" data-dialects="sqlserver">
+<h2>可更新账本、历史表与视图</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+ · 创建账本对象权限 · 插入及更新分别自动提交</span></p>
+<p>可更新账本保留历史版本，账本视图将一次 UPDATE 表示为旧版本的 DELETE 与新版本的 INSERT。指定的历史表需由系统在创建账本表时建立。用户不应直接维护自动历史表。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="本例账本的业务操作" tabindex="0">
+<table class="sql-result"><caption>本例账本的业务操作</caption>
+<thead><tr><th scope="col">id</th><th scope="col">操作</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>INSERT</code></td><td><code>10</code></td></tr>
+<tr><td><code>1</code></td><td><code>UPDATE</code></td><td><code>12</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d55_ledger (id int NOT NULL PRIMARY KEY, qty int NOT NULL)
+WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.d55_ledger_history),
+      LEDGER = ON (LEDGER_VIEW = dbo.d55_ledger_view));
+INSERT dbo.d55_ledger(id, qty) VALUES (1, 10);
+UPDATE dbo.d55_ledger SET qty = 12 WHERE id = 1;
+
+SELECT v.id, v.qty, v.ledger_operation_type_desc AS operation,
+       CASE WHEN v.ledger_transaction_id = cur.ledger_start_transaction_id
+                   AND v.ledger_sequence_number = cur.ledger_start_sequence_number
+                   AND v.ledger_operation_type_desc = &#x27;INSERT&#x27;
+            THEN 1 ELSE 0 END AS is_current
+FROM dbo.d55_ledger_view AS v JOIN dbo.d55_ledger AS cur ON cur.id = v.id
+ORDER BY v.qty, v.ledger_operation_type_desc;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT v.id, v.qty, v.ledger_operation_type_desc AS operation,
+       CASE WHEN v.ledger_transaction_id = cur.ledger_start_transaction_id
+                   AND v.ledger_sequence_number = cur.ledger_start_sequence_number
+                   AND v.ledger_operation_type_desc = &#x27;INSERT&#x27;
+            THEN 1 ELSE 0 END AS is_current
+FROM dbo.d55_ledger_view AS v JOIN dbo.d55_ledger AS cur ON cur.id = v.id
+ORDER BY v.qty, v.ledger_operation_type_desc;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">operation</th><th scope="col">is_current</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td><td><code>DELETE</code></td><td><code>0</code></td></tr>
+<tr><td><code>1</code></td><td><code>10</code></td><td><code>INSERT</code></td><td><code>0</code></td></tr>
+<tr><td><code>1</code></td><td><code>12</code></td><td><code>INSERT</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/security/ledger/ledger-updatable-ledger-tables?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="ledger-verify" class="point" data-dialects="sqlserver">
+<h2>生成摘要并验证账本</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+ · VIEW LEDGER CONTENT 权限 · 同一批次运行 · 独立练习库且无并发账本写入</span></p>
+<p>摘要含最后一个区块的 SHA-256 哈希。验证时从可信位置取已保存摘要，防篡改保证取决于摘要的外部保管及覆盖区间。这个独立练习刚生成就验证，仅示范流程。数据库规模大时验证有扫描成本。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="准备一笔账本提交" tabindex="0">
+<table class="sql-result"><caption>准备一笔账本提交</caption>
+<thead><tr><th scope="col">id</th><th scope="col">value</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>70</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d55_verify (id int PRIMARY KEY, v int NOT NULL)
+WITH (LEDGER = ON (APPEND_ONLY = ON));
+INSERT dbo.d55_verify(id, v) VALUES (1, 70);
+DECLARE @captured TABLE (latest_digest nvarchar(max));
+INSERT @captured EXEC sys.sp_generate_database_ledger_digest;
+DECLARE @digest nvarchar(max) = (SELECT latest_digest FROM @captured);
+DECLARE @digests nvarchar(max) = CONCAT(N&#x27;[&#x27;, @digest, N&#x27;]&#x27;);
+
+DECLARE @checked TABLE (last_verified_block_id bigint);
+DECLARE @rc int;
+INSERT @checked EXEC @rc = sys.sp_verify_database_ledger @digests = @digests;
+SELECT @rc AS verification_status,
+       CASE WHEN last_verified_block_id = TRY_CONVERT(bigint, JSON_VALUE(@digest, &#x27;$.block_id&#x27;))
+            THEN 1 ELSE 0 END AS digest_block_verified
+FROM @checked;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @rc AS verification_status,
+       CASE WHEN last_verified_block_id = TRY_CONVERT(bigint, JSON_VALUE(@digest, &#x27;$.block_id&#x27;))
+            THEN 1 ELSE 0 END AS digest_block_verified
+FROM @checked;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">verification_status</th><th scope="col">digest_block_verified</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/security/ledger/ledger-verify-database?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#system-versioning">自动记录每一行的历史版本</a></li>
+<li><a href="#temporal-point">读取某一时刻或全部历史</a></li>
+<li><a href="#temporal-range">按时间区间筛选历史版本</a></li>
+<li><a href="#rowversion">rowversion 检查乐观并发</a></li>
+<li><a href="#change-tracking">找出自上次同步后变动的主键</a></li>
+<li><a href="#cdc">CDC 读取日志捕捉的旧值与新值</a></li>
+<li><a href="#graph-match">建立节点和边并查找关系</a></li>
+<li><a href="#shortest-path">查找图中的最短路径</a></li>
+<li><a href="#append-ledger">保存只能追加的账本记录</a></li>
+<li><a href="#updatable-ledger">可更新账本、历史表与视图</a></li>
+<li><a href="#ledger-verify">生成摘要并验证账本</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="54-sqlserver-schema.html">← 表结构、约束、视图与分区</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="56-sqlserver-plans.html">索引、统计、计划与诊断 →</a></nav>
+</main>
+</body>
+</html>

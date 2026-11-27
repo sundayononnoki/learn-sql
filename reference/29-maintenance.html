@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>数据库维护 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 29 章 · 原书第 205–208 页</p>
+<h1>数据库维护</h1>
+<p class="lead" data-dialects="mysql">备份后做恢复演练。把统计、健康检查以及诊断日志的用途区分开。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-backup"><h2>逻辑备份和恢复演练</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>在本地练习实例下用终端执行。这里导出五张基础表，生成的新文件不包含 DROP TABLE，也不指定原库名。用具备相应权限的本机练习管理员执行。每一步成功才执行下一步，已有同名备份或恢复库时流程停止。</p>
+<figure><figcaption>系统终端</figcaption><pre><code data-kind="bash">(
+  set -C
+  umask 077
+  mysqldump -u root -p --default-character-set=utf8mb4 \
+    --single-transaction --no-tablespaces --set-gtid-purged=OFF \
+    --skip-add-drop-table --skip-triggers learn_sql_lab \
+    customers products orders order_items docs &gt; learn-sql-lab-backup.sql &amp;&amp;
+  mysql -u root -p -e &quot;CREATE DATABASE learn_sql_restore CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci&quot; &amp;&amp;
+  mysql -u root -p --default-character-set=utf8mb4 learn_sql_restore &lt; learn-sql-lab-backup.sql &amp;&amp;
+  mysql -u root -p -e &quot;SELECT COUNT(*) FROM learn_sql_restore.orders&quot;
+)</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="恢复结果" tabindex="0">
+<table class="sql-result"><caption>恢复结果</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">恢复库</th><th scope="col">订单行数</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>尚未创建</code></td><td class="sql-na"><span aria-label="不适用">—</span></td></tr>
+<tr><td><code>导入后</code></td><td><code>learn_sql_restore</code></td><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT COUNT(*) FROM learn_sql_restore.orders;</code><span class="sql-caption-context">恢复验证</span></span></caption>
+<thead><tr><th scope="col">COUNT(*)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　源库含五张基础表，订单 4 行。备份文件与目标恢复库尚不存在。</p><p><strong>执行后</strong>　新备份文件创建，导入新库后订单计数 <code>4</code>。</p>
+<p class="outcome">初始数据恢复后应有 4 笔订单。全库备份应按范围覆盖视图、触发器、例程、事件和账户授权。转储整个库时可用 --routines --events --triggers 纳入相应对象。跨库或跨实例还应检查限定库名、DEFINER 和权限。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-backup"><h2>逻辑备份和物理快照的适用条件</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>mysqldump 的 --single-transaction 为 InnoDB 数据提供一致性快照。备份期间应避免改表 DDL，且非事务表不受同样保证。物理备份应使用经过验证的备份工具或满足一致性条件的快照流程；运行中直接复制数据目录可能得不到可恢复备份。</p>
+<p class="version-note"><strong>过时 · 已移除</strong> <code>mysqlhotcopy</code> 自 5.7.5 起从发行包移除。逻辑备份可用本章的 mysqldump。<a href="https://dev.mysql.com/doc/relnotes/mysql/5.7/en/news-5-7-5.html">Oracle 移除说明</a>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT TABLE_NAME, ENGINE FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = &#x27;learn_sql_lab&#x27; AND TABLE_TYPE = &#x27;BASE TABLE&#x27;
+ORDER BY TABLE_NAME;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　练习库元数据已可查询。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT TABLE_NAME, ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = &#x27;learn_sql_lab&#x27; AND TABLE_TYPE = &#x27;BASE TABLE&#x27; ORDER BY TABLE_NAME;</code></span></caption>
+<thead><tr><th scope="col">TABLE_NAME</th><th scope="col">ENGINE</th></tr></thead>
+<tbody>
+<tr><td><code>customers</code></td><td><code>InnoDB</code></td></tr>
+<tr><td><code>docs</code></td><td><code>InnoDB</code></td></tr>
+<tr><td><code>order_items</code></td><td><code>InnoDB</code></td></tr>
+<tr><td><code>orders</code></td><td><code>InnoDB</code></td></tr>
+<tr><td><code>products</code></td><td><code>InnoDB</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　初始五张基础表的 <code>ENGINE</code> 均为 <code>InnoDB</code>。做过建表示例后，也可能看到其他练习表。</p>
+<p class="outcome">初始五个数据表均为 InnoDB。发现其他引擎时按引擎核对备份方式。保留 binlog 可用于时间点恢复。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-statistics"><h2>统计、检查、修复与整理</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>ANALYZE TABLE 刷新统计供优化器择路。CHECK TABLE 检查支持的表。REPAIR TABLE 适用于 MyISAM 等有限引擎。InnoDB 的 OPTIMIZE TABLE 常涉及重建，应先评估空间和运行影响。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">ANALYZE TABLE products;
+CHECK TABLE products;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　<code>products</code> 是已有的健康 InnoDB 表。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>ANALYZE TABLE products;</code></span></caption>
+<thead><tr><th scope="col">Table</th><th scope="col">Op</th><th scope="col">Msg_type</th><th scope="col">Msg_text</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab.products</code></td><td><code>analyze</code></td><td><code>status</code></td><td><code>OK</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>CHECK TABLE products;</code></span></caption>
+<thead><tr><th scope="col">Table</th><th scope="col">Op</th><th scope="col">Msg_type</th><th scope="col">Msg_text</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab.products</code></td><td><code>check</code></td><td><code>status</code></td><td><code>OK</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　ANALYZE 刷新统计，CHECK 核查表，通常两条均返回 <code>status | OK</code>。商品行未改动。</p>
+</details>
+</div>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code data-kind="sql-manual">-- 仅对独立练习对象操作。两条语句展示不同引擎的维护入口。
+CREATE TABLE ch29_legacy (id INT PRIMARY KEY) ENGINE=MyISAM;
+CHECK TABLE ch29_legacy QUICK;
+REPAIR TABLE ch29_legacy;
+CREATE TABLE ch29_rebuild (id INT PRIMARY KEY) ENGINE=InnoDB;
+OPTIMIZE TABLE ch29_rebuild;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　练习表名都尚未使用，实例支持 MyISAM 与 InnoDB。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>CHECK TABLE ch29_legacy QUICK;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Table</th><th scope="col">Op</th><th scope="col">Msg_type</th><th scope="col">Msg_text</th></tr></thead>
+<tbody>
+<tr><td><code>ch29_legacy</code></td><td><code>check</code></td><td><code>status</code></td><td><code>OK</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>REPAIR TABLE ch29_legacy;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Table</th><th scope="col">Op</th><th scope="col">Msg_type</th><th scope="col">Msg_text</th></tr></thead>
+<tbody>
+<tr><td><code>ch29_legacy</code></td><td><code>repair</code></td><td><code>status</code></td><td><code>OK</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>OPTIMIZE TABLE ch29_rebuild;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Table</th><th scope="col">Op</th><th scope="col">Msg_type</th><th scope="col">Msg_text</th></tr></thead>
+<tbody>
+<tr><td><code>ch29_rebuild</code></td><td><code>optimize</code></td><td><code>status</code></td><td><code>OK</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　旧表检查与修复显示状态，通常为 <code>OK</code>。InnoDB 整理可能先显示重建提示，再给出状态。</p>
+<p class="outcome">健康练习库的 ANALYZE 与 CHECK 应显示 status OK。MyISAM 的快速检查和修复预期为 OK。OPTIMIZE 可能先显示重建提示，再报状态。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-backup"><h2>启动问题、日志和日志轮转</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>启动失败先查服务进程、配置及错误日志。错误日志记启动和运行异常，general log 记连接与收到的语句，slow log 记录满足条件的慢查询，binlog 记数据变更事件。</p>
+<figure><figcaption>系统终端</figcaption><pre><code data-kind="bash">mysqld --version
+mysqld --validate-config</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　终端可调用 mysqld，并已选好要校验的实例配置。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>mysqld --version</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">程序</th><th scope="col">版本示例</th></tr></thead>
+<tbody>
+<tr><td><code>mysqld</code></td><td><code>9.7.4</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>mysqld --validate-config</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">校验退出码</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　第一条显示服务端版本。配置校验通过时退出码 <code>0</code>。</p>
+</details>
+</div>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SHOW VARIABLES WHERE Variable_name IN
+  (&#x27;log_error&#x27;, &#x27;general_log&#x27;, &#x27;general_log_file&#x27;, &#x27;slow_query_log&#x27;,
+   &#x27;slow_query_log_file&#x27;, &#x27;long_query_time&#x27;, &#x27;log_bin&#x27;, &#x27;log_bin_basename&#x27;, &#x27;log_output&#x27;);</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　实例的日志开关、路径和阈值已经设定。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SHOW VARIABLES WHERE Variable_name IN (&#x27;log_error&#x27;, &#x27;general_log&#x27;, &#x27;general_log_file&#x27;, &#x27;slow_query_log&#x27;, &#x27;slow_query_log_file&#x27;, &#x27;long_query_time&#x27;, &#x27;log_bin&#x27;, &#x27;log_bin_basename&#x27;, &#x27;log_output&#x27;);</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Variable_name</th><th scope="col">Value</th></tr></thead>
+<tbody>
+<tr><td><code>general_log</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>general_log_file</code></td><td><code>/var/lib/mysql/db-lab.log</code></td></tr>
+<tr><td><code>log_bin</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>log_bin_basename</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td></tr>
+<tr><td><code>log_error</code></td><td><code>/var/log/mysql/error.log</code></td></tr>
+<tr><td><code>log_output</code></td><td><code>FILE</code></td></tr>
+<tr><td><code>long_query_time</code></td><td><code>10.000000</code></td></tr>
+<tr><td><code>slow_query_log</code></td><td><code>OFF</code></td></tr>
+<tr><td><code>slow_query_log_file</code></td><td><code>/var/lib/mysql/db-lab-slow.log</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　看见实际配置值，例如 <code>slow_query_log = OFF</code>、<code>long_query_time = 10.000000</code>。以当前实例为准。</p>
+</details>
+</div>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code data-kind="sql-manual">-- 仅在隔离实例，用有 RELOAD 权限的账户。
+FLUSH LOGS;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　隔离实例有已启用的日志，当前账号有 RELOAD 权限。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>FLUSH LOGS;</code><span class="sql-caption-context">日志状态</span></span></caption>
+<thead><tr><th scope="col">命令</th><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>FLUSH LOGS</code></td><td><code>已启用日志重新打开或轮转</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　服务器重新打开或轮转相应日志，行为随日志类型及启用状态而定。</p>
+<p class="outcome">用目标实例的配置文件启动校验，配置有效时退出码为 0。校验本身不会启动服务。SQL 列出日志位置或开关。FLUSH LOGS 刷新已启用的日志句柄，具体轮转取决于日志种类。</p>
+</details>
+</div></section>
+<section id="p5" class="point" data-dialects="mysql" data-alternate-anchor="dial-backup"><h2>行文件交换</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>SELECT INTO OUTFILE 和 LOAD DATA INFILE 用于数据交换。路径位于服务器端，要核对 FILE 权限与 secure_file_priv。NULL 表示禁用这类操作，非空目录表示文件要位于指定目录。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT @@secure_file_priv;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　服务器对导入导出配置了文件路径限制。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @@secure_file_priv;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">@@secure_file_priv</th></tr></thead>
+<tbody>
+<tr><td><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　返回许可目录、空字符串（无目录限制）或 <code>NULL</code>（禁用）。</p>
+</details>
+</div>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code data-kind="sql-manual">-- 将路径换成服务器允许目录中的全新文件名。
+SELECT customer_id, name FROM customers WHERE customer_id = 1
+INTO OUTFILE &#x27;/允许目录/ch29-customers.csv&#x27; FIELDS TERMINATED BY &#x27;,&#x27;;
+CREATE TEMPORARY TABLE ch29_import (id INT PRIMARY KEY, name VARCHAR(40));
+LOAD DATA INFILE &#x27;/允许目录/ch29-customers.csv&#x27;
+INTO TABLE ch29_import FIELDS TERMINATED BY &#x27;,&#x27; (id, name);
+SELECT id, name FROM ch29_import;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="数据交换" tabindex="0">
+<table class="sql-result"><caption>数据交换</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">服务器文件内容</th><th scope="col">导入目标行数</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>文件不存在</code></td><td class="sql-number"><code>0</code></td></tr>
+<tr><td><code>导出导入后</code></td><td><code>1,Ana</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT id, name FROM ch29_import;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Ana</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　许可目录无同名文件，客户 1 是 Ana，目标临时表初始为空。</p><p><strong>执行后</strong>　文件内容是一行 <code>1,Ana</code>，导入后查询得到 <code>1 | Ana</code>。</p>
+<p class="outcome">符合目录与权限条件时得到一行 1、Ana。它只交换选中的数据行，完整恢复使用转储等备份手段。</p>
+</details>
+</div></section>
+<section id="w3-backup-dialect" class="point" data-dialects="sqlserver" data-alternate-anchor="dial-backup p1"><h2>BACKUP DATABASE 的方言对照</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p><p>W3Schools 的 <code>BACKUP DATABASE</code> 是 SQL Server 语法。完整备份可作为差异备份的基线。用同一练习库 <code>SQLNotesLab</code> 演练。</p>
+<figure><figcaption>SQL · SQL Server 方言示例</figcaption><pre><code>BACKUP DATABASE SQLNotesLab TO DISK = &#x27;D:\sqlbackup\SQLNotesLab-full.bak&#x27;;
+BACKUP DATABASE SQLNotesLab TO DISK = &#x27;D:\sqlbackup\SQLNotesLab-diff.bak&#x27; WITH DIFFERENTIAL;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="备份条件" tabindex="0">
+<table class="sql-result"><caption>备份条件</caption>
+<thead><tr><th scope="col">运行环境</th><th scope="col">对象</th><th scope="col">存储</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Server</code></td><td><code>已创建 SQLNotesLab</code></td><td><code>服务端可写的备份目录</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">预期文件</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>BACKUP DATABASE SQLNotesLab TO DISK = &#x27;D:\sqlbackup\SQLNotesLab-full.bak&#x27;;</code><span class="sql-caption-context">预期文件</span></span></caption>
+<thead><tr><th scope="col">文件</th><th scope="col">类型</th></tr></thead>
+<tbody>
+<tr><td><code>SQLNotesLab-full.bak</code></td><td><code>完整备份</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>BACKUP DATABASE SQLNotesLab TO DISK = &#x27;D:\sqlbackup\SQLNotesLab-diff.bak&#x27; WITH DIFFERENTIAL;</code><span class="sql-caption-context">预期文件</span></span></caption>
+<thead><tr><th scope="col">文件</th><th scope="col">类型</th></tr></thead>
+<tbody>
+<tr><td><code>SQLNotesLab-diff.bak</code></td><td><code>基于对应完整备份的差异备份</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>此处的 D: 是 SQL Server 所在 Windows 服务器的路径。执行者需要备份权限，SQL Server 服务账户需要能写入目标目录。恢复时先用 <code>WITH NORECOVERY</code> 恢复对应的完整备份，再应用差异备份。如果无需接着还原日志，可用 <code>WITH RECOVERY</code> 完成恢复。</p>
+<p class="sources"><a href="https://www.w3schools.com/sql/sql_backup_db.asp">W3Schools BACKUP DATABASE</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/backup-transact-sql">SQL Server BACKUP</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/mysqldump.html">MySQL mysqldump</a></p></section>
+<section id="dial-backup" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>备份与恢复演练</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>在专用练习库验证备份可还原。PostgreSQL 用 pg_dump 与 pg_restore。SQL Server 的备份路径由服务端解释，并需要备份权限。</p>
+<div data-dialects="postgresql">
+<p>使用尚不存在的归档和恢复库。在新的终端子 shell 中运行，下方命令遇到已有文件或任何步骤失败便停止。</p>
+<figure><figcaption>系统终端 · PostgreSQL</figcaption><pre><code>(set -C
+ pg_dump -Fc -n sql_notes_lab postgres &gt; sql_notes_lab.dump &amp;&amp;
+ createdb sql_notes_restore &amp;&amp;
+ pg_restore --exit-on-error -d sql_notes_restore sql_notes_lab.dump &amp;&amp;
+ psql -X -d sql_notes_restore -c &quot;SELECT COUNT(*) AS orders FROM sql_notes_lab.orders;&quot;)</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>psql -X -d sql_notes_restore -c &quot;SELECT COUNT(*) AS orders FROM sql_notes_lab.orders;&quot;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">orders</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<p>VERIFYONLY 检查备份是否可读以及备份集是否完整。执行者需具备 CREATE DATABASE 权限。在另一专用库实际还原再查询数据，才能验证恢复流程。</p>
+<figure><figcaption>SQL Server · 在有权限的练习实例手动运行</figcaption><pre><code>BACKUP DATABASE SQLNotesLab TO DISK = &#x27;D:\sqlbackup\SQLNotesLab.bak&#x27;;
+RESTORE VERIFYONLY FROM DISK = &#x27;D:\sqlbackup\SQLNotesLab.bak&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>RESTORE VERIFYONLY FROM DISK = &#x27;D:\sqlbackup\SQLNotesLab.bak&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">文件</th><th scope="col">预期检查</th></tr></thead>
+<tbody>
+<tr><td><code>SQLNotesLab.bak</code></td><td><code>备份可读取，恢复演练仍需还原到独立目标</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/app-pgdump.html">PostgreSQL pg_dump</a> · <a href="https://www.postgresql.org/docs/current/app-pgrestore.html">PostgreSQL pg_restore</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/backup-transact-sql">SQL Server BACKUP</a></p>
+</section>
+<section id="dial-statistics" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p3">
+<h2>表统计刷新</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>更新统计信息可帮助优化器估算数据分布。更改统计信息前后，业务表的行数保持一致。下面使用练习表。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 执行前练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>ANALYZE products;
+SELECT COUNT(*) AS rows_in_products FROM products;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS rows_in_products FROM products;</code></span></caption>
+<thead><tr><th scope="col">rows_in_products</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>UPDATE STATISTICS dbo.products;
+SELECT COUNT(*) AS rows_in_products FROM dbo.products;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS rows_in_products FROM dbo.products;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">rows_in_products</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-analyze.html">PostgreSQL ANALYZE</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/update-statistics-transact-sql">SQL Server UPDATE STATISTICS</a></p>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>恢复命令成功后，如何确认至少把订单表恢复出来了？</p><details><summary>查看答案</summary><figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT COUNT(*) FROM learn_sql_restore.orders;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　恢复已成功且使用基础样例数据。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) FROM learn_sql_restore.orders;</code></span></caption>
+<thead><tr><th scope="col">COUNT(*)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　恢复库订单行数为 <code>4</code>。</p>
+<p class="outcome">初始数据应有四行。再取几条订单及明细，对照备份前的值。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/mysqldump.html">mysqldump</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/table-maintenance-statements.html">表维护语句</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/server-logs.html">服务器日志</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/select-into.html">行文件导出</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/load-data.html">行文件导入</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="mysql"><a href="#p1">逻辑备份和恢复演练</a></li><li data-dialects="mysql"><a href="#p2">逻辑备份和物理快照的适用条件</a></li><li data-dialects="mysql"><a href="#p3">刷新统计并检查表状态</a></li><li data-dialects="mysql"><a href="#p4">查启动错误及慢查询日志</a></li><li data-dialects="mysql"><a href="#p5">导出表数据并从文件导入</a></li><li data-dialects="sqlserver"><a href="#w3-backup-dialect">BACKUP DATABASE 创建备份</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-backup">备份与恢复演练</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-statistics">表统计刷新</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="28-access-control.html">← 安全管理</a><a href="../v1.html">章节目录</a><a rel="next" href="30-performance.html">改善性能 →</a></nav>
+</main>
+</body></html>

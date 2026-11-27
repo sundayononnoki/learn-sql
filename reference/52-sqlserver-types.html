@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>52 · SQL Server · 类型、字符串与时间 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 52 章 · 原生语法</p>
+<h1>SQL Server · 类型、字符串与时间</h1>
+<p class="lead">先用类型约束数据的表示方式，再明确字符串比较规则、NULL 类型和时区。临时表例子重做时可开新连接。</p>
+<div class="layout"><article class="content">
+<section id="bit-money" class="point" data-dialects="sqlserver">
+<h2>bit、money 与 decimal</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>bit 只有 0、1 和 NULL。转成 bit 时任何非零数都归为 1。SUM 前可把 bit 转为 int。money 固定四位小数，涉及四舍五入和多步金额运算时宜用业务指定精度的 decimal。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="要转换的数值" tabindex="0">
+<table class="sql-result"><caption>要转换的数值</caption>
+<thead><tr><th scope="col">输入</th><th scope="col">目标</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>bit</code></td></tr>
+<tr><td><code>-3</code></td><td><code>bit</code></td></tr>
+<tr><td><code>12.34567</code></td><td><code>money 和 decimal(12,5)</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CAST(2 AS bit) AS positive_bit, CAST(-3 AS bit) AS negative_bit,
+       CAST(CAST(12.34567 AS money) AS decimal(12,4)) AS money_value,
+       CAST(12.34567 AS decimal(12,5)) AS decimal_value;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CAST(2 AS bit) AS positive_bit, CAST(-3 AS bit) AS negative_bit,
+       CAST(CAST(12.34567 AS money) AS decimal(12,4)) AS money_value,
+       CAST(12.34567 AS decimal(12,5)) AS decimal_value;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">positive_bit</th><th scope="col">negative_bit</th><th scope="col">money_value</th><th scope="col">decimal_value</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td><td><code>12.3457</code></td><td><code>12.34567</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-types-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="guid" class="point" data-dialects="sqlserver">
+<h2>uniqueidentifier 与 GUID 生成器</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>uniqueidentifier 存 16 字节的 GUID。NEWID 可直接用于表达式。NEWSEQUENTIALID 仅作 uniqueidentifier 列的 DEFAULT，适合减少随机键插入的页分裂，生成值可能可猜且跨故障转移不保证全局递增。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="准备插入的行" tabindex="0">
+<table class="sql-result"><caption>准备插入的行</caption>
+<thead><tr><th scope="col">id</th><th scope="col">sequential_id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>由 DEFAULT 生成</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #ch52_guids (
+    id int PRIMARY KEY, sequential_id uniqueidentifier NOT NULL DEFAULT NEWSEQUENTIALID()
+);
+INSERT INTO #ch52_guids (id) VALUES (1);
+
+SELECT id, DATALENGTH(NEWID()) AS random_bytes,
+       DATALENGTH(sequential_id) AS sequential_bytes
+FROM #ch52_guids;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, DATALENGTH(NEWID()) AS random_bytes,
+       DATALENGTH(sequential_id) AS sequential_bytes
+FROM #ch52_guids;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">random_bytes</th><th scope="col">sequential_bytes</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>16</code></td><td><code>16</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/newsequentialid-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="time-types" class="point" data-dialects="sqlserver">
+<h2>date、time、datetime2 与 datetimeoffset</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2008+</span></p>
+<p>用 date 存日历日期，time 存时间，datetime2 存未带时区偏移的日期时间，datetimeoffset 保存日期时间及数字偏移。旧 datetime 的精度不同。datetimeoffset 不保存命名时区。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="固定的日期和时间文字" tabindex="0">
+<table class="sql-result"><caption>固定的日期和时间文字</caption>
+<thead><tr><th scope="col">输入</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-01T12:34:56.125</code></td></tr>
+<tr><td><code>2025-02-01T12:34:56.125+09:00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @dt datetime2(3) = &#x27;2025-02-01T12:34:56.125&#x27;;
+DECLARE @with_offset datetimeoffset(3) = &#x27;2025-02-01T12:34:56.125+09:00&#x27;;
+
+SELECT CONVERT(char(10), CAST(@dt AS date), 23) AS event_date,
+       CONVERT(char(12), CAST(@dt AS time(3))) AS event_time,
+       CONVERT(char(23), @dt, 126) AS wall_time,
+       DATEPART(tzoffset, @with_offset) AS offset_minutes;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CONVERT(char(10), CAST(@dt AS date), 23) AS event_date,
+       CONVERT(char(12), CAST(@dt AS time(3))) AS event_time,
+       CONVERT(char(23), @dt, 126) AS wall_time,
+       DATEPART(tzoffset, @with_offset) AS offset_minutes;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">event_date</th><th scope="col">event_time</th><th scope="col">wall_time</th><th scope="col">offset_minutes</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-01</code></td><td><code>12:34:56.125</code></td><td><code>2025-02-01T12:34:56.125</code></td><td><code>540</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/date-and-time-data-types-and-functions-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="rowversion" class="point" data-dialects="sqlserver">
+<h2>rowversion 与已弃用的 timestamp 同义词</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>rowversion 是数据库生成的 8 字节版本计数，适合做乐观并发检查。SQL Server 的 timestamp 是其已弃用的同义词。即使 UPDATE 将值写回原值，也会更新版本。第 38 章有检测并发冲突的示例。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="读到的行" tabindex="0">
+<table class="sql-result"><caption>读到的行</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">rv</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td><td><code>旧版本值</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #ch52_rv (id int PRIMARY KEY, qty int, rv rowversion NOT NULL);
+INSERT INTO #ch52_rv (id, qty) VALUES (1, 5);
+DECLARE @before binary(8);
+SELECT @before = rv FROM #ch52_rv WHERE id = 1;
+UPDATE #ch52_rv SET qty = 5 WHERE id = 1;
+
+SELECT id, qty, DATALENGTH(rv) AS version_bytes,
+       CASE WHEN rv &lt;&gt; @before THEN 1 ELSE 0 END AS changed
+FROM #ch52_rv;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, qty, DATALENGTH(rv) AS version_bytes,
+       CASE WHEN rv &lt;&gt; @before THEN 1 ELSE 0 END AS changed
+FROM #ch52_rv;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">version_bytes</th><th scope="col">changed</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td><td><code>8</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/rowversion-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="variant" class="point" data-dialects="sqlserver">
+<h2>sql_variant 保留基础类型</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>sql_variant 可承载不同标量基类型，用 SQL_VARIANT_PROPERTY 观察原类型、精度和小数位。先显式转换到业务类型再做运算，类型的可容纳范围有限，例如不可直接存 nvarchar(max)。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="带明确类型的值" tabindex="0">
+<table class="sql-result"><caption>带明确类型的值</caption>
+<thead><tr><th scope="col">变量</th><th scope="col">基础值</th></tr></thead>
+<tbody>
+<tr><td><code>@amount</code></td><td><code>decimal(6,2): 12.50</code></td></tr>
+<tr><td><code>@code</code></td><td><code>int: 7</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @amount sql_variant = CAST(12.50 AS decimal(6,2));
+DECLARE @code sql_variant = CAST(7 AS int);
+
+SELECT CONVERT(varchar(20), SQL_VARIANT_PROPERTY(@amount, &#x27;BaseType&#x27;)) AS amount_type,
+       CONVERT(int, SQL_VARIANT_PROPERTY(@amount, &#x27;Precision&#x27;)) AS amount_precision,
+       CONVERT(int, SQL_VARIANT_PROPERTY(@amount, &#x27;Scale&#x27;)) AS amount_scale,
+       CONVERT(varchar(20), SQL_VARIANT_PROPERTY(@code, &#x27;BaseType&#x27;)) AS code_type;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CONVERT(varchar(20), SQL_VARIANT_PROPERTY(@amount, &#x27;BaseType&#x27;)) AS amount_type,
+       CONVERT(int, SQL_VARIANT_PROPERTY(@amount, &#x27;Precision&#x27;)) AS amount_precision,
+       CONVERT(int, SQL_VARIANT_PROPERTY(@amount, &#x27;Scale&#x27;)) AS amount_scale,
+       CONVERT(varchar(20), SQL_VARIANT_PROPERTY(@code, &#x27;BaseType&#x27;)) AS code_type;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">amount_type</th><th scope="col">amount_precision</th><th scope="col">amount_scale</th><th scope="col">code_type</th></tr></thead>
+<tbody>
+<tr><td><code>decimal</code></td><td><code>6</code></td><td><code>2</code></td><td><code>int</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/sql-variant-property-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="table-types" class="point" data-dialects="sqlserver">
+<h2>表变量与用户定义表类型</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2008+ · GO 由 SSMS 或 sqlcmd 识别</span></p>
+<p>在 SQLNotesLab 的同一会话复制本例。CREATE TYPE 建立数据库级结构，可复用于表变量或 READONLY 表值参数。@table 的作用域是当前批次、过程或函数。此例首次创建 dbo.ch52_id_list 后，重做时可复用该类型，另从 DECLARE 开始。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两组准备写入的行" tabindex="0">
+<table class="sql-result"><caption>两组准备写入的行</caption>
+<thead><tr><th scope="col">表变量</th><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>@ad_hoc</code></td><td><code>2</code></td></tr>
+<tr><td><code>@reusable</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TYPE dbo.ch52_id_list AS TABLE (id int NOT NULL PRIMARY KEY);
+GO
+DECLARE @ad_hoc TABLE (id int PRIMARY KEY);
+DECLARE @reusable dbo.ch52_id_list;
+INSERT INTO @ad_hoc (id) VALUES (2);
+INSERT INTO @reusable (id) VALUES (1);
+
+SELECT id FROM @ad_hoc
+UNION ALL
+SELECT id FROM @reusable
+ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id FROM @ad_hoc
+UNION ALL
+SELECT id FROM @reusable
+ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-type-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="hierarchy" class="point" data-dialects="sqlserver">
+<h2>hierarchyid 表示树路径</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2008+</span></p>
+<p>路径 /2/1/ 有两层，其直接祖先为 /2/。GetLevel 从根的 0 开始。IsDescendantOf 判断树路径关系，业务表的父行是否存在要另行保证。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="树路径" tabindex="0">
+<table class="sql-result"><caption>树路径</caption>
+<thead><tr><th scope="col">节点</th><th scope="col">路径</th></tr></thead>
+<tbody>
+<tr><td><code>parent</code></td><td><code>/2/</code></td></tr>
+<tr><td><code>child</code></td><td><code>/2/1/</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @parent hierarchyid = hierarchyid::Parse(&#x27;/2/&#x27;);
+DECLARE @child hierarchyid = hierarchyid::Parse(&#x27;/2/1/&#x27;);
+
+SELECT @child.ToString() AS child_path, @child.GetLevel() AS tree_level,
+       @child.GetAncestor(1).ToString() AS parent_path,
+       @child.IsDescendantOf(@parent) AS is_descendant;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @child.ToString() AS child_path, @child.GetLevel() AS tree_level,
+       @child.GetAncestor(1).ToString() AS parent_path,
+       @child.IsDescendantOf(@parent) AS is_descendant;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">child_path</th><th scope="col">tree_level</th><th scope="col">parent_path</th><th scope="col">is_descendant</th></tr></thead>
+<tbody>
+<tr><td><code>/2/1/</code></td><td><code>2</code></td><td><code>/2/</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/hierarchyid-data-type-method-reference?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="spatial" class="point" data-dialects="sqlserver">
+<h2>geometry 平面与 geography 地球坐标</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2008+</span></p>
+<p>geometry 使用平面坐标，本例 SRID 为 0。geography 的 SRID 4326 用经纬度，Point 参数为纬度、经度、SRID。STIntersects 比较同 SRID 的对象，不一致时返回 NULL。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="空间对象" tabindex="0">
+<table class="sql-result"><caption>空间对象</caption>
+<thead><tr><th scope="col">变量</th><th scope="col">定义</th></tr></thead>
+<tbody>
+<tr><td><code>@a</code></td><td><code>平面点 (2,3)</code></td></tr>
+<tr><td><code>@b</code></td><td><code>穿过 (2,3) 的平面线段</code></td></tr>
+<tr><td><code>@geo</code></td><td><code>纬度 35、经度 139</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @a geometry = geometry::STGeomFromText(&#x27;POINT (2 3)&#x27;, 0);
+DECLARE @b geometry = geometry::STGeomFromText(&#x27;LINESTRING (2 0, 2 4)&#x27;, 0);
+DECLARE @geo geography = geography::Point(35, 139, 4326);
+
+SELECT @a.STIntersects(@b) AS intersects,
+       @geo.STGeometryType() AS spatial_type, @geo.STSrid AS srid,
+       @geo.Lat AS latitude, @geo.Long AS longitude;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @a.STIntersects(@b) AS intersects,
+       @geo.STGeometryType() AS spatial_type, @geo.STSrid AS srid,
+       @geo.Lat AS latitude, @geo.Long AS longitude;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">intersects</th><th scope="col">spatial_type</th><th scope="col">srid</th><th scope="col">latitude</th><th scope="col">longitude</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Point</code></td><td><code>4326</code></td><td><code>35</code></td><td><code>139</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/spatial/spatial-data-types-overview?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="large-objects" class="point" data-dialects="sqlserver">
+<h2>XML 与旧大对象类型的替代</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>以 xml 存经过解析的 XML，用 exist 检查路径。新列中分别用 varchar(max)、nvarchar(max)、varbinary(max) 替换旧 text、ntext、image。表达式中的 nvarchar 值应加 N 前缀。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="文档与长度演示值" tabindex="0">
+<table class="sql-result"><caption>文档与长度演示值</caption>
+<thead><tr><th scope="col">格式</th><th scope="col">输入</th></tr></thead>
+<tbody>
+<tr><td><code>XML</code></td><td><code>&lt;order id=&quot;101&quot;/&gt;</code></td></tr>
+<tr><td><code>单字节文本</code></td><td><code>SQL</code></td></tr>
+<tr><td><code>Unicode 文本</code></td><td><code>订单</code></td></tr>
+<tr><td><code>二进制</code></td><td><code>0xCAFE</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @doc xml = N&#x27;&lt;order id=&quot;101&quot;/&gt;&#x27;;
+
+SELECT @doc.exist(&#x27;/order[@id=&quot;101&quot;]&#x27;) AS exists_order,
+       DATALENGTH(CAST(&#x27;SQL&#x27; AS varchar(max))) AS text_bytes,
+       DATALENGTH(CAST(N&#x27;订单&#x27; AS nvarchar(max))) AS unicode_bytes,
+       DATALENGTH(CAST(0xCAFE AS varbinary(max))) AS binary_bytes;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @doc.exist(&#x27;/order[@id=&quot;101&quot;]&#x27;) AS exists_order,
+       DATALENGTH(CAST(&#x27;SQL&#x27; AS varchar(max))) AS text_bytes,
+       DATALENGTH(CAST(N&#x27;订单&#x27; AS nvarchar(max))) AS unicode_bytes,
+       DATALENGTH(CAST(0xCAFE AS varbinary(max))) AS binary_bytes;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">exists_order</th><th scope="col">text_bytes</th><th scope="col">unicode_bytes</th><th scope="col">binary_bytes</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>3</code></td><td><code>4</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/ntext-text-and-image-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="json-type" class="point" data-dialects="sqlserver">
+<h2>原生 json 与文本存储</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025+ · 原生 json；RETURNING 需要 json 输入</span></p>
+<p>json 类型存已经验证并二进制编码的对象或数组。JSON_VALUE 配 RETURNING 可从原生 json 返回具体 SQL 类型。旧版常用 nvarchar(max) 和 ISJSON 校验，提取文本后自行转换。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="原生 JSON 输入" tabindex="0">
+<table class="sql-result"><caption>原生 JSON 输入</caption>
+<thead><tr><th scope="col">文档</th></tr></thead>
+<tbody>
+<tr><td><code>{&quot;order_id&quot;:101,&quot;status&quot;:&quot;paid&quot;}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @doc json = &#x27;{&quot;order_id&quot;:101,&quot;status&quot;:&quot;paid&quot;}&#x27;;
+
+SELECT JSON_VALUE(@doc, &#x27;$.order_id&#x27; RETURNING int) AS order_id,
+       JSON_VALUE(@doc, &#x27;$.status&#x27;) AS status;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT JSON_VALUE(@doc, &#x27;$.order_id&#x27; RETURNING int) AS order_id,
+       JSON_VALUE(@doc, &#x27;$.status&#x27;) AS status;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/json-data-type?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="vector-type" class="point" data-dialects="sqlserver">
+<h2>VECTOR 的维度、元素精度与距离</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025+ · float32 向量类型支持所有兼容级别</span></p>
+<p>VECTOR 声明固定维度，默认每个元素 float32。SQL Server 2025 的 float16 需启用 PREVIEW_FEATURES，Azure 产品的状态另查。距离示例比较相同维度的两个向量，索引和近似检索见索引专题。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="二维向量" tabindex="0">
+<table class="sql-result"><caption>二维向量</caption>
+<thead><tr><th scope="col">变量</th><th scope="col">向量</th></tr></thead>
+<tbody>
+<tr><td><code>@left</code></td><td><code>[1,0]</code></td></tr>
+<tr><td><code>@right</code></td><td><code>[0,1]</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @left VECTOR(2) = CAST(&#x27;[1,0]&#x27; AS VECTOR(2));
+DECLARE @right VECTOR(2) = CAST(&#x27;[0,1]&#x27; AS VECTOR(2));
+
+SELECT VECTORPROPERTY(@left, &#x27;Dimensions&#x27;) AS dimensions,
+       VECTOR_DISTANCE(&#x27;cosine&#x27;, @left, @right) AS cosine_distance;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT VECTORPROPERTY(@left, &#x27;Dimensions&#x27;) AS dimensions,
+       VECTOR_DISTANCE(&#x27;cosine&#x27;, @left, @right) AS cosine_distance;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">dimensions</th><th scope="col">cosine_distance</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="unicode-collation" class="point" data-dialects="sqlserver">
+<h2>Unicode、字节长度与 COLLATE</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>Unicode 常量给单引号前加 N。nvarchar 中普通汉字占两个字节，补充字符涉及代理对。LEN 排除结尾空格，DATALENGTH 计实际字节。显式 COLLATE 可检查排序规则差异。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待计数和比较的字符串" tabindex="0">
+<table class="sql-result"><caption>待计数和比较的字符串</caption>
+<thead><tr><th scope="col">用途</th><th scope="col">输入</th></tr></thead>
+<tbody>
+<tr><td><code>字符和字节</code></td><td><code>订单</code></td></tr>
+<tr><td><code>尾随空格</code></td><td><code>A␠</code></td></tr>
+<tr><td><code>文本比较</code></td><td><code>café 与 CAFE</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT LEN(N&#x27;订单&#x27;) AS chars, DATALENGTH(N&#x27;订单&#x27;) AS bytes,
+       LEN(N&#x27;A &#x27;) AS visible_chars, DATALENGTH(N&#x27;A &#x27;) AS padded_bytes,
+       CASE WHEN N&#x27;café&#x27; COLLATE Latin1_General_100_CI_AI = N&#x27;CAFE&#x27; THEN 1 ELSE 0 END AS ci_ai_equal,
+       CASE WHEN N&#x27;café&#x27; COLLATE Latin1_General_100_BIN2 = N&#x27;CAFE&#x27; THEN 1 ELSE 0 END AS bin_equal;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT LEN(N&#x27;订单&#x27;) AS chars, DATALENGTH(N&#x27;订单&#x27;) AS bytes,
+       LEN(N&#x27;A &#x27;) AS visible_chars, DATALENGTH(N&#x27;A &#x27;) AS padded_bytes,
+       CASE WHEN N&#x27;café&#x27; COLLATE Latin1_General_100_CI_AI = N&#x27;CAFE&#x27; THEN 1 ELSE 0 END AS ci_ai_equal,
+       CASE WHEN N&#x27;café&#x27; COLLATE Latin1_General_100_BIN2 = N&#x27;CAFE&#x27; THEN 1 ELSE 0 END AS bin_equal;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">chars</th><th scope="col">bytes</th><th scope="col">visible_chars</th><th scope="col">padded_bytes</th><th scope="col">ci_ai_equal</th><th scope="col">bin_equal</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>4</code></td><td><code>1</code></td><td><code>4</code></td><td><code>1</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">UTF-8 排序规则用于 varchar，SQL Server 2019+。与 nvarchar 的 UTF-16 字节长度分别计算。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/collations?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="null-concat" class="point" data-dialects="sqlserver">
+<h2>ISNULL 的类型、COALESCE 与 NULL 拼接</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+ · CONCAT</span></p>
+<p>ISNULL 通常返回第一个参数的类型，填充值可能被截断。COALESCE 依据类型优先级等规则确定结果。开启 CONCAT_NULL_YIELDS_NULL 时 + 会传播 NULL，而 CONCAT 将 NULL 当空串。SQL Server 2017 起该选项始终开启。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待填补值" tabindex="0">
+<table class="sql-result"><caption>待填补值</caption>
+<thead><tr><th scope="col">缺失值类型</th><th scope="col">填充值</th></tr></thead>
+<tbody>
+<tr><td><code>varchar(2)</code></td><td><code>SQL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET CONCAT_NULL_YIELDS_NULL ON;
+
+SELECT ISNULL(CAST(NULL AS varchar(2)), &#x27;SQL&#x27;) AS short_fill,
+       COALESCE(CAST(NULL AS varchar(2)), &#x27;SQL&#x27;) AS long_fill,
+       CAST(NULL AS varchar(2)) + &#x27;x&#x27; AS plus_result,
+       CONCAT(CAST(NULL AS varchar(2)), &#x27;x&#x27;) AS concat_result;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT ISNULL(CAST(NULL AS varchar(2)), &#x27;SQL&#x27;) AS short_fill,
+       COALESCE(CAST(NULL AS varchar(2)), &#x27;SQL&#x27;) AS long_fill,
+       CAST(NULL AS varchar(2)) + &#x27;x&#x27; AS plus_result,
+       CONCAT(CAST(NULL AS varchar(2)), &#x27;x&#x27;) AS concat_result;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">short_fill</th><th scope="col">long_fill</th><th scope="col">plus_result</th><th scope="col">concat_result</th></tr></thead>
+<tbody>
+<tr><td><code>SQ</code></td><td><code>SQL</code></td><td class="sql-null"><code>NULL</code></td><td><code>x</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/isnull-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="concat-operators" class="point" data-dialects="sqlserver">
+<h2>|| 传播 NULL，CONCAT_WS 跳过 NULL</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025+ · ||；CONCAT_WS 自 2017</span></p>
+<p>|| 是 SQL Server 2025 的 ANSI 拼接运算符，会传播 NULL。CONCAT_WS 以指定分隔符连接各项，跳过 NULL 参数及其分隔符。可用来生成缺少中段值的显示标签。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待拼接内容" tabindex="0">
+<table class="sql-result"><caption>待拼接内容</caption>
+<thead><tr><th scope="col">首段</th><th scope="col">中段</th><th scope="col">尾段</th></tr></thead>
+<tbody>
+<tr><td><code>SQL</code></td><td class="sql-null"><code>NULL</code></td><td><code>101</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT &#x27;SQL&#x27; || &#x27;101&#x27; AS appended,
+       &#x27;SQL&#x27; || CAST(NULL AS varchar(3)) AS null_append,
+       CONCAT_WS(&#x27;-&#x27;, &#x27;SQL&#x27;, CAST(NULL AS varchar(3)), &#x27;101&#x27;) AS label;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;SQL&#x27; || &#x27;101&#x27; AS appended,
+       &#x27;SQL&#x27; || CAST(NULL AS varchar(3)) AS null_append,
+       CONCAT_WS(&#x27;-&#x27;, &#x27;SQL&#x27;, CAST(NULL AS varchar(3)), &#x27;101&#x27;) AS label;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">appended</th><th scope="col">null_append</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>SQL101</code></td><td class="sql-null"><code>NULL</code></td><td><code>SQL-101</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/string-concatenation-pipes-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="date-boundaries" class="point" data-dialects="sqlserver">
+<h2>建日期、加减日期与计算边界</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">DATEDIFF_BIG 自 SQL Server 2016；DATEFROMPARTS、EOMONTH 自 2012</span></p>
+<p>DATEFROMPARTS 从年、月、日建日期。DATEADD 加日历单位，目标月份日数不足时取月末。DATEDIFF 统计跨越的指定单位边界，DATEDIFF_BIG 用 bigint 承接更大的差值。EOMONTH 返回月末日期。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="日期输入" tabindex="0">
+<table class="sql-result"><caption>日期输入</caption>
+<thead><tr><th scope="col">用途</th><th scope="col">输入</th></tr></thead>
+<tbody>
+<tr><td><code>起始日期</code></td><td><code>2025-01-31</code></td></tr>
+<tr><td><code>月份边界</code></td><td><code>2025-02-28T23:59:59 至 2025-03-01T00:00:00</code></td></tr>
+<tr><td><code>毫秒边界</code></td><td><code>2025-01-01 至 2025-02-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT DATEFROMPARTS(2025, 1, 31) AS built,
+       DATEADD(month, 1, DATEFROMPARTS(2025, 1, 31)) AS plus_month,
+       EOMONTH(DATEFROMPARTS(2025, 2, 1)) AS feb_end,
+       DATEDIFF(month, &#x27;2025-02-28T23:59:59&#x27;, &#x27;2025-03-01T00:00:00&#x27;) AS boundaries,
+       DATEDIFF_BIG(millisecond, &#x27;20250101&#x27;, &#x27;20250201&#x27;) AS milliseconds;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATEFROMPARTS(2025, 1, 31) AS built,
+       DATEADD(month, 1, DATEFROMPARTS(2025, 1, 31)) AS plus_month,
+       EOMONTH(DATEFROMPARTS(2025, 2, 1)) AS feb_end,
+       DATEDIFF(month, &#x27;2025-02-28T23:59:59&#x27;, &#x27;2025-03-01T00:00:00&#x27;) AS boundaries,
+       DATEDIFF_BIG(millisecond, &#x27;20250101&#x27;, &#x27;20250201&#x27;) AS milliseconds;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">built</th><th scope="col">plus_month</th><th scope="col">feb_end</th><th scope="col">boundaries</th><th scope="col">milliseconds</th></tr></thead>
+<tbody>
+<tr><td><code>2025-01-31</code></td><td><code>2025-02-28</code></td><td><code>2025-02-28</code></td><td><code>1</code></td><td><code>2678400000</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/date-and-time-data-types-and-functions-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="date-buckets" class="point" data-dialects="sqlserver">
+<h2>DATETRUNC、DATE_BUCKET 与 CURRENT_DATE</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+ · CURRENT_DATE 自 2025</span></p>
+<p>DATETRUNC 截到日历单位起点。DATE_BUCKET 从给定原点按固定单位数分桶。周截断还需区分受 DATEFIRST 影响的 week 与独立的 iso_week。CURRENT_DATE 在 SQL Server 2025 可直接取实例当天，输出随执行时刻和实例设置变化。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="分桶参数" tabindex="0">
+<table class="sql-result"><caption>分桶参数</caption>
+<thead><tr><th scope="col">日期</th><th scope="col">分桶原点</th><th scope="col">桶宽度</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-14</code></td><td><code>2025-01-01</code></td><td><code>7 天</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @day date = &#x27;20250214&#x27;, @origin date = &#x27;20250101&#x27;;
+
+SELECT DATETRUNC(month, @day) AS start_of_month,
+       DATE_BUCKET(day, 7, @day, @origin) AS seven_day_bucket;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATETRUNC(month, @day) AS start_of_month,
+       DATE_BUCKET(day, 7, @day, @origin) AS seven_day_bucket;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">start_of_month</th><th scope="col">seven_day_bucket</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-01</code></td><td><code>2025-02-12</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">DATEADD 的 bigint 偏移是 SQL Server 2025 的版本差异，低版本仅接收 int 偏移。时间类型的值域仍会限制可达日期。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/date-bucket-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="zones" class="point" data-dialects="sqlserver">
+<h2>AT TIME ZONE 与 SWITCHOFFSET</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">AT TIME ZONE 自 SQL Server 2016；SWITCHOFFSET 自 2008</span></p>
+<p>对没有偏移的 datetime2，AT TIME ZONE 先把墙上时间解释为指定时区的时间。对 datetimeoffset，AT TIME ZONE 转换同一时刻并按命名时区应用规则。SWITCHOFFSET 改成固定偏移，保留所指的时刻。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="本地时间与转换目标" tabindex="0">
+<table class="sql-result"><caption>本地时间与转换目标</caption>
+<thead><tr><th scope="col">东京本地输入</th><th scope="col">目标</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-01T09:00:00</code></td><td><code>UTC</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @local datetime2(0) = &#x27;2025-02-01T09:00:00&#x27;;
+DECLARE @tokyo datetimeoffset(0) = @local AT TIME ZONE &#x27;Tokyo Standard Time&#x27;;
+
+SELECT DATEPART(tzoffset, @tokyo) AS tokyo_offset_minutes,
+       CONVERT(char(19), CAST(@tokyo AT TIME ZONE &#x27;UTC&#x27; AS datetime2(0)), 126) AS utc_from_zone,
+       CONVERT(char(19), CAST(SWITCHOFFSET(@tokyo, &#x27;+00:00&#x27;) AS datetime2(0)), 126) AS utc_from_offset;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATEPART(tzoffset, @tokyo) AS tokyo_offset_minutes,
+       CONVERT(char(19), CAST(@tokyo AT TIME ZONE &#x27;UTC&#x27; AS datetime2(0)), 126) AS utc_from_zone,
+       CONVERT(char(19), CAST(SWITCHOFFSET(@tokyo, &#x27;+00:00&#x27;) AS datetime2(0)), 126) AS utc_from_offset;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">tokyo_offset_minutes</th><th scope="col">utc_from_zone</th><th scope="col">utc_from_offset</th></tr></thead>
+<tbody>
+<tr><td><code>540</code></td><td><code>2025-02-01T00:00:00</code></td><td><code>2025-02-01T00:00:00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/at-time-zone-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="current-date" class="point" data-dialects="sqlserver">
+<h2>CURRENT_DATE · 查询日期并验证类型</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025+</span></p>
+<p>CURRENT_DATE 直接返回当前数据库系统日期。示例检查结果为 date，因为具体日期会随执行环境变化。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="检查目标" tabindex="0">
+<table class="sql-result"><caption>检查目标</caption>
+<thead><tr><th scope="col">expression</th></tr></thead>
+<tbody>
+<tr><td><code>CURRENT_DATE</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CONVERT(varchar(20), SQL_VARIANT_PROPERTY(CONVERT(sql_variant,CURRENT_DATE), &#x27;BaseType&#x27;)) AS result_type;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CONVERT(varchar(20), SQL_VARIANT_PROPERTY(CONVERT(sql_variant,CURRENT_DATE), &#x27;BaseType&#x27;)) AS result_type;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">result_type</th></tr></thead>
+<tbody>
+<tr><td><code>date</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/current-date-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#bit-money">存储标志和金额</a></li>
+<li><a href="#guid">生成并保存全局唯一标识</a></li>
+<li><a href="#time-types">为日期、时刻和时区偏移选类型</a></li>
+<li><a href="#rowversion">用 rowversion 检查行版本</a></li>
+<li><a href="#variant">sql_variant 保留基础类型</a></li>
+<li><a href="#table-types">保存临时行并定义可复用表结构</a></li>
+<li><a href="#hierarchy">hierarchyid 表示树路径</a></li>
+<li><a href="#spatial">geometry 平面与 geography 地球坐标</a></li>
+<li><a href="#large-objects">XML 与旧大对象类型的替代</a></li>
+<li><a href="#json-type">原生 json 与文本存储</a></li>
+<li><a href="#vector-type">VECTOR 的维度、元素精度与距离</a></li>
+<li><a href="#unicode-collation">Unicode、字节长度与 COLLATE</a></li>
+<li><a href="#null-concat">ISNULL 的类型、COALESCE 与 NULL 拼接</a></li>
+<li><a href="#concat-operators">|| 传播 NULL，CONCAT_WS 跳过 NULL</a></li>
+<li><a href="#date-boundaries">建日期、加减日期与计算边界</a></li>
+<li><a href="#date-buckets">截断日期、分时间桶并取当前日期</a></li>
+<li><a href="#zones">给时间赋时区或切换偏移</a></li>
+<li><a href="#current-date">CURRENT_DATE · 查询日期并验证类型</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="51-sqlserver-analytics.html">← 聚合、窗口与分析函数</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="53-sqlserver-documents.html">JSON、XML、全文、正则和模糊匹配 →</a></nav>
+</main>
+</body>
+</html>

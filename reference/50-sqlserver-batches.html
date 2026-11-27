@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>50 · SQL Server · 批次、名称解析和表达式 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 50 章 · 原生语法</p>
+<h1>SQL Server · 批次、名称解析和表达式</h1>
+<p class="lead">从当前数据库、模式和客户端批次解释脚本行为。再用变量、运算符和类型转换预测每条语句的结果。</p>
+<div class="layout"><article class="content">
+<section id="use-dbo" class="point" data-dialects="sqlserver">
+<h2>USE、dbo 与当前数据库</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 实例</span></p>
+<p>USE 切换当前连接的数据库。dbo 通常是默认回退模式，和数据库名是独立层级。应用查询显式写模式名，减少用户默认模式差异的影响。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="连接上下文" tabindex="0">
+<table class="sql-result"><caption>连接上下文</caption>
+<thead><tr><th scope="col">服务</th><th scope="col">目标数据库</th><th scope="col">目标模式</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Server</code></td><td><code>tempdb</code></td><td><code>dbo</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE [tempdb];
+
+SELECT DB_NAME() AS current_database,
+       SCHEMA_NAME(SCHEMA_ID(N&#x27;dbo&#x27;)) AS schema_name;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DB_NAME() AS current_database,
+       SCHEMA_NAME(SCHEMA_ID(N&#x27;dbo&#x27;)) AS schema_name;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">current_database</th><th scope="col">schema_name</th></tr></thead>
+<tbody>
+<tr><td><code>tempdb</code></td><td><code>dbo</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">在练习连接中执行。Azure SQL Database 切换到另一个数据库时应重新连接。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/use-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="object-names" class="point" data-dialects="sqlserver">
+<h2>两段、三段和四段对象名</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>两段名写模式.对象。三段名多一个数据库。四段名进一步限定服务器，例如已配置且有权限的 [lab_link].[Sales].[dbo].[Orders]。实际远端查询还取决于链接服务器与账号映射。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="要拆分的四段对象名" tabindex="0">
+<table class="sql-result"><caption>要拆分的四段对象名</caption>
+<thead><tr><th scope="col">qualified_name</th></tr></thead>
+<tbody>
+<tr><td><code>lab_link.Sales.dbo.Orders</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT PARSENAME(q.name, 4) AS server_part, PARSENAME(q.name, 3) AS db_part,
+       PARSENAME(q.name, 2) AS schema_part, PARSENAME(q.name, 1) AS object_part
+FROM (VALUES (N&#x27;lab_link.Sales.dbo.Orders&#x27;)) AS q(name);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT PARSENAME(q.name, 4) AS server_part, PARSENAME(q.name, 3) AS db_part,
+       PARSENAME(q.name, 2) AS schema_part, PARSENAME(q.name, 1) AS object_part
+FROM (VALUES (N&#x27;lab_link.Sales.dbo.Orders&#x27;)) AS q(name);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">server_part</th><th scope="col">db_part</th><th scope="col">schema_part</th><th scope="col">object_part</th></tr></thead>
+<tbody>
+<tr><td><code>lab_link</code></td><td><code>Sales</code></td><td><code>dbo</code></td><td><code>Orders</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">PARSENAME 只拆名称。本例无需配置链接服务器，也不检查该对象是否存在。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/parsename-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="qualified-read" class="point" data-dialects="sqlserver">
+<h2>用三段对象名跨库读取</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>本例以三段名读取同实例 tempdb 的目录视图。切换到 tempdb 后，可把 FROM 改为 [sys].[schemas] 得到同一结果。省略模式的裸名会进入默认模式查找流程。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="同实例已存在的目录视图" tabindex="0">
+<table class="sql-result"><caption>同实例已存在的目录视图</caption>
+<thead><tr><th scope="col">database</th><th scope="col">schema</th><th scope="col">object</th><th scope="col">name 筛选</th></tr></thead>
+<tbody>
+<tr><td><code>tempdb</code></td><td><code>sys</code></td><td><code>schemas</code></td><td><code>dbo</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT name AS schema_name
+FROM [tempdb].[sys].[schemas]
+WHERE name = N&#x27;dbo&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name AS schema_name
+FROM [tempdb].[sys].[schemas]
+WHERE name = N&#x27;dbo&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">schema_name</th></tr></thead>
+<tbody>
+<tr><td><code>dbo</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="quoted-identifier" class="point" data-dialects="sqlserver">
+<h2>方括号和 QUOTED_IDENTIFIER</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>方括号允许保留字和特殊字符成为标识符。标识符内的右方括号写两次。QUOTED_IDENTIFIER ON 让双引号包裹标识符，字符串仍写单引号。该选项在解析阶段生效，创建过程时会保存设置。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="派生表输入" tabindex="0">
+<table class="sql-result"><caption>派生表输入</caption>
+<thead><tr><th scope="col">order</th><th scope="col">close]bracket</th></tr></thead>
+<tbody>
+<tr><td><code>41</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET QUOTED_IDENTIFIER ON;
+
+SELECT v.[order] AS &quot;order label&quot;, v.[close]]bracket] AS [escaped bracket]
+FROM (VALUES (41, 7)) AS v([order], [close]]bracket]);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT v.[order] AS &quot;order label&quot;, v.[close]]bracket] AS [escaped bracket]
+FROM (VALUES (41, 7)) AS v([order], [close]]bracket]);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order label</th><th scope="col">escaped bracket</th></tr></thead>
+<tbody>
+<tr><td><code>41</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">方括号标识符的解释与该选项无关。OFF 时双引号可以包字符串。索引视图和计算列索引要求 ON。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-quoted-identifier-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="unicode-literal" class="point" data-dialects="sqlserver">
+<h2>N&#x27;…&#x27; Unicode 字符串</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>N 前缀使字面量按 Unicode 处理。普通字符串会先按数据库代码页解释，能否保留字符受排序规则等设置影响。向 nvarchar 列写 Unicode 文本时，在字面量上显式加 N。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="SQL 字面量" tabindex="0">
+<table class="sql-result"><caption>SQL 字面量</caption>
+<thead><tr><th scope="col">unicode_literal</th><th scope="col">plain_literal</th><th scope="col">unicode_label</th></tr></thead>
+<tbody>
+<tr><td><code>N&#x27;A&#x27;</code></td><td><code>&#x27;A&#x27;</code></td><td><code>N&#x27;订单&#x27;</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT SQL_VARIANT_PROPERTY(N&#x27;A&#x27;, &#x27;BaseType&#x27;) AS n_type,
+       SQL_VARIANT_PROPERTY(&#x27;A&#x27;, &#x27;BaseType&#x27;) AS plain_type,
+       DATALENGTH(N&#x27;A&#x27;) AS n_bytes, DATALENGTH(&#x27;A&#x27;) AS plain_bytes,
+       N&#x27;订单&#x27; AS label;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT SQL_VARIANT_PROPERTY(N&#x27;A&#x27;, &#x27;BaseType&#x27;) AS n_type,
+       SQL_VARIANT_PROPERTY(&#x27;A&#x27;, &#x27;BaseType&#x27;) AS plain_type,
+       DATALENGTH(N&#x27;A&#x27;) AS n_bytes, DATALENGTH(&#x27;A&#x27;) AS plain_bytes,
+       N&#x27;订单&#x27; AS label;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">n_type</th><th scope="col">plain_type</th><th scope="col">n_bytes</th><th scope="col">plain_bytes</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>nvarchar</code></td><td><code>varchar</code></td><td><code>2</code></td><td><code>1</code></td><td><code>订单</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/constants-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="declare-set" class="point" data-dialects="sqlserver">
+<h2>DECLARE、SET 与复合赋值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2008+ · 声明时初始化和复合赋值</span></p>
+<p>DECLARE 在当前批次或过程中声明局部变量。可在声明时初始化。未初始化的变量是 NULL。SET 一次改变一个变量，支持 += 这类复合赋值。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="声明后的值" tabindex="0">
+<table class="sql-result"><caption>声明后的值</caption>
+<thead><tr><th scope="col">@n</th><th scope="col">@not_initialized</th><th scope="col">增量</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @n int = 1, @not_initialized int;
+SET @n += 4;
+
+SELECT @n AS n, @not_initialized AS not_initialized;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @n AS n, @not_initialized AS not_initialized;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">n</th><th scope="col">not_initialized</th></tr></thead>
+<tbody>
+<tr><td><code>5</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-local-variable-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="select-assign" class="point" data-dialects="sqlserver">
+<h2>SET 标量赋值、SELECT 赋值和空输入</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>SELECT @v = 列可同时给多个变量赋值。没有行时保留旧值。SET @v = (子查询) 没有行时赋 NULL，多行会报错。SELECT 处理多行时最终取最后返回的值，需要稳定选一行时用含唯一排序条件的 TOP (1)。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个变量的初始值与过滤条件" tabindex="0">
+<table class="sql-result"><caption>两个变量的初始值与过滤条件</caption>
+<thead><tr><th scope="col">@via_set</th><th scope="col">@via_select</th><th scope="col">候选值</th><th scope="col">WHERE 条件</th></tr></thead>
+<tbody>
+<tr><td><code>7</code></td><td><code>7</code></td><td><code>1</code></td><td><code>n &gt; 9</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @via_set int = 7, @via_select int = 7;
+SET @via_set = (SELECT n FROM (VALUES (1)) AS t(n) WHERE n &gt; 9);
+SELECT @via_select = n FROM (VALUES (1)) AS t(n) WHERE n &gt; 9;
+
+SELECT @via_set AS via_set, @via_select AS via_select;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @via_set AS via_set, @via_select AS via_select;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">via_set</th><th scope="col">via_select</th></tr></thead>
+<tbody>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">SELECT @变量 = (标量子查询) 的规则与直接从行中赋值不同，空标量子查询会赋 NULL。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/select-local-variable-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="status-functions" class="point" data-dialects="sqlserver">
+<h2>@@ROWCOUNT 与 @@ERROR</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>这组 @@ 名称是系统函数。@@ROWCOUNT 反映最近语句影响或读取的行数，@@ERROR 反映上一条 T-SQL 语句的错误号。用同一条语句立刻保存或查看所需状态，避免被后续语句更新。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="上一条 SELECT 的来源" tabindex="0">
+<table class="sql-result"><caption>上一条 SELECT 的来源</caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @last int;
+SELECT @last = n FROM (VALUES (1), (2)) AS t(n);
+
+SELECT @@ROWCOUNT AS prior_rowcount, @@ERROR AS prior_error;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @@ROWCOUNT AS prior_rowcount, @@ERROR AS prior_error;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">prior_rowcount</th><th scope="col">prior_error</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">对新写的异常处理流程，优先用 TRY…CATCH 读取 ERROR_NUMBER() 等错误信息。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/rowcount-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="go-batches" class="point" data-dialects="sqlserver">
+<h2>GO 结束客户端批次</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">客户端 · sqlcmd 或 SSMS</span></p>
+<p>sqlcmd 和 SSMS 识别单独一行的 GO，并在发送前拆批。局部变量不能穿过边界。本例两个批次可分别声明同名变量。GO 同一连接内不会自行提交事务。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="批次中的变量" tabindex="0">
+<table class="sql-result"><caption>批次中的变量</caption>
+<thead><tr><th scope="col">批次</th><th scope="col">@n</th></tr></thead>
+<tbody>
+<tr><td><code>第一批</code></td><td><code>3</code></td></tr>
+<tr><td><code>第二批</code></td><td><code>12</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @n int = 3;
+GO
+DECLARE @n int = 12;
+
+SELECT @n AS n;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @n AS n;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>12</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">通过驱动调用时，把 GO 前后 SQL 分成独立批次发送。移除第二个 DECLARE 会让第二批引用未声明变量。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/sql-server-utilities-statements-go?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="sqlcmd-variables" class="point" data-dialects="sqlserver">
+<h2>sqlcmd 的 :setvar 与 $(变量)</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">客户端 · sqlcmd 或 SSMS 的 SQLCMD 模式</span></p>
+<p>sqlcmd 在将批次发给服务器前做文本替换。:setvar 在客户端定义脚本变量，亦可用 sqlcmd -v 提供。脚本传入的业务值应使用数据库驱动的参数绑定。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="客户端替换值" tabindex="0">
+<table class="sql-result"><caption>客户端替换值</caption>
+<thead><tr><th scope="col">脚本变量</th><th scope="col">文本</th></tr></thead>
+<tbody>
+<tr><td><code>Qty</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>:setvar Qty 7
+
+SELECT $(Qty) + 1 AS next_qty;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT $(Qty) + 1 AS next_qty;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">next_qty</th></tr></thead>
+<tbody>
+<tr><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">客户端发给服务器的 SQL 为 SELECT 7 + 1 AS next_qty;</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-use-scripting-variables?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="operator-precedence" class="point" data-dialects="sqlserver">
+<h2>运算符优先级与括号</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>乘法比加法先算。位与和加法优先级相同，按从左到右解释。逻辑表达式先计算 AND，再计算 OR。用括号明确表达想要的顺序。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="参与运算的整数" tabindex="0">
+<table class="sql-result"><caption>参与运算的整数</caption>
+<thead><tr><th scope="col">a</th><th scope="col">b</th><th scope="col">c</th><th scope="col">bits_a</th><th scope="col">bits_b</th><th scope="col">delta</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>3</code></td><td><code>4</code></td><td><code>6</code></td><td><code>3</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT 2 + 3 * 4 AS product_first, (2 + 3) * 4 AS addition_first,
+       6 &amp; 3 + 1 AS bits_then_add, 6 &amp; (3 + 1) AS add_then_bits;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT 2 + 3 * 4 AS product_first, (2 + 3) * 4 AS addition_first,
+       6 &amp; 3 + 1 AS bits_then_add, 6 &amp; (3 + 1) AS add_then_bits;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_first</th><th scope="col">addition_first</th><th scope="col">bits_then_add</th><th scope="col">add_then_bits</th></tr></thead>
+<tbody>
+<tr><td><code>14</code></td><td><code>20</code></td><td><code>3</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="data-precedence" class="point" data-dialects="sqlserver">
+<h2>类型优先级改变 + 的含义</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>混合数据类型的运算中，通常把低优先级的一侧转换成较高优先级类型。int 比 varchar 优先，所以第一列表达式做加法。显式转成同类字符后，第二列表达式拼接字符串。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="操作数" tabindex="0">
+<table class="sql-result"><caption>操作数</caption>
+<thead><tr><th scope="col">文本</th><th scope="col">整数</th></tr></thead>
+<tbody>
+<tr><td><code>12</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT &#x27;12&#x27; + 5 AS as_number,
+       &#x27;12&#x27; + CAST(5 AS varchar(2)) AS as_text;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;12&#x27; + 5 AS as_number,
+       &#x27;12&#x27; + CAST(5 AS varchar(2)) AS as_text;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">as_number</th><th scope="col">as_text</th></tr></thead>
+<tbody>
+<tr><td><code>17</code></td><td><code>125</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">若把 &#x27;12&#x27; 换成 &#x27;abc&#x27;，隐式转 int 会失败。带类型的参数也影响这种转换。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-type-precedence-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="cast-convert" class="point" data-dialects="sqlserver">
+<h2>CAST、CONVERT 与日期 style</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>CAST 的目标类型跟在 AS 后。CONVERT 先写目标类型，可带 style 控制输入或输出表示。style 112 对应紧凑的年月日，style 23 输出带连字符的 ISO 日期。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待转换的常量" tabindex="0">
+<table class="sql-result"><caption>待转换的常量</caption>
+<thead><tr><th scope="col">amount</th><th scope="col">date_text</th></tr></thead>
+<tbody>
+<tr><td><code>12.506</code></td><td><code>20250214</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CAST(12.506 AS decimal(5,2)) AS amount,
+       CONVERT(char(10), CONVERT(date, &#x27;20250214&#x27;, 112), 23) AS iso_date;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CAST(12.506 AS decimal(5,2)) AS amount,
+       CONVERT(char(10), CONVERT(date, &#x27;20250214&#x27;, 112), 23) AS iso_date;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">amount</th><th scope="col">iso_date</th></tr></thead>
+<tbody>
+<tr><td><code>12.51</code></td><td><code>2025-02-14</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/cast-and-convert-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="try-conversions" class="point" data-dialects="sqlserver">
+<h2>TRY_CAST、TRY_CONVERT 与转换失败</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+</span></p>
+<p>格式或取值不合适时，TRY_CAST 和 TRY_CONVERT 通常返回 NULL，可在数据清洗中保留这一行。显式不允许的类型对仍会报错，例如 int 转 xml。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入常量" tabindex="0">
+<table class="sql-result"><caption>输入常量</caption>
+<thead><tr><th scope="col">valid_int</th><th scope="col">invalid_int</th><th scope="col">valid_date</th><th scope="col">invalid_date</th></tr></thead>
+<tbody>
+<tr><td><code>18</code></td><td><code>x</code></td><td><code>20250214</code></td><td><code>bad</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT TRY_CAST(&#x27;18&#x27; AS int) AS valid_int,
+       TRY_CAST(&#x27;x&#x27; AS int) AS invalid_int,
+       TRY_CONVERT(date, &#x27;20250214&#x27;, 112) AS valid_date,
+       TRY_CONVERT(date, &#x27;bad&#x27;, 112) AS invalid_date;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT TRY_CAST(&#x27;18&#x27; AS int) AS valid_int,
+       TRY_CAST(&#x27;x&#x27; AS int) AS invalid_int,
+       TRY_CONVERT(date, &#x27;20250214&#x27;, 112) AS valid_date,
+       TRY_CONVERT(date, &#x27;bad&#x27;, 112) AS invalid_date;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">valid_int</th><th scope="col">invalid_int</th><th scope="col">valid_date</th><th scope="col">invalid_date</th></tr></thead>
+<tbody>
+<tr><td><code>18</code></td><td class="sql-null"><code>NULL</code></td><td><code>2025-02-14</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">TRY_CAST 适用于所有兼容级别。TRY_CONVERT 从兼容级别 110 起是保留关键字。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/try-convert-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="culture-parse" class="point" data-dialects="sqlserver">
+<h2>PARSE 与 TRY_PARSE 的区域规则</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+ · 依赖 CLR</span></p>
+<p>PARSE 和 TRY_PARSE 适合按区域习惯读取数字或日期文本。指定 USING 固定解释规则。TRY_PARSE 在文本无法解析时返回 NULL。两者依赖 CLR，不能远程下推。固定交换格式优先用 CONVERT 的样式号。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="区域化输入" tabindex="0">
+<table class="sql-result"><caption>区域化输入</caption>
+<thead><tr><th scope="col">date_en_gb</th><th scope="col">amount_de_de</th><th scope="col">bad_date</th></tr></thead>
+<tbody>
+<tr><td><code>31/12/2025</code></td><td><code>1,25</code></td><td><code>not a date</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT PARSE(N&#x27;31/12/2025&#x27; AS date USING &#x27;en-GB&#x27;) AS day_value,
+       PARSE(N&#x27;1,25&#x27; AS decimal(5,2) USING &#x27;de-DE&#x27;) AS amount,
+       TRY_PARSE(N&#x27;not a date&#x27; AS date USING &#x27;en-GB&#x27;) AS failed_parse;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT PARSE(N&#x27;31/12/2025&#x27; AS date USING &#x27;en-GB&#x27;) AS day_value,
+       PARSE(N&#x27;1,25&#x27; AS decimal(5,2) USING &#x27;de-DE&#x27;) AS amount,
+       TRY_PARSE(N&#x27;not a date&#x27; AS date USING &#x27;en-GB&#x27;) AS failed_parse;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">day_value</th><th scope="col">amount</th><th scope="col">failed_parse</th></tr></thead>
+<tbody>
+<tr><td><code>2025-12-31</code></td><td><code>1.25</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/parse-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#use-dbo">USE 切换当前库并定位 dbo 中的表</a></li>
+<li><a href="#object-names">用限定名定位模式、库或远端对象</a></li>
+<li><a href="#qualified-read">用三段对象名跨库读取</a></li>
+<li><a href="#quoted-identifier">引用保留字或带空格的对象名</a></li>
+<li><a href="#unicode-literal">用 N 前缀保留 Unicode 文本</a></li>
+<li><a href="#declare-set">声明变量并更新变量的值</a></li>
+<li><a href="#select-assign">SET 标量赋值、SELECT 赋值和空输入</a></li>
+<li><a href="#status-functions">读取上一条语句的影响行数和错误码</a></li>
+<li><a href="#go-batches">GO 结束客户端批次</a></li>
+<li><a href="#sqlcmd-variables">sqlcmd 的 :setvar 与 $(变量)</a></li>
+<li><a href="#operator-precedence">运算符优先级与括号</a></li>
+<li><a href="#data-precedence">类型优先级改变 + 的含义</a></li>
+<li><a href="#cast-convert">转换类型并指定日期格式</a></li>
+<li><a href="#try-conversions">TRY_CAST、TRY_CONVERT 与转换失败</a></li>
+<li><a href="#culture-parse">PARSE 与 TRY_PARSE 的区域规则</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="38-sqlserver-design.html">← 历史版本、并发与索引</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="51-sqlserver-analytics.html">聚合、窗口与分析函数 →</a></nav>
+</main>
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>附录速查 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">附录 A–E · 原书第 212–231 页</p>
+<h1>附录速查</h1>
+<p class="lead" data-dialects="mysql">在这里查练习环境、表关系、常用语句与类型。原书附录 A–E 对应下面各节。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-types"><h2>附录 A · 安装与验证</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>安装当前的 MySQL Community Server LTS 与 mysql 客户端，启动服务后连接。<a href="mysql-versions.html#releases">核对当前正式版本</a>。已有 8.4 LTS 环境仍可运行基础示例。下例按本地 TCP 配置填写账号、地址、端口。完整初始化步骤见页首「五分钟上手」。</p>
+<figure><figcaption>系统终端</figcaption><pre><code data-kind="bash">mysql --version
+mysql -h 127.0.0.1 -P 3306 -u root -p -e &quot;SELECT VERSION()&quot;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　终端已安装客户端，本机指定 TCP 地址有可连接的服务。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>mysql --version</code><span class="sql-caption-context">版本示例</span></span></caption>
+<thead><tr><th scope="col">来源</th><th scope="col">版本</th></tr></thead>
+<tbody>
+<tr><td><code>客户端</code></td><td><code>9.7.4</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT VERSION();</code><span class="sql-caption-context">版本示例</span></span></caption>
+<thead><tr><th scope="col">来源</th><th scope="col">版本</th></tr></thead>
+<tbody>
+<tr><td><code>连接的服务器</code></td><td><code>9.7.4</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　分别显示客户端版本和已连接的服务器版本。</p>
+<p class="outcome">第一行显示本机客户端版本，第二行显示当前服务器版本。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-types"><h2>附录 B · 样例数据与关系</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>原书用 vendors、products、customers、orders、orderitems、productnotes。笔记使用独立的小型订单库，订单明细为 order_items，全文文档为 docs，商品直接按 category 分组。若跟做原书，按作者页下载脚本到另一练习库。先执行 create.sql 建表，再执行 populate.sql 填充。旧脚本面向早期 MySQL，使用前核对 8.4 兼容性。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SHOW TABLES;
+SHOW CREATE TABLE order_items;
+SELECT order_id, product_id, qty
+FROM order_items WHERE order_id = 101 ORDER BY product_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="order_items · 相关行" tabindex="0">
+<table class="sql-result"><caption>order_items · 相关行</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>4</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SHOW TABLES;</code></span></caption>
+<thead><tr><th scope="col">Tables_in_learn_sql_lab</th></tr></thead>
+<tbody>
+<tr><td><code>customers</code></td></tr>
+<tr><td><code>docs</code></td></tr>
+<tr><td><code>order_items</code></td></tr>
+<tr><td><code>orders</code></td></tr>
+<tr><td><code>products</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SHOW CREATE TABLE order_items;</code></span></caption>
+<thead><tr><th scope="col">Table</th><th scope="col">Create Table</th></tr></thead>
+<tbody>
+<tr><td><code>order_items</code></td><td><code>CREATE TABLE `order_items` (
+  `order_id` int NOT NULL,
+  `product_id` int NOT NULL,
+  `qty` int NOT NULL,
+  `unit_price` decimal(8,2) NOT NULL,
+  PRIMARY KEY (`order_id`,`product_id`),
+  KEY `fk_items_product` (`product_id`),
+  CONSTRAINT `fk_items_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`),
+  CONSTRAINT `fk_items_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`),
+  CONSTRAINT `order_items_chk_1` CHECK ((`qty` &gt; 0))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT order_id, product_id, qty FROM order_items WHERE order_id = 101 ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>101</code></td><td class="sql-number"><code>4</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　练习库初始有 5 张基础表，订单 101 的明细有商品 1、4。</p><p><strong>执行后</strong>　SHOW TABLES 会列出基础表与已创建的练习对象。明细建表定义显示两个外键和组合主键。取回 <code>(101,1,2)</code>、<code>(101,4,1)</code>。</p>
+<p class="outcome">初始五张表。订单 101 有两条明细 (101,1,2) 和 (101,4,1)，定义显示两个外键，以及由 order_id 和 product_id 组成的主键。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-types"><h2>附录 C · 查询与写入模板</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>读语法图例时，[项] 表示可选，A | B 表示二选一。写查询时用显式列名、筛选和确定性排序。INSERT…SELECT 的目标列由查询按位置填充。UPDATE 和 DELETE 用相同的 WHERE 预览目标。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch31_copy (id INT PRIMARY KEY, label VARCHAR(60));
+INSERT INTO ch31_copy (id, label) VALUES (1, &#x27;Draft&#x27;);
+INSERT INTO ch31_copy (id, label)
+SELECT product_id, name FROM products WHERE product_id = 2;
+UPDATE ch31_copy SET label = &#x27;Ready&#x27; WHERE id = 1;
+DELETE FROM ch31_copy WHERE id = 2;
+SELECT id, label FROM ch31_copy ORDER BY id;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="临时表中的行 · ch31_copy" tabindex="0">
+<table class="sql-result"><caption>临时表中的行 · ch31_copy</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>第一次插入后</code></td><td class="sql-number"><code>1</code></td><td><code>Draft</code></td></tr>
+<tr><td><code>复制来源行后</code></td><td class="sql-number"><code>1</code></td><td><code>Draft</code></td></tr>
+<tr><td><code>复制来源行后</code></td><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td></tr>
+<tr><td><code>更新和删除后</code></td><td class="sql-number"><code>1</code></td><td><code>Ready</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, label FROM ch31_copy ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Ready</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　复制用的临时表起初为空，源商品 2 是 SQL Practice。</p><p><strong>执行后</strong>　插入两行后，编号 1 改成 Ready，编号 2 删除，最终只有 <code>1 | Ready</code>。</p>
+<p class="outcome">最后是 1、Ready。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-types"><h2>附录 C · 事务、表结构与对象入口</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>事务常用 START TRANSACTION、SAVEPOINT、ROLLBACK 和 COMMIT。表结构常用 CREATE TABLE、ALTER TABLE、CREATE INDEX 与 DROP。创建 VIEW、PROCEDURE 和 USER 的最小例见第 22、23、28 章。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch31_flags (id INT PRIMARY KEY) ENGINE=InnoDB;
+ALTER TABLE ch31_flags ADD COLUMN label VARCHAR(20);
+CREATE INDEX idx_label ON ch31_flags (label);
+START TRANSACTION;
+INSERT INTO ch31_flags VALUES (1, &#x27;keep&#x27;);
+SAVEPOINT written;
+INSERT INTO ch31_flags VALUES (2, &#x27;undo&#x27;);
+ROLLBACK TO SAVEPOINT written;
+COMMIT;
+SELECT id, label FROM ch31_flags;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="保存点前后的数据 · ch31_flags" tabindex="0">
+<table class="sql-result"><caption>保存点前后的数据 · ch31_flags</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>设保存点前</code></td><td class="sql-number"><code>1</code></td><td><code>keep</code></td></tr>
+<tr><td><code>第二次插入后</code></td><td class="sql-number"><code>1</code></td><td><code>keep</code></td></tr>
+<tr><td><code>第二次插入后</code></td><td class="sql-number"><code>2</code></td><td><code>undo</code></td></tr>
+<tr><td><code>回滚至保存点并提交后</code></td><td class="sql-number"><code>1</code></td><td><code>keep</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, label FROM ch31_flags;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>keep</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　临时表起初为空。新增列和索引后才开始事务。</p><p><strong>执行后</strong>　保存点之后的 <code>2 | undo</code> 被撤销，只提交了 <code>1 | keep</code>。</p>
+<p class="outcome">只有 1、keep。可用如下语句删除本章临时表。表结构语句先独立运行，避免把 DDL 的隐式提交混入事务示例。</p>
+</details>
+</div>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code data-kind="sql-manual">DROP TEMPORARY TABLE IF EXISTS ch31_flags;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="表状态" tabindex="0">
+<table class="sql-result"><caption>表状态</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">ch31_flags</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>本会话内存在</code></td></tr>
+<tr><td><code>执行后</code></td><td><code>已移除</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　当前会话有临时表 <code>ch31_flags</code>，里面有一行。</p><p><strong>执行后</strong>　删除之后，此会话无法再查到该表。</p>
+<p class="outcome">当前会话无法再查询 ch31_flags。</p>
+</details>
+</div></section>
+<section id="p5" class="point" data-dialects="mysql" data-alternate-anchor="dial-types"><h2>附录 D · 字符串、二进制与枚举</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>CHAR 定长、VARCHAR 变长、TEXT 系列适合长文本。VARCHAR(n) 的 n 按字符数计，实际还受行长度的字节限制。TEXT 和 BLOB 各有 TINY、普通、MEDIUM、LONG 四档，按字节容量区分。BINARY、VARBINARY、BLOB 系列处理字节。ENUM 从预设值中选一个，SET 能选多个。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch31_strings (
+  fixed_code CHAR(2), label VARCHAR(50), memo TEXT,
+  fixed_bytes BINARY(2), payload VARBINARY(8), image_bytes BLOB,
+  status ENUM(&#x27;new&#x27;,&#x27;done&#x27;), tag SET(&#x27;book&#x27;,&#x27;gift&#x27;)
+);
+INSERT INTO ch31_strings VALUES
+  (&#x27;CN&#x27;, &#x27;备注&#x27;, &#x27;long text&#x27;, X&#x27;41&#x27;, X&#x27;0041&#x27;, X&#x27;CAFE&#x27;, &#x27;new&#x27;, &#x27;gift,book&#x27;);
+SELECT fixed_code, CHAR_LENGTH(label), HEX(fixed_bytes), HEX(payload),
+       HEX(image_bytes), status, tag FROM ch31_strings;
+SELECT &#x27;01234&#x27; AS postal_code, CAST(&#x27;01234&#x27; AS UNSIGNED) AS numeric_value;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　输入有单字节的 <code>X&#x27;41&#x27;</code>、两个原样字节 <code>X&#x27;0041&#x27;</code>、集合 <code>gift,book</code> 和文本邮编 <code>01234</code>。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT fixed_code, CHAR_LENGTH(label), HEX(fixed_bytes), HEX(payload), HEX(image_bytes), status, tag FROM ch31_strings;</code></span></caption>
+<thead><tr><th scope="col">fixed_code</th><th scope="col">CHAR_LENGTH(label)</th><th scope="col">HEX(fixed_bytes)</th><th scope="col">HEX(payload)</th><th scope="col">HEX(image_bytes)</th><th scope="col">status</th><th scope="col">tag</th></tr></thead>
+<tbody>
+<tr><td><code>CN</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>4100</code></td><td class="sql-number"><code>0041</code></td><td><code>CAFE</code></td><td><code>new</code></td><td><code>book,gift</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT &#x27;01234&#x27; AS postal_code, CAST(&#x27;01234&#x27; AS UNSIGNED) AS numeric_value;</code></span></caption>
+<thead><tr><th scope="col">postal_code</th><th scope="col">numeric_value</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>01234</code></td><td class="sql-number"><code>1234</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　定长二进制补为 <code>4100</code>，变长保持 <code>0041</code>，BLOB 为 <code>CAFE</code>，枚举为 new，集合重排为 <code>book,gift</code>。数值邮编变为 <code>1234</code>。</p>
+<p class="outcome">得到 CN、2、4100、0041、CAFE、new、book,gift。SET 按声明顺序返回成员。邮编保留作字符串时为 01234，转成数值后为 1234。</p>
+</details>
+</div></section>
+<section id="p6" class="point" data-dialects="mysql" data-alternate-anchor="dial-types"><h2>附录 D · 数值与精度</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>按范围选择 TINYINT、SMALLINT、MEDIUMINT、INT、BIGINT，UNSIGNED 改变整数可取范围。DECIMAL 适合精确小数，FLOAT 和 DOUBLE 是近似数。BIT 可存指定位数。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch31_amounts (
+  item_count INT UNSIGNED, money DECIMAL(8,2), estimate DOUBLE, flags BIT(3)
+);
+INSERT INTO ch31_amounts VALUES (2, 0.10 + 0.20, 0.10, b&#x27;101&#x27;);
+SELECT item_count, money, ROUND(estimate, 2), flags + 0 FROM ch31_amounts;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　精确小数相加的输入是 <code>0.10 + 0.20</code>，位值为二进制 101。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT item_count, money, ROUND(estimate, 2), flags + 0 FROM ch31_amounts;</code></span></caption>
+<thead><tr><th scope="col">item_count</th><th scope="col">money</th><th scope="col">ROUND(estimate, 2)</th><th scope="col">flags + 0</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>0.30</code></td><td class="sql-number"><code>0.1</code></td><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　行返回 <code>2 | 0.30 | 0.1 | 5</code>。</p>
+<p class="outcome">返回 2、0.30、舍入后显示为 0.1、5。</p>
+</details>
+</div></section>
+<section id="p7" class="point" data-dialects="mysql" data-alternate-anchor="dial-types"><h2>附录 D · 日期、时间与时区</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>DATE 存日期，TIME 存时间或时长，YEAR 存年。DATETIME 保留日历时间值，TIMESTAMP 在写入与读取时按会话时区转换，适合表达一个时点。需要保留时区标识可另存字段。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT CAST(&#x27;2025-02-01&#x27; AS DATE), CAST(&#x27;09:00:00&#x27; AS TIME), CAST(&#x27;2025&#x27; AS YEAR);
+CREATE TEMPORARY TABLE ch31_times (local_time DATETIME, instant TIMESTAMP);
+SET @previous_zone = @@session.time_zone;
+SET time_zone = &#x27;+00:00&#x27;;
+INSERT INTO ch31_times VALUES (&#x27;2025-02-01 09:00:00&#x27;, &#x27;2025-02-01 09:00:00&#x27;);
+SET time_zone = &#x27;+09:00&#x27;;
+SELECT local_time, instant FROM ch31_times;
+SET time_zone = @previous_zone;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="时区变化" tabindex="0">
+<table class="sql-result"><caption>时区变化</caption>
+<thead><tr><th scope="col">会话时区</th><th scope="col">local_time（DATETIME）</th><th scope="col">instant（TIMESTAMP）</th></tr></thead>
+<tbody>
+<tr><td><code>+00:00（写入）</code></td><td><code>2025-02-01 09:00:00</code></td><td><code>2025-02-01 09:00:00</code></td></tr>
+<tr><td><code>+09:00（读取）</code></td><td><code>2025-02-01 09:00:00</code></td><td><code>2025-02-01 18:00:00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT CAST(&#x27;2025-02-01&#x27; AS DATE), CAST(&#x27;09:00:00&#x27; AS TIME), CAST(&#x27;2025&#x27; AS YEAR);</code></span></caption>
+<thead><tr><th scope="col">CAST(&#x27;2025-02-01&#x27; AS DATE)</th><th scope="col">CAST(&#x27;09:00:00&#x27; AS TIME)</th><th scope="col">CAST(&#x27;2025&#x27; AS YEAR)</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-01</code></td><td><code>09:00:00</code></td><td class="sql-number"><code>2025</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT local_time, instant FROM ch31_times;</code></span></caption>
+<thead><tr><th scope="col">local_time</th><th scope="col">instant</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-01 09:00:00</code></td><td><code>2025-02-01 18:00:00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　写入时区为 +00:00，DATETIME 与 TIMESTAMP 均写入同一文本 <code>2025-02-01 09:00:00</code>。</p><p><strong>执行后</strong>　转到 +09:00 读取时，DATETIME 仍为 09:00:00，TIMESTAMP 变为 18:00:00。常量转换另得日期、时间和年份。</p>
+<p class="outcome">第一条得到日期 2025-02-01、时间 09:00:00 和年份 2025。时区切换后 local_time 仍是 09:00:00，instant 显示 18:00:00。最后恢复本次连接的时区。</p>
+</details>
+</div></section>
+<section id="p8" class="point" data-dialects="mysql" data-alternate-anchor="dial-quote"><h2>附录 E · 关键字和标识符</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>关键字不全都保留。用 INFORMATION_SCHEMA.KEYWORDS 查服务器实际状态。必须使用保留字作标识符时加反引号，设计新表时优先选清楚的业务名。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT WORD, RESERVED FROM information_schema.KEYWORDS
+WHERE WORD IN (&#x27;SELECT&#x27;, &#x27;WINDOW&#x27;) ORDER BY WORD;
+SELECT 1 AS `select`;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　两个词待查：SELECT、WINDOW。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT WORD, RESERVED FROM information_schema.KEYWORDS WHERE WORD IN (&#x27;SELECT&#x27;, &#x27;WINDOW&#x27;) ORDER BY WORD;</code></span></caption>
+<thead><tr><th scope="col">WORD</th><th scope="col">RESERVED</th></tr></thead>
+<tbody>
+<tr><td><code>SELECT</code></td><td class="sql-number"><code>1</code></td></tr>
+<tr><td><code>WINDOW</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT 1 AS `select`;</code></span></caption>
+<thead><tr><th scope="col">select</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　两词的 RESERVED 都为 <code>1</code>。反引号使列别名 <code>select</code> 可用，值为 <code>1</code>。</p>
+<p class="outcome">在 8.4 中 SELECT、WINDOW 的 RESERVED 均为 1。第二条的列名为 select，值为 1。</p>
+</details>
+</div></section>
+<section id="dial-types" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>整数、精确数值、日期与带时区值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>金额建议使用精确数值。PostgreSQL 的 timestamptz 按会话时区呈现时点，SQL Server 的 datetimeoffset 保存时点与偏移。日期类型按业务选择。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待转换的字面量" tabindex="0">
+<table class="sql-result"><caption>待转换的字面量</caption><thead><tr><th scope="col">日期</th><th scope="col">金额</th><th scope="col">带偏移的时间</th></tr></thead>
+<tbody><tr><td><code>2025-02-01</code></td><td><code>12.345</code></td><td><code>2025-02-01 09:00:00 +09:00</code></td></tr></tbody></table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SET TIME ZONE &#x27;UTC&#x27;;
+SELECT CAST(&#x27;2025-02-01&#x27; AS date) AS day_value,
+       CAST(12.345 AS numeric(8,2)) AS amount,
+       TIMESTAMPTZ &#x27;2025-02-01 09:00:00+09:00&#x27; AS instant;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CAST(&#x27;2025-02-01&#x27; AS date) AS day_value, CAST(12.345 AS numeric(8,2)) AS amount, TIMESTAMPTZ &#x27;2025-02-01 09:00:00+09:00&#x27; AS instant;</code></span></caption>
+<thead><tr><th scope="col">day_value</th><th scope="col">amount</th><th scope="col">instant</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-01</code></td><td class="sql-number"><code>12.35</code></td><td><code>2025-02-01 00:00:00+00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CAST(&#x27;20250201&#x27; AS date) AS day_value,
+       CAST(12.345 AS decimal(8,2)) AS amount,
+       SWITCHOFFSET(CAST(&#x27;2025-02-01T09:00:00+09:00&#x27; AS datetimeoffset(0)),&#x27;+00:00&#x27;) AS instant;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CAST(&#x27;20250201&#x27; AS date) AS day_value, CAST(12.345 AS decimal(8,2)) AS amount, SWITCHOFFSET(CAST(&#x27;2025-02-01T09:00:00+09:00&#x27; AS datetimeoffset(0)),&#x27;+00:00&#x27;) AS instant;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">day_value</th><th scope="col">amount</th><th scope="col">instant</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-01</code></td><td class="sql-number"><code>12.35</code></td><td><code>2025-02-01 00:00:00 +00:00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/datatype-datetime.html">PostgreSQL 日期类型</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/date-and-time-types">SQL Server 日期和时间类型</a></p>
+</section>
+<section id="dial-quote" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p8">
+<h2>标识符引号与保留字</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>给保留词当列名时，PostgreSQL 用双引号，SQL Server 常用方括号。命名新对象时优先选清楚的非保留名称。字符串仍用单引号。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待命名的结果列" tabindex="0">
+<table class="sql-result"><caption>待命名的结果列</caption><thead><tr><th scope="col">关键字用作列名</th><th scope="col">值</th></tr></thead>
+<tbody><tr><td><code>select</code></td><td><code>1</code></td></tr></tbody></table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT 1 AS &quot;select&quot;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT 1 AS &quot;select&quot;;</code></span></caption>
+<thead><tr><th scope="col">select</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT 1 AS [select];</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT 1 AS [select];</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">select</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-syntax-lexical.html">PostgreSQL 词法结构</a> · <a href="https://learn.microsoft.com/en-us/sql/relational-databases/databases/database-identifiers">SQL Server 标识符</a></p>
+</section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/installing.html">安装</a> · <a href="https://forta.com/books/0672327120">作者配套材料</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/sql-statements.html">SQL 语句</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/data-types.html">数据类型</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/keywords.html">关键字</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="mysql"><a href="#p1">验证数据库安装和连接</a></li><li data-dialects="mysql"><a href="#p2">查看练习表和表之间的关系</a></li><li data-dialects="mysql"><a href="#p3">查找查询和写入语句模板</a></li><li data-dialects="mysql"><a href="#p4">查找事务、表结构和对象操作</a></li><li data-dialects="mysql"><a href="#p5">选择文本、字节或枚举类型</a></li><li data-dialects="mysql"><a href="#p6">选择数值类型与小数精度</a></li><li data-dialects="mysql"><a href="#p7">选择日期时间类型并处理时区</a></li><li data-dialects="mysql"><a href="#p8">检查保留字并引用标识符</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-types">存储整数、精确金额与带时区时间</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-quote">标识符引号与保留字</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="30-performance.html">← 改善性能</a><a href="../v1.html">章节目录</a><a rel="next" href="32-modern-sql.html">现代 SQL 与工程实践 →</a></nav>
+</main>
+</body></html>

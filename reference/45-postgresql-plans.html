@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>45 · PostgreSQL · 索引、统计和执行计划 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 45 章 · 原生语法</p>
+<h1>PostgreSQL · 索引、统计和执行计划</h1>
+<p class="lead">用小表对比索引的搜索能力，查清统计和实际计划。除并发建索引例外，示例使用会话临时表或只读查询。</p>
+<div class="layout"><article class="content">
+<section id="pg-index-types" class="point" data-dialects="postgresql">
+<h2>B-tree 适合排序和范围，Hash 适合等值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>常规 B-tree 支持等值、范围和有序访问。Hash 只支持等值条件。两种都可建在同一列，优化器按成本决定是否使用。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待索引列" tabindex="0">
+<table class="sql-result"><caption>待索引列</caption>
+<thead><tr><th scope="col">列</th><th scope="col">候选方法</th></tr></thead>
+<tbody>
+<tr><td><code>code</code></td><td><code>btree</code></td></tr>
+<tr><td><code>code</code></td><td><code>hash</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg45_keys (code int);
+CREATE INDEX pg45_code_btree ON pg45_keys (code);
+CREATE INDEX pg45_code_hash ON pg45_keys USING hash (code);
+
+SELECT c.relname AS index_name, am.amname AS method
+FROM pg_catalog.pg_index AS i
+JOIN pg_catalog.pg_class AS c ON c.oid = i.indexrelid
+JOIN pg_catalog.pg_am AS am ON am.oid = c.relam
+WHERE i.indrelid = &#x27;pg45_keys&#x27;::regclass
+ORDER BY c.relname;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT c.relname AS index_name, am.amname AS method
+FROM pg_catalog.pg_index AS i
+JOIN pg_catalog.pg_class AS c ON c.oid = i.indexrelid
+JOIN pg_catalog.pg_am AS am ON am.oid = c.relam
+WHERE i.indrelid = &#x27;pg45_keys&#x27;::regclass
+ORDER BY c.relname;</code></span></caption>
+<thead><tr><th scope="col">index_name</th><th scope="col">method</th></tr></thead>
+<tbody>
+<tr><td><code>pg45_code_btree</code></td><td><code>btree</code></td></tr>
+<tr><td><code>pg45_code_hash</code></td><td><code>hash</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/indexes-types.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-index-order" class="point" data-dialects="postgresql">
+<h2>多列 B-tree 与 NULL 排序</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>通常先用等值条件约束前导列，再按范围或排序利用后续列。升序默认 NULLS LAST，降序默认 NULLS FIRST。多列混合方向要考虑索引定义和整个索引的正反向扫描。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="任务" tabindex="0">
+<table class="sql-result"><caption>任务</caption>
+<thead><tr><th scope="col">id</th><th scope="col">queue</th><th scope="col">rank</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Q</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>Q</code></td><td><code>5</code></td></tr>
+<tr><td><code>3</code></td><td><code>Q</code></td><td><code>9</code></td></tr>
+<tr><td><code>4</code></td><td><code>P</code></td><td><code>99</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg45_tasks (id int, queue text, rank int);
+INSERT INTO pg45_tasks VALUES (1,&#x27;Q&#x27;,NULL), (2,&#x27;Q&#x27;,5), (3,&#x27;Q&#x27;,9), (4,&#x27;P&#x27;,99);
+CREATE INDEX pg45_task_order ON pg45_tasks (queue ASC, rank DESC NULLS LAST, id ASC);
+
+SELECT id, rank FROM pg45_tasks
+WHERE queue = &#x27;Q&#x27; ORDER BY rank DESC NULLS LAST, id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, rank FROM pg45_tasks
+WHERE queue = &#x27;Q&#x27; ORDER BY rank DESC NULLS LAST, id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">rank</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td><td><code>9</code></td></tr>
+<tr><td><code>2</code></td><td><code>5</code></td></tr>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/indexes-ordering.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-index-include" class="point" data-dialects="postgresql">
+<h2>INCLUDE 覆盖输出列</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 11+</span></p>
+<p>INCLUDE 列保存在索引叶子上，可以覆盖查询输出。它们不参与索引键条件及唯一性判断。索引只读扫描还要看访问方法和可见性映射，堆访问计数要读实际计划。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="初始设计" tabindex="0">
+<table class="sql-result"><caption>初始设计</caption>
+<thead><tr><th scope="col">搜索键</th><th scope="col">只返回的列</th></tr></thead>
+<tbody>
+<tr><td><code>sku</code></td><td><code>name</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg45_lookup (sku int, name text);
+CREATE UNIQUE INDEX pg45_lookup_cover ON pg45_lookup (sku) INCLUDE (name);
+
+SELECT i.indnkeyatts AS key_columns, i.indnatts AS all_columns,
+       i.indisunique AS is_unique
+FROM pg_catalog.pg_index AS i
+WHERE i.indexrelid = &#x27;pg45_lookup_cover&#x27;::regclass;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT i.indnkeyatts AS key_columns, i.indnatts AS all_columns,
+       i.indisunique AS is_unique
+FROM pg_catalog.pg_index AS i
+WHERE i.indexrelid = &#x27;pg45_lookup_cover&#x27;::regclass;</code></span></caption>
+<thead><tr><th scope="col">key_columns</th><th scope="col">all_columns</th><th scope="col">is_unique</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/indexes-index-only-scans.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-index-expr-partial" class="point" data-dialects="postgresql">
+<h2>表达式索引与部分索引</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>索引可保存 lower(email) 的结果，也可只收录符合 WHERE 谓词的行。查询应使用能匹配的表达式，且规划器需证明查询过滤条件蕴含索引谓词。索引定义涉及的函数和运算符必须是 IMMUTABLE。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="练习账号" tabindex="0">
+<table class="sql-result"><caption>练习账号</caption>
+<thead><tr><th scope="col">id</th><th scope="col">email</th><th scope="col">active</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>ANA@example.test</code></td><td><code>true</code></td></tr>
+<tr><td><code>2</code></td><td><code>ana@example.test</code></td><td><code>false</code></td></tr>
+<tr><td><code>3</code></td><td><code>BO@example.test</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg45_email (id int, email text, active boolean);
+INSERT INTO pg45_email VALUES (1,&#x27;ANA@example.test&#x27;,true),
+                            (2,&#x27;ana@example.test&#x27;,false),
+                            (3,&#x27;BO@example.test&#x27;,true);
+CREATE INDEX pg45_active_email ON pg45_email (lower(email)) WHERE active;
+
+SELECT id, lower(email) AS normalized_email
+FROM pg45_email WHERE active AND lower(email) = &#x27;ana@example.test&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, lower(email) AS normalized_email
+FROM pg45_email WHERE active AND lower(email) = &#x27;ana@example.test&#x27;;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">normalized_email</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>ana@example.test</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/sql-createindex.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-index-unique" class="point" data-dialects="postgresql">
+<h2>唯一性推断、部分唯一索引与 NULL</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>ON CONFLICT 以列或表达式和可选谓词推断可用唯一索引。这里仅活动账号的邮箱唯一。默认的唯一索引允许多个 NULL，若业务上只允许一个 NULL，可在 PostgreSQL 15 起用 NULLS NOT DISTINCT。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="已有账号" tabindex="0">
+<table class="sql-result"><caption>已有账号</caption>
+<thead><tr><th scope="col">email</th><th scope="col">active</th><th scope="col">owner</th></tr></thead>
+<tbody>
+<tr><td><code>a@example.test</code></td><td><code>true</code></td><td><code>Old</code></td></tr>
+<tr><td><code>a@example.test</code></td><td><code>false</code></td><td><code>Archived</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg45_accounts (email text, active boolean, owner text);
+INSERT INTO pg45_accounts VALUES (&#x27;a@example.test&#x27;,true,&#x27;Old&#x27;),
+                               (&#x27;a@example.test&#x27;,false,&#x27;Archived&#x27;);
+CREATE UNIQUE INDEX pg45_active_key ON pg45_accounts (email) WHERE active;
+
+INSERT INTO pg45_accounts VALUES (&#x27;a@example.test&#x27;,true,&#x27;New&#x27;)
+ON CONFLICT (email) WHERE active DO UPDATE SET owner = EXCLUDED.owner
+RETURNING email, active, owner;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO pg45_accounts VALUES (&#x27;a@example.test&#x27;,true,&#x27;New&#x27;)
+ON CONFLICT (email) WHERE active DO UPDATE SET owner = EXCLUDED.owner
+RETURNING email, active, owner;</code></span></caption>
+<thead><tr><th scope="col">email</th><th scope="col">active</th><th scope="col">owner</th></tr></thead>
+<tbody>
+<tr><td><code>a@example.test</code></td><td><code>true</code></td><td><code>New</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/sql-insert.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-index-tree-space" class="point" data-dialects="postgresql">
+<h2>GiST、SP-GiST 与算子类</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>访问方法提供索引框架，算子类告诉 PostgreSQL 某种类型可用哪些运算符和支持函数。点的 GiST 与 quad_point_ops 的 SP-GiST 均支持用盒子限制点的位置。实际匹配由查询谓词和候选算子类共同决定。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="点位" tabindex="0">
+<table class="sql-result"><caption>点位</caption>
+<thead><tr><th scope="col">id</th><th scope="col">坐标</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>(1,1)</code></td></tr>
+<tr><td><code>2</code></td><td><code>(5,5)</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg45_points (id int, pos point);
+INSERT INTO pg45_points VALUES (1,point(1,1)), (2,point(5,5));
+CREATE INDEX pg45_point_gist ON pg45_points USING gist (pos);
+CREATE INDEX pg45_point_spgist ON pg45_points USING spgist (pos quad_point_ops);
+
+SELECT id FROM pg45_points
+WHERE pos &lt;@ box(point(0,0),point(2,2))
+ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id FROM pg45_points
+WHERE pos &lt;@ box(point(0,0),point(2,2))
+ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/xindex.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-index-gin" class="point" data-dialects="postgresql">
+<h2>GIN 与 JSONB 算子类</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>GIN 为数组元素、全文词元或 JSONB 键值建立倒排索引。JSONB 默认 jsonb_ops 支持键存在运算符，jsonb_path_ops 支持 @&gt;、@?、@@，不支持单独用 ? 查询某个键。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="文档数据" tabindex="0">
+<table class="sql-result"><caption>文档数据</caption>
+<thead><tr><th scope="col">id</th><th scope="col">tags</th><th scope="col">info</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>{sale,blue}</code></td><td><code>{&quot;sku&quot;:12}</code></td></tr>
+<tr><td><code>2</code></td><td><code>{sale}</code></td><td><code>{&quot;sku&quot;:13}</code></td></tr>
+<tr><td><code>3</code></td><td><code>{blue}</code></td><td><code>{&quot;sku&quot;:12}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg45_docs (id int, tags text[], info jsonb);
+INSERT INTO pg45_docs VALUES
+  (1,ARRAY[&#x27;sale&#x27;,&#x27;blue&#x27;],&#x27;{&quot;sku&quot;:12}&#x27;), (2,ARRAY[&#x27;sale&#x27;],&#x27;{&quot;sku&quot;:13}&#x27;),
+  (3,ARRAY[&#x27;blue&#x27;],&#x27;{&quot;sku&quot;:12}&#x27;);
+CREATE INDEX pg45_docs_tags ON pg45_docs USING gin (tags);
+CREATE INDEX pg45_docs_info ON pg45_docs USING gin (info jsonb_path_ops);
+
+SELECT id FROM pg45_docs
+WHERE tags @&gt; ARRAY[&#x27;sale&#x27;] AND info @&gt; &#x27;{&quot;sku&quot;:12}&#x27;::jsonb
+ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id FROM pg45_docs
+WHERE tags @&gt; ARRAY[&#x27;sale&#x27;] AND info @&gt; &#x27;{&quot;sku&quot;:12}&#x27;::jsonb
+ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/datatype-json.html#JSON-INDEXING">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-index-brin" class="point" data-dialects="postgresql">
+<h2>BRIN 用页范围摘要筛大表</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>BRIN 按页范围存摘要，再由扫描对候选记录复查。物理位置与查询列相关时更适用，例如顺序追加的事件。pages_per_range 越小摘要越细，索引通常更大。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="顺序写入" tabindex="0">
+<table class="sql-result"><caption>顺序写入</caption>
+<thead><tr><th scope="col">id 范围</th><th scope="col">pages_per_range</th></tr></thead>
+<tbody>
+<tr><td><code>1–10000</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg45_events (id int, payload text);
+INSERT INTO pg45_events
+SELECT id, repeat(&#x27;x&#x27;,80) FROM generate_series(1,10000) AS seq(id) ORDER BY id;
+CREATE INDEX pg45_events_brin ON pg45_events USING brin (id) WITH (pages_per_range=8);
+ANALYZE pg45_events;
+
+SELECT count(*) AS matched FROM pg45_events
+WHERE id BETWEEN 9901 AND 9920;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT count(*) AS matched FROM pg45_events
+WHERE id BETWEEN 9901 AND 9920;</code></span></caption>
+<thead><tr><th scope="col">matched</th></tr></thead>
+<tbody>
+<tr><td><code>20</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/brin.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-index-concurrent" class="point" data-dialects="postgresql">
+<h2>CREATE 和 REINDEX CONCURRENTLY</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 12+</span></p>
+<p>为普通表并发建索引可让写入继续，并发重建可缩短阻塞写入的时段。两者都需要额外工作，也可能等候旧事务。仅在新练习库执行，客户端打开自动提交，逐条发送并发语句。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="操作对象" tabindex="0">
+<table class="sql-result"><caption>操作对象</caption>
+<thead><tr><th scope="col">表</th><th scope="col">索引</th></tr></thead>
+<tbody>
+<tr><td><code>pg45_concurrent_demo</code></td><td><code>尚无 pg45_concurrent_id</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TABLE pg45_concurrent_demo (id int);
+INSERT INTO pg45_concurrent_demo VALUES (1), (2);
+
+CREATE INDEX CONCURRENTLY pg45_concurrent_id ON pg45_concurrent_demo (id);
+REINDEX INDEX CONCURRENTLY pg45_concurrent_id;
+
+SELECT indisvalid AS valid, indisready AS ready
+FROM pg_catalog.pg_index
+WHERE indexrelid = &#x27;pg45_concurrent_id&#x27;::regclass;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT indisvalid AS valid, indisready AS ready
+FROM pg_catalog.pg_index
+WHERE indexrelid = &#x27;pg45_concurrent_id&#x27;::regclass;</code></span></caption>
+<thead><tr><th scope="col">valid</th><th scope="col">ready</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">两条 CONCURRENTLY 均须在显式事务块外独立发送。练习后可保留该表，重做时换表和索引名。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/18/sql-reindex.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-index-statistics" class="point" data-dialects="postgresql">
+<h2>CREATE STATISTICS 记录列间相关性</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 12+</span></p>
+<p>单列统计难以估计相互有关的过滤条件。dependencies 给出列间依赖，ndistinct 记录组合不同值估计，mcv 记录常见值组合。CREATE STATISTICS 定义对象，ANALYZE 才采集数据，统计结果供估计而非约束。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="数据分布" tabindex="0">
+<table class="sql-result"><caption>数据分布</caption>
+<thead><tr><th scope="col">region</th><th scope="col">zone</th><th scope="col">行数</th></tr></thead>
+<tbody>
+<tr><td><code>north</code></td><td><code>N1</code></td><td><code>100</code></td></tr>
+<tr><td><code>south</code></td><td><code>S1</code></td><td><code>100</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg45_distribution (region text, zone text);
+INSERT INTO pg45_distribution
+SELECT &#x27;north&#x27;,&#x27;N1&#x27; FROM generate_series(1,100)
+UNION ALL
+SELECT &#x27;south&#x27;,&#x27;S1&#x27; FROM generate_series(1,100);
+CREATE STATISTICS pg45_region_zone (dependencies, ndistinct, mcv)
+ON region, zone FROM pg45_distribution;
+ANALYZE pg45_distribution;
+
+SELECT n_distinct IS NOT NULL AS has_ndistinct,
+       dependencies IS NOT NULL AS has_dependencies,
+       most_common_vals IS NOT NULL AS has_mcv
+FROM pg_catalog.pg_stats_ext
+WHERE statistics_name = &#x27;pg45_region_zone&#x27;
+  AND schemaname = (SELECT nspname FROM pg_namespace WHERE oid = pg_my_temp_schema());</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT n_distinct IS NOT NULL AS has_ndistinct,
+       dependencies IS NOT NULL AS has_dependencies,
+       most_common_vals IS NOT NULL AS has_mcv
+FROM pg_catalog.pg_stats_ext
+WHERE statistics_name = &#x27;pg45_region_zone&#x27;
+  AND schemaname = (SELECT nspname FROM pg_namespace WHERE oid = pg_my_temp_schema());</code></span></caption>
+<thead><tr><th scope="col">has_ndistinct</th><th scope="col">has_dependencies</th><th scope="col">has_mcv</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>true</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/sql-createstatistics.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-plan-estimates" class="point" data-dialects="postgresql">
+<h2>EXPLAIN 的估计、输出格式与节点</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>普通 EXPLAIN 规划语句。默认文本缩进表达父子节点，JSON、XML、YAML 适合程序读取。计划的 rows 是每次调用估计输出行数。关闭 COSTS 可得到更短的演示输出。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="查询请求" tabindex="0">
+<table class="sql-result"><caption>查询请求</caption>
+<thead><tr><th scope="col">输入</th><th scope="col">预期计划节点</th></tr></thead>
+<tbody>
+<tr><td><code>SELECT 1</code></td><td><code>Result</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>EXPLAIN (COSTS OFF, FORMAT TEXT) SELECT 1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXPLAIN (COSTS OFF, FORMAT TEXT) SELECT 1;</code></span></caption>
+<thead><tr><th scope="col">QUERY PLAN</th></tr></thead>
+<tbody>
+<tr><td><code>Result</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/sql-explain.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-plan-execution" class="point" data-dialects="postgresql">
+<h2>实际计划、缓冲、WAL 与序列化</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 17+</span></p>
+<p>ANALYZE 真的执行语句。BUFFERS 展示缓冲块访问，WAL 展示生成的预写日志，SERIALIZE TEXT 测量服务端结果转换且不计网络传输。TIMING OFF 关闭节点时间采集，不能关闭总执行时间的汇总，示例同时关闭 SUMMARY。TIMING OFF 不计序列化耗时，依旧输出序列化体积。Planning 和 Buffers 行随环境变化，小样本的返回数据也不能证明使用了某个索引。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="计划采样" tabindex="0">
+<table class="sql-result"><caption>计划采样</caption>
+<thead><tr><th scope="col">输入</th><th scope="col">选项</th></tr></thead>
+<tbody>
+<tr><td><code>无表常量</code></td><td><code>ANALYZE、BUFFERS、WAL、SERIALIZE TEXT</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>EXPLAIN (ANALYZE, BUFFERS, WAL, SERIALIZE TEXT, TIMING OFF,
+         SUMMARY OFF, COSTS OFF, FORMAT TEXT) SELECT 1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXPLAIN (ANALYZE, BUFFERS, WAL, SERIALIZE TEXT, TIMING OFF,
+         SUMMARY OFF, COSTS OFF, FORMAT TEXT) SELECT 1;</code></span></caption>
+<thead><tr><th scope="col">QUERY PLAN</th></tr></thead>
+<tbody>
+<tr><td><code>Result (actual rows=1.00 loops=1)</code></td></tr>
+<tr><td><code>Serialization: output=1kB  format=text</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">无表查询的计数很少。真实查询应区分每轮 Actual Rows 和 Loops，并结合数据量和 I/O。带写入的 ANALYZE 会写数据，可在隔离事务里测试并回滚。计划行随版本、设置与环境变化。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/18/sql-explain.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg-plan-io" class="point" data-dialects="postgresql">
+<h2>查看 I/O 计时开关与读计划提示</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>track_io_timing 打开后，计划能给出部分缓冲块访问的 I/O 时间。共享块 read 表示数据库从操作系统读取，可能命中操作系统缓存。SETTINGS 显示影响计划的非默认设置，MEMORY 在 PostgreSQL 17 起可报告规划阶段内存。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="本会话检查项" tabindex="0">
+<table class="sql-result"><caption>本会话检查项</caption>
+<thead><tr><th scope="col">参数</th><th scope="col">结果域</th></tr></thead>
+<tbody>
+<tr><td><code>track_io_timing</code></td><td><code>on 或 off</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT name, setting IN (&#x27;on&#x27;,&#x27;off&#x27;) AS is_boolean_setting
+FROM pg_catalog.pg_settings WHERE name = &#x27;track_io_timing&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, setting IN (&#x27;on&#x27;,&#x27;off&#x27;) AS is_boolean_setting
+FROM pg_catalog.pg_settings WHERE name = &#x27;track_io_timing&#x27;;</code></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">is_boolean_setting</th></tr></thead>
+<tbody>
+<tr><td><code>track_io_timing</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">可用 EXPLAIN (SETTINGS, MEMORY, FORMAT JSON) SELECT 1; 观察 JSON 中的规划信息。普通 EXPLAIN 不提供运行阶段的 I/O 时间。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/18/runtime-config-statistics.html#GUC-TRACK-IO-TIMING">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pg19-explain-io" class="point" data-dialects="postgresql">
+<h2>EXPLAIN (ANALYZE, IO) · 报告异步 I/O 活动</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>在 SELECT 中执行 EXPLAIN ANALYZE 可读到实际行数。19 起 IO 可加入异步 I/O 报告。常量查询无需异步读取，不出现 I/O 明细也属正常，计划实际列可能随环境变化。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">constant</th><th scope="col">io</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE FUNCTION pg_temp.pg45_check_io() RETURNS boolean LANGUAGE plpgsql AS $$
+DECLARE plan text;
+BEGIN
+  EXECUTE &#x27;EXPLAIN (ANALYZE, IO, FORMAT JSON, COSTS OFF) SELECT 1&#x27; INTO plan;
+  RETURN plan IS NOT NULL;
+END
+$$;
+
+SELECT pg_temp.pg45_check_io() AS explain_accepts_io;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT pg_temp.pg45_check_io() AS explain_accepts_io;</code></span></caption>
+<thead><tr><th scope="col">explain_accepts_io</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-explain.html">PostgreSQL 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#pg-index-types">B-tree 适合排序和范围，Hash 适合等值</a></li>
+<li><a href="#pg-index-order">多列 B-tree 与 NULL 排序</a></li>
+<li><a href="#pg-index-include">INCLUDE 覆盖输出列</a></li>
+<li><a href="#pg-index-expr-partial">表达式索引与部分索引</a></li>
+<li><a href="#pg-index-unique">唯一性推断、部分唯一索引与 NULL</a></li>
+<li><a href="#pg-index-tree-space">为点与区域匹配选择索引算子</a></li>
+<li><a href="#pg-index-gin">用 GIN 加速 JSONB 匹配</a></li>
+<li><a href="#pg-index-brin">BRIN 用页范围摘要筛大表</a></li>
+<li><a href="#pg-index-concurrent">并发建立或重建索引</a></li>
+<li><a href="#pg-index-statistics">CREATE STATISTICS 记录列间相关性</a></li>
+<li><a href="#pg-plan-estimates">查看估算计划并选择输出格式</a></li>
+<li><a href="#pg-plan-execution">实际计划、缓冲、WAL 与序列化</a></li>
+<li><a href="#pg-plan-io">查看 I/O 计时开关与读计划提示</a></li>
+<li><a href="#pg19-explain-io">EXPLAIN (ANALYZE, IO) · 报告异步 I/O 活动</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="44-postgresql-schema.html">← 表结构、约束、视图与分区</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="46-postgresql-routines.html">例程、触发器与自定义对象 →</a></nav>
+</main>
+</body>
+</html>

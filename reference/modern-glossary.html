@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>术语速查 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">术语与对应示例</p>
+<h1>SQL 术语速查</h1>
+<div class="panel table-wrap"><table>
+<thead><tr><th scope="col">术语</th><th scope="col">适用数据库</th><th scope="col">含义和最小示例入口</th></tr></thead>
+<tbody>
+<tr><th scope="row">库 / 模式</th><td><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p></td><td>用来容纳表等数据库对象的命名空间。<a href="01-understand-sql.html#p1">查看库中的表</a></td></tr>
+<tr><th scope="row">行 / 列</th><td><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p></td><td>一行是一条记录，一列是记录共有的一个属性。<a href="01-understand-sql.html#p2">读出商品行的两列</a></td></tr>
+<tr><th scope="row">主键 / 外键</th><td><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p></td><td>主键唯一标识本表行。外键检查引用的键存在。<a href="15-joins.html#p1">核对订单表的外键</a></td></tr>
+<tr><th scope="row">NULL</th><td><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p></td><td>表示未知或缺失，使用 IS NULL 判断。<a href="06-where.html#p4">找城市未知的客户</a></td></tr>
+<tr><th scope="row">结果粒度</th><td><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p></td><td>每行结果代表的业务单位，例如一件商品、一条明细或一个类别。<a href="13-group-by.html#p1">按类别分组</a></td></tr>
+<tr><th scope="row">联结</th><td><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p></td><td>按条件组合两组行，是否保留未匹配行取决于类型。<a href="16-advanced-joins.html#p3">保留未下单客户</a></td></tr>
+<tr><th scope="row">视图</th><td><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p></td><td>将查询定义保存为可引用的数据库对象。<a href="22-views.html#p1">复用订单联结</a></td></tr>
+<tr><th scope="row">事务</th><td><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p></td><td>以提交或回滚为边界的一组操作。<a href="26-transactions.html#p2">一起撤销订单与明细</a></td></tr>
+<tr><th scope="row">字符集 / 排序规则</th><td><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p></td><td>字符集规定字符及其表示，排序规则控制比较、去重和顺序。<a href="27-character-sets.html#p2">区分大小写与重音</a></td></tr>
+<tr><th scope="row">索引 / 执行计划</th><td><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p></td><td>索引提供访问路径，计划描述优化器实际选择的执行方式。<a href="30-performance.html#p3">看计划和真实执行</a></td></tr>
+<tr><th scope="row">CTE / 窗口函数</th><td><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p></td><td>CTE 给语句内的中间结果命名。窗口函数计算排名或累计值并保留输入行。<a href="32-modern-sql.html#p2">命名中间结果</a> · <a href="32-modern-sql.html#p4">组内排名</a></td></tr>
+</tbody>
+</table></div>
+<p class="sources"><a data-dialects="postgresql" href="https://www.postgresql.org/docs/current/glossary.html">PostgreSQL 官方术语</a><a data-dialects="sqlserver" href="https://learn.microsoft.com/zh-cn/sql/t-sql/language-reference">T-SQL 官方参考</a><a data-dialects="mysql" href="https://dev.mysql.com/doc/refman/8.4/en/glossary.html">MySQL 官方术语</a></p>
+</main>
+</body>
+</html>

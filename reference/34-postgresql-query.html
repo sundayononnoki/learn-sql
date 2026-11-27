@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>34 · PostgreSQL · 原生查询、数组与 JSONB · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 34 章 · 原生语法</p>
+<h1>PostgreSQL · 原生查询、数组与 JSONB</h1>
+<p class="lead">从分组取首行、按当前行查子集，到拆开数组和更新 JSONB。所有输入都写在 SQL 里。</p>
+<div class="layout"><article class="content">
+<section id="distinct-on" class="point" data-dialects="postgresql">
+<h2>DISTINCT ON · 每组只取排在首位的一行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>ORDER BY 的最左项要和 DISTINCT ON 对齐。这里每位客户先按日期降序，再以订单编号降序打破同日并列。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="来源订单" tabindex="0">
+<table class="sql-result"><caption>来源订单</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">order_id</th><th scope="col">ordered_on</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>101</code></td><td><code>2026-01-01</code></td></tr>
+<tr><td><code>1</code></td><td><code>102</code></td><td><code>2026-01-02</code></td></tr>
+<tr><td><code>1</code></td><td><code>103</code></td><td><code>2026-01-02</code></td></tr>
+<tr><td><code>2</code></td><td><code>201</code></td><td><code>2026-01-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH orders(customer_id, order_id, ordered_on) AS (
+  VALUES (1, 101, DATE &#x27;2026-01-01&#x27;), (1, 102, DATE &#x27;2026-01-02&#x27;),
+         (1, 103, DATE &#x27;2026-01-02&#x27;), (2, 201, DATE &#x27;2026-01-01&#x27;)
+)
+SELECT DISTINCT ON (customer_id) customer_id, order_id
+FROM orders
+ORDER BY customer_id, ordered_on DESC, order_id DESC;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH orders(customer_id, order_id, ordered_on) AS (
+  VALUES (1, 101, DATE &#x27;2026-01-01&#x27;), (1, 102, DATE &#x27;2026-01-02&#x27;),
+         (1, 103, DATE &#x27;2026-01-02&#x27;), (2, 201, DATE &#x27;2026-01-01&#x27;)
+)
+SELECT DISTINCT ON (customer_id) customer_id, order_id
+FROM orders
+ORDER BY customer_id, ordered_on DESC, order_id DESC;</code></span></caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>103</code></td></tr>
+<tr><td><code>2</code></td><td><code>201</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/sql-select.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="lateral" class="point" data-dialects="postgresql">
+<h2>LEFT JOIN LATERAL · 在子查询中引用当前行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>右侧子查询可引用左侧的客户，此处按订单编号取最大的一笔。LEFT JOIN 保留没有订单的客户，并把右侧结果补成 NULL。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="客户" tabindex="0">
+<table class="sql-result"><caption>客户</caption>
+<thead><tr><th scope="col">customer_id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="订单" tabindex="0">
+<table class="sql-result"><caption>订单</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>101</code></td></tr>
+<tr><td><code>1</code></td><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH orders(customer_id, order_id) AS (VALUES (1, 101), (1, 102))
+SELECT c.customer_id, latest.order_id
+FROM (VALUES (1), (2)) AS c(customer_id)
+LEFT JOIN LATERAL (
+  SELECT order_id FROM orders
+  WHERE customer_id = c.customer_id
+  ORDER BY order_id DESC LIMIT 1
+) AS latest ON true
+ORDER BY c.customer_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH orders(customer_id, order_id) AS (VALUES (1, 101), (1, 102))
+SELECT c.customer_id, latest.order_id
+FROM (VALUES (1), (2)) AS c(customer_id)
+LEFT JOIN LATERAL (
+  SELECT order_id FROM orders
+  WHERE customer_id = c.customer_id
+  ORDER BY order_id DESC LIMIT 1
+) AS latest ON true
+ORDER BY c.customer_id;</code></span></caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>102</code></td></tr>
+<tr><td><code>2</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/queries-table-expressions.html#QUERIES-LATERAL">PostgreSQL 官方文档</a></p>
+</section>
+<section id="array" class="point" data-dialects="postgresql">
+<h2>unnest WITH ORDINALITY · 拆数组并保留位置</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>unnest 产生一行一个元素。WITH ORDINALITY 从 1 编号，最后按编号排序。重复值仍占独立位置。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入数组" tabindex="0">
+<table class="sql-result"><caption>输入数组</caption>
+<thead><tr><th scope="col">tags</th></tr></thead>
+<tbody>
+<tr><td><code>{sql,db,sql}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT position, tag
+FROM unnest(ARRAY[&#x27;sql&#x27;, &#x27;db&#x27;, &#x27;sql&#x27;]) WITH ORDINALITY AS t(tag, position)
+ORDER BY position;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT position, tag
+FROM unnest(ARRAY[&#x27;sql&#x27;, &#x27;db&#x27;, &#x27;sql&#x27;]) WITH ORDINALITY AS t(tag, position)
+ORDER BY position;</code></span></caption>
+<thead><tr><th scope="col">position</th><th scope="col">tag</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>sql</code></td></tr>
+<tr><td><code>2</code></td><td><code>db</code></td></tr>
+<tr><td><code>3</code></td><td><code>sql</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/functions-array.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="jsonb" class="point" data-dialects="postgresql">
+<h2>JSONB · 按结构匹配并更新字段</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>用 @&gt; 检查 JSON 结构是否包含所给键值。用 jsonb_set 替换指定路径，返回新 JSONB。这里在 SELECT 中计算，来源行没有写入。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="来源文档" tabindex="0">
+<table class="sql-result"><caption>来源文档</caption>
+<thead><tr><th scope="col">doc</th></tr></thead>
+<tbody>
+<tr><td><code>{&quot;active&quot;:true,&quot;qty&quot;:2}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH src(doc) AS (VALUES (&#x27;{&quot;active&quot;:true,&quot;qty&quot;:2}&#x27;::jsonb))
+SELECT doc @&gt; &#x27;{&quot;active&quot;:true}&#x27;::jsonb AS is_active,
+       (jsonb_set(doc, &#x27;{qty}&#x27;, &#x27;3&#x27;::jsonb) -&gt;&gt; &#x27;qty&#x27;)::int AS next_qty
+FROM src;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH src(doc) AS (VALUES (&#x27;{&quot;active&quot;:true,&quot;qty&quot;:2}&#x27;::jsonb))
+SELECT doc @&gt; &#x27;{&quot;active&quot;:true}&#x27;::jsonb AS is_active,
+       (jsonb_set(doc, &#x27;{qty}&#x27;, &#x27;3&#x27;::jsonb) -&gt;&gt; &#x27;qty&#x27;)::int AS next_qty
+FROM src;</code></span></caption>
+<thead><tr><th scope="col">is_active</th><th scope="col">next_qty</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/functions-json.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="fetch-ties" class="point" data-dialects="postgresql">
+<h2>FETCH FIRST WITH TIES · 包含截止线并列</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 13+</span></p>
+<p>WITH TIES 按本级 ORDER BY 的全部键判断并列。外层再补编号排序，能稳定展示这组并列行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>9</code></td></tr>
+<tr><td><code>2</code></td><td><code>9</code></td></tr>
+<tr><td><code>3</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT id,score FROM (
+  SELECT id,score FROM (VALUES (1,9),(2,9),(3,5)) AS t(id,score)
+  ORDER BY score DESC FETCH FIRST 1 ROW WITH TIES
+) AS chosen ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,score FROM (
+  SELECT id,score FROM (VALUES (1,9),(2,9),(3,5)) AS t(id,score)
+  ORDER BY score DESC FETCH FIRST 1 ROW WITH TIES
+) AS chosen ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>9</code></td></tr>
+<tr><td><code>2</code></td><td><code>9</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-select.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="nulls-order" class="point" data-dialects="postgresql">
+<h2>NULLS FIRST/LAST · 显式排序缺失值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>用 NULLS LAST 可以让缺失值排到有效分数后面。使用编号作为同一分数的次级键。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>4</code></td></tr>
+<tr><td><code>3</code></td><td><code>9</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT id,score FROM (VALUES (1,NULL),(2,4),(3,9)) AS t(id,score)
+ORDER BY score DESC NULLS LAST,id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,score FROM (VALUES (1,NULL),(2,4),(3,9)) AS t(id,score)
+ORDER BY score DESC NULLS LAST,id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td><td><code>9</code></td></tr>
+<tr><td><code>2</code></td><td><code>4</code></td></tr>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/queries-order.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="rows-from" class="point" data-dialects="postgresql">
+<h2>ROWS FROM · 横向组合多组表函数</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>表函数逐行对齐。短列由 NULL 补齐。WITH ORDINALITY 显示组合后的位置。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个输入数组" tabindex="0">
+<table class="sql-result"><caption>两个输入数组</caption>
+<thead><tr><th scope="col">numbers</th><th scope="col">letters</th></tr></thead>
+<tbody>
+<tr><td><code>{10,20}</code></td><td><code>{a}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT pos,n,letter
+FROM ROWS FROM (unnest(ARRAY[10,20]),unnest(ARRAY[&#x27;a&#x27;]))
+WITH ORDINALITY AS t(n,letter,pos) ORDER BY pos;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT pos,n,letter
+FROM ROWS FROM (unnest(ARRAY[10,20]),unnest(ARRAY[&#x27;a&#x27;]))
+WITH ORDINALITY AS t(n,letter,pos) ORDER BY pos;</code></span></caption>
+<thead><tr><th scope="col">pos</th><th scope="col">n</th><th scope="col">letter</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td><td><code>a</code></td></tr>
+<tr><td><code>2</code></td><td><code>20</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/queries-table-expressions.html#QUERIES-TABLEFUNCTIONS">PostgreSQL 官方文档</a></p>
+</section>
+<section id="lateral-cross" class="point" data-dialects="postgresql">
+<h2>CROSS JOIN LATERAL · 为当前行生成子行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>CROSS JOIN LATERAL 可以引用左侧列。如果本次生成集合为空，该左行从结果消失。同一内联结可写成 INNER JOIN LATERAL … ON true。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="每行最大序号" tabindex="0">
+<table class="sql-result"><caption>每行最大序号</caption>
+<thead><tr><th scope="col">id</th><th scope="col">max_slot</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td></tr>
+<tr><td><code>2</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT item.id,slots.slot
+FROM (VALUES (1,2),(2,0)) AS item(id,max_slot)
+CROSS JOIN LATERAL generate_series(1,item.max_slot) AS slots(slot)
+ORDER BY item.id,slots.slot;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT item.id,slots.slot
+FROM (VALUES (1,2),(2,0)) AS item(id,max_slot)
+CROSS JOIN LATERAL generate_series(1,item.max_slot) AS slots(slot)
+ORDER BY item.id,slots.slot;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">slot</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td></tr>
+<tr><td><code>1</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/queries-table-expressions.html#QUERIES-LATERAL">PostgreSQL 官方文档</a></p>
+</section>
+<section id="cte-materialization" class="point" data-dialects="postgresql">
+<h2>CTE MATERIALIZED / NOT MATERIALIZED · 控制折叠</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 12+</span></p>
+<p>MATERIALIZED 建立优化屏障。对无副作用 CTE，NOT MATERIALIZED 允许与外层一起优化，重复引用时可能重复计算。两写法的数据结果一致。递归或含 VOLATILE 调用的 CTE 不会被 NOT MATERIALIZED 折叠。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH base(id,qty) AS (VALUES (1,5),(2,8)),
+m AS MATERIALIZED (SELECT * FROM base),
+inline AS NOT MATERIALIZED (SELECT * FROM base)
+SELECT m.id,m.qty AS materialized,inline.qty AS folded
+FROM m JOIN inline USING (id) WHERE m.id=2;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH base(id,qty) AS (VALUES (1,5),(2,8)),
+m AS MATERIALIZED (SELECT * FROM base),
+inline AS NOT MATERIALIZED (SELECT * FROM base)
+SELECT m.id,m.qty AS materialized,inline.qty AS folded
+FROM m JOIN inline USING (id) WHERE m.id=2;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">materialized</th><th scope="col">folded</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>8</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/queries-with.html#QUERIES-WITH-CTE-MATERIALIZATION">PostgreSQL 官方文档</a></p>
+</section>
+<section id="recursive-cycle" class="point" data-dialects="postgresql">
+<h2>递归 SEARCH/CYCLE · 给路径排序并终止循环</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 14+</span></p>
+<p>SEARCH 定义可用来排序的列。CYCLE 通过键跟踪已经访问的节点，标记成环行，并停止从该行继续展开。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="图中边" tabindex="0">
+<table class="sql-result"><caption>图中边</caption>
+<thead><tr><th scope="col">src</th><th scope="col">dst</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td></tr>
+<tr><td><code>2</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="起点" tabindex="0">
+<table class="sql-result"><caption>起点</caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH RECURSIVE edge(src,dst) AS (VALUES (1,2),(2,1)),
+walk(n) AS (
+  VALUES (1)
+  UNION ALL
+  SELECT edge.dst FROM walk JOIN edge ON edge.src=walk.n
+) SEARCH DEPTH FIRST BY n SET visit
+  CYCLE n SET is_cycle USING path
+SELECT n,is_cycle FROM walk ORDER BY visit;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH RECURSIVE edge(src,dst) AS (VALUES (1,2),(2,1)),
+walk(n) AS (
+  VALUES (1)
+  UNION ALL
+  SELECT edge.dst FROM walk JOIN edge ON edge.src=walk.n
+) SEARCH DEPTH FIRST BY n SET visit
+  CYCLE n SET is_cycle USING path
+SELECT n,is_cycle FROM walk ORDER BY visit;</code></span></caption>
+<thead><tr><th scope="col">n</th><th scope="col">is_cycle</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>false</code></td></tr>
+<tr><td><code>2</code></td><td><code>false</code></td></tr>
+<tr><td><code>1</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/queries-with.html#QUERIES-WITH-SEARCH">PostgreSQL 官方文档</a></p>
+</section>
+<section id="all-set-ops" class="point" data-dialects="postgresql">
+<h2>INTERSECT ALL / EXCEPT ALL · 按重复次数运算</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>INTERSECT ALL 保留两侧重复次数的最小值。EXCEPT ALL 从左侧的重复次数减去右侧且最少为零。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="左侧" tabindex="0">
+<table class="sql-result"><caption>左侧</caption>
+<thead><tr><th scope="col">x</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="右侧" tabindex="0">
+<table class="sql-result"><caption>右侧</caption>
+<thead><tr><th scope="col">x</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH l(x) AS (VALUES (1),(1),(2)), r(x) AS (VALUES (1),(3)),
+common AS (SELECT x FROM l INTERSECT ALL SELECT x FROM r),
+remaining AS (SELECT x FROM l EXCEPT ALL SELECT x FROM r)
+SELECT &#x27;common&#x27; AS operation,x FROM common
+UNION ALL SELECT &#x27;remaining&#x27;,x FROM remaining
+ORDER BY operation,x;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH l(x) AS (VALUES (1),(1),(2)), r(x) AS (VALUES (1),(3)),
+common AS (SELECT x FROM l INTERSECT ALL SELECT x FROM r),
+remaining AS (SELECT x FROM l EXCEPT ALL SELECT x FROM r)
+SELECT &#x27;common&#x27; AS operation,x FROM common
+UNION ALL SELECT &#x27;remaining&#x27;,x FROM remaining
+ORDER BY operation,x;</code></span></caption>
+<thead><tr><th scope="col">operation</th><th scope="col">x</th></tr></thead>
+<tbody>
+<tr><td><code>common</code></td><td><code>1</code></td></tr>
+<tr><td><code>remaining</code></td><td><code>1</code></td></tr>
+<tr><td><code>remaining</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/queries-union.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="tablesample" class="point" data-dialects="postgresql">
+<h2>TABLESAMPLE · 控制采样方法和种子</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 9.5+</span></p>
+<p>SYSTEM 按块采样，BERNOULLI 按行概率采样。REPEATABLE 指定种子。这里采样比例为 100，结果可稳定对照。重复采样需使用相同方法、比例和种子，且表在两次采样之间没有变更。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="来源表" tabindex="0">
+<table class="sql-result"><caption>来源表</caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_small_sample(id int);
+INSERT INTO pg_small_sample VALUES (1),(2),(3);
+
+SELECT id FROM pg_small_sample TABLESAMPLE SYSTEM (100) REPEATABLE (7) ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id FROM pg_small_sample TABLESAMPLE SYSTEM (100) REPEATABLE (7) ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-select.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="full-outer" class="point" data-dialects="postgresql">
+<h2>FULL OUTER JOIN · 保留两侧缺失项</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>对齐汇总表时，FULL JOIN 保留两侧未配对行，USING 合并同名键，缺失的非键列变成 NULL。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="上期" tabindex="0">
+<table class="sql-result"><caption>上期</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="本期" tabindex="0">
+<table class="sql-result"><caption>本期</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>7</code></td></tr>
+<tr><td><code>3</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT sku,old.qty AS prior,new.qty AS current_qty
+FROM (VALUES (1,5),(2,8)) AS old(sku,qty)
+FULL JOIN (VALUES (2,7),(3,4)) AS new(sku,qty) USING (sku)
+ORDER BY sku;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT sku,old.qty AS prior,new.qty AS current_qty
+FROM (VALUES (1,5),(2,8)) AS old(sku,qty)
+FULL JOIN (VALUES (2,7),(3,4)) AS new(sku,qty) USING (sku)
+ORDER BY sku;</code></span></caption>
+<thead><tr><th scope="col">sku</th><th scope="col">prior</th><th scope="col">current_qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td><td><code>7</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/queries-table-expressions.html#QUERIES-JOIN">PostgreSQL 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#distinct-on">DISTINCT ON · 每组只取排在首位的一行</a></li>
+<li><a href="#lateral">LEFT JOIN LATERAL · 在子查询中引用当前行</a></li>
+<li><a href="#array">unnest WITH ORDINALITY · 拆数组并保留位置</a></li>
+<li><a href="#jsonb">JSONB · 按结构匹配并更新字段</a></li>
+<li><a href="#fetch-ties">FETCH FIRST WITH TIES · 包含截止线并列</a></li>
+<li><a href="#nulls-order">NULLS FIRST/LAST · 显式排序缺失值</a></li>
+<li><a href="#rows-from">ROWS FROM 并列展开多个表函数</a></li>
+<li><a href="#lateral-cross">CROSS JOIN LATERAL · 为当前行生成子行</a></li>
+<li><a href="#cte-materialization">CTE 控制物化或合并到外层查询</a></li>
+<li><a href="#recursive-cycle">递归 SEARCH/CYCLE · 给路径排序并终止循环</a></li>
+<li><a href="#all-set-ops">INTERSECT ALL / EXCEPT ALL 保留重复次数</a></li>
+<li><a href="#tablesample">TABLESAMPLE · 控制采样方法和种子</a></li>
+<li><a href="#full-outer">FULL OUTER JOIN · 保留两侧缺失项</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="33-postgresql-write.html">← 数据写入与同步</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="35-postgresql-design.html">时间区间与索引约束 →</a></nav>
+</main>
+</body>
+</html>

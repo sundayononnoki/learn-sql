@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SQL 学习路径 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="sql-roadmap.html">SQL 学习路径</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<h1>SQL 学习路径</h1>
+<p class="lead">沿 roadmap.sh 的 SQL 路线，用同一套订单练习从第一条 SELECT 走到窗口函数和动态 SQL。</p>
+<p class="entry-links"><a href="../lessons/0001-first-query.html">五分钟上手</a> <a href="../v1.html#operations">按操作查语法</a> <a href="https://roadmap.sh/sql">roadmap.sh 原路线</a></p>
+<section class="panel">
+<h2>开始学习</h2>
+<p>先在页首选数据库并导入练习数据。打开一个阶段，先执行小节顶部的 SQL，再核对表格并做阶段自测。示例按阶段独立运行。</p>
+<ol>
+<li><a href="sql-roadmap-01-basics.html">关系数据库与查询基础</a><p>从订单表读一行，再练习关键字、类型、表达式和子句。</p></li>
+<li><a href="sql-roadmap-02-writing.html">建表、数据约束与写入</a><p>用临时表练结构，随后在事务中修改订单练习数据并回滚。</p></li>
+<li><a href="sql-roadmap-03-queries.html">汇总、子查询与联结</a><p>从聚合结果理解行数变化，再把多张表与子查询拼在一起。</p></li>
+<li><a href="sql-roadmap-04-functions.html">字符串、数值、条件与日期</a><p>在订单查询里计算或显示新列。先记住返回值，再核对方言写法。</p></li>
+<li><a href="sql-roadmap-05-views-indexes.html">视图与索引</a><p>保存常用查询，再用索引和执行计划理解数据库如何找到行。</p></li>
+<li><a href="sql-roadmap-06-transactions.html">例程、数据完整性与事务</a><p>在专用练习环境观察权限、事务边界和并发读取。</p></li>
+<li><a href="sql-roadmap-07-advanced.html">性能、窗口函数与高级查询</a><p>先观察执行计划和联结粒度，再练窗口、CTE、行列转换和参数。</p></li>
+</ol>
+</section>
+<p class="sources">依据 <a href="https://roadmap.sh/sql">roadmap.sh 的 SQL 学习路线</a>。基础和高级主题均有对应的中文小节。</p>
+</main>
+</body>
+</html>

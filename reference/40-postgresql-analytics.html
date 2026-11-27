@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>40 · PostgreSQL · 聚合、窗口与集合函数 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 40 章 · 原生语法</p>
+<h1>PostgreSQL · 聚合、窗口与集合函数</h1>
+<p class="lead">用聚合生成分组统计，用窗口保留原行并计算上下文，用集合函数生成日历和下标。各例都给出可独立复制的数据和结果。</p>
+<div class="layout"><article class="content">
+<section id="filter" class="point" data-dialects="postgresql">
+<h2>FILTER 为每个聚合选择输入行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 9.4+</span></p>
+<p>FILTER 只影响它前面的聚合函数。这里同一批订单既计算总行数，也计算已付款笔数与金额。空输入时 COUNT 为 0，SUM 为 NULL。需要金额默认零时可用 COALESCE。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="原始交易" tabindex="0">
+<table class="sql-result"><caption>原始交易</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>paid</code></td><td><code>20</code></td></tr>
+<tr><td><code>2</code></td><td><code>pending</code></td><td><code>30</code></td></tr>
+<tr><td><code>3</code></td><td><code>paid</code></td><td><code>10</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sales(order_id, status, amount) AS (
+  VALUES (1, &#x27;paid&#x27;, 20), (2, &#x27;pending&#x27;, 30), (3, &#x27;paid&#x27;, 10)
+)
+SELECT COUNT(*) AS all_orders,
+       COUNT(*) FILTER (WHERE status = &#x27;paid&#x27;) AS paid_orders,
+       SUM(amount) FILTER (WHERE status = &#x27;paid&#x27;) AS paid_total
+FROM sales;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sales(order_id, status, amount) AS (
+  VALUES (1, &#x27;paid&#x27;, 20), (2, &#x27;pending&#x27;, 30), (3, &#x27;paid&#x27;, 10)
+)
+SELECT COUNT(*) AS all_orders,
+       COUNT(*) FILTER (WHERE status = &#x27;paid&#x27;) AS paid_orders,
+       SUM(amount) FILTER (WHERE status = &#x27;paid&#x27;) AS paid_total
+FROM sales;</code></span></caption>
+<thead><tr><th scope="col">all_orders</th><th scope="col">paid_orders</th><th scope="col">paid_total</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td><td><code>2</code></td><td><code>30</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-expressions.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="grouping-sets" class="point" data-dialects="postgresql">
+<h2>GROUPING SETS 与 GROUPING()</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 9.5+</span></p>
+<p>为地区小计、品类小计和总计分别指定分组键。空括号 () 表示总计。GROUPING 中参数未参与当前分组时对应位为 1，最右参数是最低位。看 region_omitted 可区分原始值为 NULL 的地区与省略地区维度。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="原始销售记录，地区缺失仍是一条记录" tabindex="0">
+<table class="sql-result"><caption>原始销售记录，地区缺失仍是一条记录</caption>
+<thead><tr><th scope="col">region</th><th scope="col">kind</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>north</code></td><td><code>book</code></td><td><code>20</code></td></tr>
+<tr><td><code>north</code></td><td><code>pen</code></td><td><code>5</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>book</code></td><td><code>10</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sales(region, kind, amount) AS (
+  VALUES (&#x27;north&#x27;,&#x27;book&#x27;,20), (&#x27;north&#x27;,&#x27;pen&#x27;,5), (NULL,&#x27;book&#x27;,10)
+)
+SELECT region, kind, GROUPING(region, kind) AS mask,
+       GROUPING(region) AS region_omitted, SUM(amount) AS total
+FROM sales
+GROUP BY GROUPING SETS ((region), (kind), ())
+ORDER BY mask, region NULLS LAST, kind NULLS LAST;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sales(region, kind, amount) AS (
+  VALUES (&#x27;north&#x27;,&#x27;book&#x27;,20), (&#x27;north&#x27;,&#x27;pen&#x27;,5), (NULL,&#x27;book&#x27;,10)
+)
+SELECT region, kind, GROUPING(region, kind) AS mask,
+       GROUPING(region) AS region_omitted, SUM(amount) AS total
+FROM sales
+GROUP BY GROUPING SETS ((region), (kind), ())
+ORDER BY mask, region NULLS LAST, kind NULLS LAST;</code></span></caption>
+<thead><tr><th scope="col">region</th><th scope="col">kind</th><th scope="col">mask</th><th scope="col">region_omitted</th><th scope="col">total</th></tr></thead>
+<tbody>
+<tr><td><code>north</code></td><td class="sql-null"><code>NULL</code></td><td><code>1</code></td><td><code>0</code></td><td><code>25</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>1</code></td><td><code>0</code></td><td><code>10</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>book</code></td><td><code>2</code></td><td><code>1</code></td><td><code>30</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>pen</code></td><td><code>2</code></td><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>3</code></td><td><code>1</code></td><td><code>35</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/queries-table-expressions.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="rollup" class="point" data-dialects="postgresql">
+<h2>ROLLUP 生成层级小计</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 9.5+</span></p>
+<p>ROLLUP(region, kind) 计算地区加品类明细、各地区小计和总计。维度顺序定义层级。mask=3 的 NULL 是总计标记，mask=1 且 region 为 NULL 的 10 仍属于源数据地区缺失的小计。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="原始销售记录，地区缺失仍是一条记录" tabindex="0">
+<table class="sql-result"><caption>原始销售记录，地区缺失仍是一条记录</caption>
+<thead><tr><th scope="col">region</th><th scope="col">kind</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>north</code></td><td><code>book</code></td><td><code>20</code></td></tr>
+<tr><td><code>north</code></td><td><code>pen</code></td><td><code>5</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>book</code></td><td><code>10</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sales(region, kind, amount) AS (
+  VALUES (&#x27;north&#x27;,&#x27;book&#x27;,20), (&#x27;north&#x27;,&#x27;pen&#x27;,5), (NULL,&#x27;book&#x27;,10)
+)
+SELECT region, kind, GROUPING(region, kind) AS mask, SUM(amount) AS total
+FROM sales GROUP BY ROLLUP (region, kind)
+ORDER BY mask, region NULLS LAST, kind NULLS LAST;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sales(region, kind, amount) AS (
+  VALUES (&#x27;north&#x27;,&#x27;book&#x27;,20), (&#x27;north&#x27;,&#x27;pen&#x27;,5), (NULL,&#x27;book&#x27;,10)
+)
+SELECT region, kind, GROUPING(region, kind) AS mask, SUM(amount) AS total
+FROM sales GROUP BY ROLLUP (region, kind)
+ORDER BY mask, region NULLS LAST, kind NULLS LAST;</code></span></caption>
+<thead><tr><th scope="col">region</th><th scope="col">kind</th><th scope="col">mask</th><th scope="col">total</th></tr></thead>
+<tbody>
+<tr><td><code>north</code></td><td><code>book</code></td><td><code>0</code></td><td><code>20</code></td></tr>
+<tr><td><code>north</code></td><td><code>pen</code></td><td><code>0</code></td><td><code>5</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>book</code></td><td><code>0</code></td><td><code>10</code></td></tr>
+<tr><td><code>north</code></td><td class="sql-null"><code>NULL</code></td><td><code>1</code></td><td><code>25</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>1</code></td><td><code>10</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>3</code></td><td><code>35</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/queries-table-expressions.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="cube" class="point" data-dialects="postgresql">
+<h2>CUBE 展开每个维度组合</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 9.5+</span></p>
+<p>两个维度产生四组分组键，分别对应地区和品类的组合、单独地区、单独品类和总计。CUBE 会计算全部组合，维度变多时先估计输出规模，只需要几种时可使用显式 GROUPING SETS。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="原始销售记录，地区缺失仍是一条记录" tabindex="0">
+<table class="sql-result"><caption>原始销售记录，地区缺失仍是一条记录</caption>
+<thead><tr><th scope="col">region</th><th scope="col">kind</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>north</code></td><td><code>book</code></td><td><code>20</code></td></tr>
+<tr><td><code>north</code></td><td><code>pen</code></td><td><code>5</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>book</code></td><td><code>10</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sales(region, kind, amount) AS (
+  VALUES (&#x27;north&#x27;,&#x27;book&#x27;,20), (&#x27;north&#x27;,&#x27;pen&#x27;,5), (NULL,&#x27;book&#x27;,10)
+)
+SELECT region, kind, GROUPING(region, kind) AS mask, SUM(amount) AS total
+FROM sales GROUP BY CUBE (region, kind)
+ORDER BY mask, region NULLS LAST, kind NULLS LAST;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sales(region, kind, amount) AS (
+  VALUES (&#x27;north&#x27;,&#x27;book&#x27;,20), (&#x27;north&#x27;,&#x27;pen&#x27;,5), (NULL,&#x27;book&#x27;,10)
+)
+SELECT region, kind, GROUPING(region, kind) AS mask, SUM(amount) AS total
+FROM sales GROUP BY CUBE (region, kind)
+ORDER BY mask, region NULLS LAST, kind NULLS LAST;</code></span></caption>
+<thead><tr><th scope="col">region</th><th scope="col">kind</th><th scope="col">mask</th><th scope="col">total</th></tr></thead>
+<tbody>
+<tr><td><code>north</code></td><td><code>book</code></td><td><code>0</code></td><td><code>20</code></td></tr>
+<tr><td><code>north</code></td><td><code>pen</code></td><td><code>0</code></td><td><code>5</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>book</code></td><td><code>0</code></td><td><code>10</code></td></tr>
+<tr><td><code>north</code></td><td class="sql-null"><code>NULL</code></td><td><code>1</code></td><td><code>25</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>1</code></td><td><code>10</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>book</code></td><td><code>2</code></td><td><code>30</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>pen</code></td><td><code>2</code></td><td><code>5</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>3</code></td><td><code>35</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/queries-table-expressions.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="ordered-aggregates" class="point" data-dialects="postgresql">
+<h2>ARRAY_AGG、STRING_AGG 与聚合内部排序去重</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 9.0+</span></p>
+<p>把 ORDER BY 写在聚合参数内可固定元素顺序。用 DISTINCT 时，排序项必须出现在 DISTINCT 参数中。ARRAY_AGG 可保留 NULL 元素，STRING_AGG 跳过 NULL 文本，分隔符写在排序子句之前。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="供聚合的三条记录" tabindex="0">
+<table class="sql-result"><caption>供聚合的三条记录</caption>
+<thead><tr><th scope="col">id</th><th scope="col">name</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Ana</code></td><td><code>20</code></td></tr>
+<tr><td><code>2</code></td><td><code>Bo</code></td><td><code>30</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td><td><code>30</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sample(id, name, price) AS (VALUES (1,&#x27;Ana&#x27;,20), (2,&#x27;Bo&#x27;,30), (3,NULL,30))
+SELECT array_agg(DISTINCT price ORDER BY price DESC)::text AS prices,
+       array_agg(name ORDER BY id)::text AS names_with_null,
+       string_agg(name, &#x27;, &#x27; ORDER BY id DESC) AS names_text
+FROM sample;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sample(id, name, price) AS (VALUES (1,&#x27;Ana&#x27;,20), (2,&#x27;Bo&#x27;,30), (3,NULL,30))
+SELECT array_agg(DISTINCT price ORDER BY price DESC)::text AS prices,
+       array_agg(name ORDER BY id)::text AS names_with_null,
+       string_agg(name, &#x27;, &#x27; ORDER BY id DESC) AS names_text
+FROM sample;</code></span></caption>
+<thead><tr><th scope="col">prices</th><th scope="col">names_with_null</th><th scope="col">names_text</th></tr></thead>
+<tbody>
+<tr><td><code>{30,20}</code></td><td><code>{Ana,Bo,NULL}</code></td><td><code>Bo, Ana</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-aggregate.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="percentiles" class="point" data-dialects="postgresql">
+<h2>WITHIN GROUP、连续与离散百分位</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 9.4+</span></p>
+<p>WITHIN GROUP 提供有序输入。percentile_disc 返回达到分位点的第一个原值，percentile_cont 在相邻值间插值。百分位参数范围是 0 到 1，可传入多个分位点。rank(25) 查询把新样本 25 放入数据后应是第几名。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="四项价格" tabindex="0">
+<table class="sql-result"><caption>四项价格</caption>
+<thead><tr><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>10</code></td></tr>
+<tr><td><code>20</code></td></tr>
+<tr><td><code>30</code></td></tr>
+<tr><td><code>80</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sample(price) AS (VALUES (10), (20), (30), (80))
+SELECT percentile_disc(0.5) WITHIN GROUP (ORDER BY price) AS median_disc,
+       percentile_cont(0.5) WITHIN GROUP (ORDER BY price) AS median_cont,
+       (percentile_cont(ARRAY[0.25,0.75]::double precision[])
+        WITHIN GROUP (ORDER BY price))::text AS quartiles,
+       rank(25) WITHIN GROUP (ORDER BY price) AS hypothetical_rank
+FROM sample;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sample(price) AS (VALUES (10), (20), (30), (80))
+SELECT percentile_disc(0.5) WITHIN GROUP (ORDER BY price) AS median_disc,
+       percentile_cont(0.5) WITHIN GROUP (ORDER BY price) AS median_cont,
+       (percentile_cont(ARRAY[0.25,0.75]::double precision[])
+        WITHIN GROUP (ORDER BY price))::text AS quartiles,
+       rank(25) WITHIN GROUP (ORDER BY price) AS hypothetical_rank
+FROM sample;</code></span></caption>
+<thead><tr><th scope="col">median_disc</th><th scope="col">median_cont</th><th scope="col">quartiles</th><th scope="col">hypothetical_rank</th></tr></thead>
+<tbody>
+<tr><td><code>20</code></td><td><code>25</code></td><td><code>{17.5,42.5}</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-aggregate.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="regression" class="point" data-dialects="postgresql">
+<h2>相关性与线性回归统计</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>回归函数按 y、x 的顺序传参，只使用两个值都不为 NULL 的数据对。这里直线 y=2x+1，斜率 2、截距 1、相关系数和拟合优度均为 1。相关性需要结合业务和样本判断。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="观测值" tabindex="0">
+<table class="sql-result"><caption>观测值</caption>
+<thead><tr><th scope="col">x</th><th scope="col">y</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>3</code></td></tr>
+<tr><td><code>2</code></td><td><code>5</code></td></tr>
+<tr><td><code>3</code></td><td><code>7</code></td></tr>
+<tr><td><code>4</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sample(x,y) AS (VALUES (1,3), (2,5), (3,7), (4,NULL))
+SELECT regr_count(y,x) AS sample_count, regr_slope(y,x) AS slope,
+       regr_intercept(y,x) AS intercept, corr(y,x) AS correlation,
+       regr_r2(y,x) AS r_squared
+FROM sample;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sample(x,y) AS (VALUES (1,3), (2,5), (3,7), (4,NULL))
+SELECT regr_count(y,x) AS sample_count, regr_slope(y,x) AS slope,
+       regr_intercept(y,x) AS intercept, corr(y,x) AS correlation,
+       regr_r2(y,x) AS r_squared
+FROM sample;</code></span></caption>
+<thead><tr><th scope="col">sample_count</th><th scope="col">slope</th><th scope="col">intercept</th><th scope="col">correlation</th><th scope="col">r_squared</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td><td><code>2</code></td><td><code>1</code></td><td><code>1</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-aggregate.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="named-window" class="point" data-dialects="postgresql">
+<h2>WINDOW 定义与复用</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>用 WINDOW 给分区和排序命名，OVER 可引用定义。此处每位客户的总额按分区计算，累计额使用同一分区和明确的行框架。窗口保留原行数。窗口内排序决定计算次序，最外层 ORDER BY 决定展示顺序。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="三笔订单" tabindex="0">
+<table class="sql-result"><caption>三笔订单</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">order_id</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>101</code></td><td><code>20</code></td></tr>
+<tr><td><code>1</code></td><td><code>103</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>102</code></td><td><code>30</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sales(customer_id, order_id, amount) AS (
+  VALUES (1,101,20), (1,103,5), (2,102,30)
+)
+SELECT customer_id, order_id, SUM(amount) OVER per_customer AS customer_total,
+       SUM(amount) OVER running AS running_total
+FROM sales
+WINDOW per_customer AS (PARTITION BY customer_id),
+       running AS (per_customer ORDER BY order_id ROWS UNBOUNDED PRECEDING)
+ORDER BY customer_id, order_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sales(customer_id, order_id, amount) AS (
+  VALUES (1,101,20), (1,103,5), (2,102,30)
+)
+SELECT customer_id, order_id, SUM(amount) OVER per_customer AS customer_total,
+       SUM(amount) OVER running AS running_total
+FROM sales
+WINDOW per_customer AS (PARTITION BY customer_id),
+       running AS (per_customer ORDER BY order_id ROWS UNBOUNDED PRECEDING)
+ORDER BY customer_id, order_id;</code></span></caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">order_id</th><th scope="col">customer_total</th><th scope="col">running_total</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>101</code></td><td><code>25</code></td><td><code>20</code></td></tr>
+<tr><td><code>1</code></td><td><code>103</code></td><td><code>25</code></td><td><code>25</code></td></tr>
+<tr><td><code>2</code></td><td><code>102</code></td><td><code>30</code></td><td><code>30</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-expressions.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="frames" class="point" data-dialects="postgresql">
+<h2>ROWS、RANGE 和 GROUPS 窗口框架</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 11+</span></p>
+<p>ROWS 按窗口排序后的行位置移动，这里用 id 将并列行固定顺序。带偏移的 RANGE 按单个排序值的距离扩展行集。GROUPS 按并列排序键形成的组移动。取累计值时，不显式写框架会默认包含当前排序键的其它并列行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="分数有并列与间隔" tabindex="0">
+<table class="sql-result"><caption>分数有并列与间隔</caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td></tr>
+<tr><td><code>2</code></td><td><code>10</code></td></tr>
+<tr><td><code>3</code></td><td><code>14</code></td></tr>
+<tr><td><code>4</code></td><td><code>21</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sample(id, score) AS (VALUES (1,10), (2,10), (3,14), (4,21))
+SELECT id, score,
+       SUM(score) OVER (ORDER BY score,id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS row_sum,
+       SUM(score) OVER (ORDER BY score RANGE BETWEEN 2 PRECEDING AND CURRENT ROW) AS range_sum,
+       SUM(score) OVER (ORDER BY score GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW) AS group_sum
+FROM sample ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sample(id, score) AS (VALUES (1,10), (2,10), (3,14), (4,21))
+SELECT id, score,
+       SUM(score) OVER (ORDER BY score,id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS row_sum,
+       SUM(score) OVER (ORDER BY score RANGE BETWEEN 2 PRECEDING AND CURRENT ROW) AS range_sum,
+       SUM(score) OVER (ORDER BY score GROUPS BETWEEN 1 PRECEDING AND CURRENT ROW) AS group_sum
+FROM sample ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th><th scope="col">row_sum</th><th scope="col">range_sum</th><th scope="col">group_sum</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td><td><code>10</code></td><td><code>20</code></td><td><code>20</code></td></tr>
+<tr><td><code>2</code></td><td><code>10</code></td><td><code>20</code></td><td><code>20</code></td><td><code>20</code></td></tr>
+<tr><td><code>3</code></td><td><code>14</code></td><td><code>24</code></td><td><code>14</code></td><td><code>34</code></td></tr>
+<tr><td><code>4</code></td><td><code>21</code></td><td><code>35</code></td><td><code>21</code></td><td><code>35</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-expressions.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="frame-exclusion" class="point" data-dialects="postgresql">
+<h2>EXCLUDE 排除当前行或同组并列行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 11+</span></p>
+<p>在指定框架内，EXCLUDE CURRENT ROW 排除当前行，EXCLUDE GROUP 排除当前行及同排序键的其它行，EXCLUDE TIES 只排除其它并列行。EXCLUDE NO OTHERS 保留整个框架，也是默认值。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个 5 互为并列" tabindex="0">
+<table class="sql-result"><caption>两个 5 互为并列</caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>5</code></td></tr>
+<tr><td><code>3</code></td><td><code>9</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sample(id, score) AS (VALUES (1,5), (2,5), (3,9))
+SELECT id, score,
+       SUM(score) OVER (w ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+         EXCLUDE NO OTHERS) AS all_rows,
+       SUM(score) OVER (w ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+         EXCLUDE CURRENT ROW) AS without_current,
+       SUM(score) OVER (w ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+         EXCLUDE GROUP) AS without_group,
+       SUM(score) OVER (w ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+         EXCLUDE TIES) AS without_other_peers
+FROM sample WINDOW w AS (ORDER BY score)
+ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sample(id, score) AS (VALUES (1,5), (2,5), (3,9))
+SELECT id, score,
+       SUM(score) OVER (w ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+         EXCLUDE NO OTHERS) AS all_rows,
+       SUM(score) OVER (w ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+         EXCLUDE CURRENT ROW) AS without_current,
+       SUM(score) OVER (w ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+         EXCLUDE GROUP) AS without_group,
+       SUM(score) OVER (w ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+         EXCLUDE TIES) AS without_other_peers
+FROM sample WINDOW w AS (ORDER BY score)
+ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">score</th><th scope="col">all_rows</th><th scope="col">without_current</th><th scope="col">without_group</th><th scope="col">without_other_peers</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td><td><code>19</code></td><td><code>14</code></td><td><code>9</code></td><td><code>14</code></td></tr>
+<tr><td><code>2</code></td><td><code>5</code></td><td><code>19</code></td><td><code>14</code></td><td><code>9</code></td><td><code>14</code></td></tr>
+<tr><td><code>3</code></td><td><code>9</code></td><td><code>19</code></td><td><code>10</code></td><td><code>10</code></td><td><code>19</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-expressions.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="window-null-treatment" class="point" data-dialects="postgresql">
+<h2>窗口函数的 IGNORE NULLS 与 RESPECT NULLS</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>默认 RESPECT NULLS 把空值所在行也纳入位置计算。IGNORE NULLS 为 lag、lead、first_value、last_value 和 nth_value 跳过值为空的行。first、last 与 nth 在窗口框架内取值，lag 与 lead 沿整个分区查找。用 last_value 和从起点到当前行的框架可向前填充。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="测量值中穿插缺失" tabindex="0">
+<table class="sql-result"><caption>测量值中穿插缺失</caption>
+<thead><tr><th scope="col">id</th><th scope="col">reading</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>10</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>4</code></td><td><code>40</code></td></tr>
+<tr><td><code>5</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sample(id, reading) AS (VALUES (1,NULL), (2,10), (3,NULL), (4,40), (5,NULL))
+SELECT id, reading,
+       lag(reading) RESPECT NULLS OVER w AS prior_row,
+       lag(reading) IGNORE NULLS OVER w AS prior_known,
+       lead(reading) IGNORE NULLS OVER w AS next_known,
+       first_value(reading) IGNORE NULLS OVER w AS first_known,
+       last_value(reading) IGNORE NULLS OVER w AS carry_forward,
+       nth_value(reading, 2) IGNORE NULLS OVER w AS second_known
+FROM sample WINDOW w AS (ORDER BY id ROWS UNBOUNDED PRECEDING)
+ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sample(id, reading) AS (VALUES (1,NULL), (2,10), (3,NULL), (4,40), (5,NULL))
+SELECT id, reading,
+       lag(reading) RESPECT NULLS OVER w AS prior_row,
+       lag(reading) IGNORE NULLS OVER w AS prior_known,
+       lead(reading) IGNORE NULLS OVER w AS next_known,
+       first_value(reading) IGNORE NULLS OVER w AS first_known,
+       last_value(reading) IGNORE NULLS OVER w AS carry_forward,
+       nth_value(reading, 2) IGNORE NULLS OVER w AS second_known
+FROM sample WINDOW w AS (ORDER BY id ROWS UNBOUNDED PRECEDING)
+ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">reading</th><th scope="col">prior_row</th><th scope="col">prior_known</th><th scope="col">next_known</th><th scope="col">first_known</th><th scope="col">carry_forward</th><th scope="col">second_known</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>10</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>10</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>40</code></td><td><code>10</code></td><td><code>10</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td><td><code>10</code></td><td><code>10</code></td><td><code>40</code></td><td><code>10</code></td><td><code>10</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>4</code></td><td><code>40</code></td><td class="sql-null"><code>NULL</code></td><td><code>10</code></td><td class="sql-null"><code>NULL</code></td><td><code>10</code></td><td><code>40</code></td><td><code>40</code></td></tr>
+<tr><td><code>5</code></td><td class="sql-null"><code>NULL</code></td><td><code>40</code></td><td><code>40</code></td><td class="sql-null"><code>NULL</code></td><td><code>10</code></td><td><code>40</code></td><td><code>40</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-window.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="generate-series" class="point" data-dialects="postgresql">
+<h2>generate_series 生成数列或日期骨架</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>步长可正可负，默认整数步长为 1，到达终点时包括终点。步长为 0 报错，方向与边界冲突则返回零行。把整数序列加到 DATE 上，可以生成供日历查询或缺失日期填充使用的基表。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="整数步长与基准日" tabindex="0">
+<table class="sql-result"><caption>整数步长与基准日</caption>
+<thead><tr><th scope="col">start</th><th scope="col">stop</th><th scope="col">step</th><th scope="col">base_date</th></tr></thead>
+<tbody>
+<tr><td><code>5</code></td><td><code>1</code></td><td><code>-2</code></td><td><code>2025-01-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT i, DATE &#x27;2025-01-01&#x27; + i AS calendar_day
+FROM generate_series(5,1,-2) AS s(i)
+ORDER BY i DESC;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT i, DATE &#x27;2025-01-01&#x27; + i AS calendar_day
+FROM generate_series(5,1,-2) AS s(i)
+ORDER BY i DESC;</code></span></caption>
+<thead><tr><th scope="col">i</th><th scope="col">calendar_day</th></tr></thead>
+<tbody>
+<tr><td><code>5</code></td><td><code>2025-01-06</code></td></tr>
+<tr><td><code>3</code></td><td><code>2025-01-04</code></td></tr>
+<tr><td><code>1</code></td><td><code>2025-01-02</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-srf.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="timezone-series" class="point" data-dialects="postgresql">
+<h2>按时区生成跨夏令时的日历序列</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 16+（第四个时区参数）</span></p>
+<p>带时区版本可指定解释日历步长所用的时区。因此连续两个本地午夜相隔的实际时长会随夏令时变化。输出同时格式化为纽约本地时间和 UTC，避免会话时区影响展示。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="纽约夏令时切换区间" tabindex="0">
+<table class="sql-result"><caption>纽约夏令时切换区间</caption>
+<thead><tr><th scope="col">start_time</th><th scope="col">stop_time</th><th scope="col">step</th><th scope="col">zone</th></tr></thead>
+<tbody>
+<tr><td><code>2025-03-08 00:00-05</code></td><td><code>2025-03-10 00:00-04</code></td><td><code>1 day</code></td><td><code>America/New_York</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT to_char(t AT TIME ZONE &#x27;America/New_York&#x27;,&#x27;YYYY-MM-DD HH24:MI&#x27;) AS local_time,
+       to_char(t AT TIME ZONE &#x27;UTC&#x27;,&#x27;YYYY-MM-DD HH24:MI&#x27;) AS utc_time
+FROM generate_series(timestamptz &#x27;2025-03-08 00:00-05&#x27;,
+                     timestamptz &#x27;2025-03-10 00:00-04&#x27;,
+                     interval &#x27;1 day&#x27;, &#x27;America/New_York&#x27;) AS s(t)
+ORDER BY t;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT to_char(t AT TIME ZONE &#x27;America/New_York&#x27;,&#x27;YYYY-MM-DD HH24:MI&#x27;) AS local_time,
+       to_char(t AT TIME ZONE &#x27;UTC&#x27;,&#x27;YYYY-MM-DD HH24:MI&#x27;) AS utc_time
+FROM generate_series(timestamptz &#x27;2025-03-08 00:00-05&#x27;,
+                     timestamptz &#x27;2025-03-10 00:00-04&#x27;,
+                     interval &#x27;1 day&#x27;, &#x27;America/New_York&#x27;) AS s(t)
+ORDER BY t;</code></span></caption>
+<thead><tr><th scope="col">local_time</th><th scope="col">utc_time</th></tr></thead>
+<tbody>
+<tr><td><code>2025-03-08 00:00</code></td><td><code>2025-03-08 05:00</code></td></tr>
+<tr><td><code>2025-03-09 00:00</code></td><td><code>2025-03-09 05:00</code></td></tr>
+<tr><td><code>2025-03-10 00:00</code></td><td><code>2025-03-10 04:00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-srf.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="generate-subscripts" class="point" data-dialects="postgresql">
+<h2>generate_subscripts 按真实数组下标展开</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 9.4+（WITH ORDINALITY）</span></p>
+<p>函数读取指定维度的合法下标，空值元素也有下标。第三个参数 true 逆序输出下标。WITH ORDINALITY 另外从 1 数输出位置，输出位置与数组下标可以不同。数组没有所给维度时返回零行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="数组明确从 0 开始" tabindex="0">
+<table class="sql-result"><caption>数组明确从 0 开始</caption>
+<thead><tr><th scope="col">subscript</th><th scope="col">value</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td><code>10</code></td></tr>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>30</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sample(a) AS (VALUES (&#x27;[0:2]={10,NULL,30}&#x27;::integer[]))
+SELECT e.subscript, sample.a[e.subscript] AS value, e.emitted_position
+FROM sample CROSS JOIN LATERAL
+     generate_subscripts(sample.a, 1, true) WITH ORDINALITY AS e(subscript, emitted_position)
+ORDER BY e.emitted_position;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sample(a) AS (VALUES (&#x27;[0:2]={10,NULL,30}&#x27;::integer[]))
+SELECT e.subscript, sample.a[e.subscript] AS value, e.emitted_position
+FROM sample CROSS JOIN LATERAL
+     generate_subscripts(sample.a, 1, true) WITH ORDINALITY AS e(subscript, emitted_position)
+ORDER BY e.emitted_position;</code></span></caption>
+<thead><tr><th scope="col">subscript</th><th scope="col">value</th><th scope="col">emitted_position</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>30</code></td><td><code>1</code></td></tr>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td><td><code>2</code></td></tr>
+<tr><td><code>0</code></td><td><code>10</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-srf.html">PostgreSQL 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#filter">FILTER 为每个聚合选择输入行</a></li>
+<li><a href="#grouping-sets">自定义分组组合并识别小计行</a></li>
+<li><a href="#rollup">ROLLUP 生成层级小计</a></li>
+<li><a href="#cube">CUBE 展开每个维度组合</a></li>
+<li><a href="#ordered-aggregates">ARRAY_AGG、STRING_AGG 与聚合内部排序去重</a></li>
+<li><a href="#percentiles">用 WITHIN GROUP 求百分位数</a></li>
+<li><a href="#regression">相关性与线性回归统计</a></li>
+<li><a href="#named-window">WINDOW 为多个计算复用窗口定义</a></li>
+<li><a href="#frames">按行、排序值或并列组计算窗口范围</a></li>
+<li><a href="#frame-exclusion">EXCLUDE 排除当前行或同组并列行</a></li>
+<li><a href="#window-null-treatment">控制窗口函数是否跳过 NULL</a></li>
+<li><a href="#generate-series">generate_series 生成数列或日期骨架</a></li>
+<li><a href="#timezone-series">按时区生成跨夏令时的日历序列</a></li>
+<li><a href="#generate-subscripts">generate_subscripts 按真实数组下标展开</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="39-postgresql-syntax.html">← SQL 基本元素与名称解析</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="41-postgresql-types.html">内置类型与类型行为 →</a></nav>
+</main>
+</body>
+</html>

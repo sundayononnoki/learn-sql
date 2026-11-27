@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>62 · PostgreSQL · 对象生命周期与会话工具 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 62 章 · 原生语法</p>
+<h1>PostgreSQL · 对象生命周期与会话工具</h1>
+<p class="lead">修改对象说明、名称、模式和所有者，核对 PostgreSQL 的依赖以及连接状态。会话清理示例使用新连接，角色和大对象示例只在隔离实例执行完整的回滚块。</p>
+<div class="layout"><article class="content">
+<section id="comment" class="point" data-dialects="postgresql">
+<h2>COMMENT 与对象说明</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>COMMENT ON TABLE 和 COMMENT ON COLUMN 分别保存对象与字段的说明。再次设置会替换原文，IS NULL 删除说明。用 obj_description 和 col_description 回查。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="拟设置的说明" tabindex="0">
+<table class="sql-result"><caption>拟设置的说明</caption>
+<thead><tr><th scope="col">对象</th><th scope="col">说明</th></tr></thead>
+<tbody>
+<tr><td><code>表 cov62_comments</code></td><td><code>工具演练</code></td></tr>
+<tr><td><code>列 id</code></td><td><code>原始编号</code></td></tr>
+<tr><td><code>列 id 第二次修改</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE cov62_comments (id int);
+COMMENT ON TABLE cov62_comments IS &#x27;工具演练&#x27;;
+COMMENT ON COLUMN cov62_comments.id IS &#x27;原始编号&#x27;;
+CREATE TEMP TABLE cov62_comments_before AS
+SELECT col_description(&#x27;cov62_comments&#x27;::regclass,1) AS column_before;
+COMMENT ON COLUMN cov62_comments.id IS NULL;
+
+SELECT obj_description(&#x27;cov62_comments&#x27;::regclass,&#x27;pg_class&#x27;) AS table_comment,
+       column_before,
+       col_description(&#x27;cov62_comments&#x27;::regclass,1) AS column_after
+FROM cov62_comments_before;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT obj_description(&#x27;cov62_comments&#x27;::regclass,&#x27;pg_class&#x27;) AS table_comment,
+       column_before,
+       col_description(&#x27;cov62_comments&#x27;::regclass,1) AS column_after
+FROM cov62_comments_before;</code></span></caption>
+<thead><tr><th scope="col">table_comment</th><th scope="col">column_before</th><th scope="col">column_after</th></tr></thead>
+<tbody>
+<tr><td><code>工具演练</code></td><td><code>原始编号</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">能连接数据库的用户可以看到对象说明，说明文字适合记录业务用途和单位。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-comment.html">PostgreSQL 官方文档 1</a> · <a href="https://www.postgresql.org/docs/19/functions-info.html">PostgreSQL 官方文档 2</a></p>
+</section>
+<section id="rename-dependency" class="point" data-dialects="postgresql">
+<h2>RENAME TO 与 RENAME COLUMN · 视图仍识别对象</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>数据库中已登记的视图依赖按对象标识和列编号追踪。修改底表和字段名后，原视图仍可访问，原视图自己声明的列名依旧适用。应用里的 SQL 字符串应同步迁移。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="改名前有一条记录和一个视图" tabindex="0">
+<table class="sql-result"><caption>改名前有一条记录和一个视图</caption>
+<thead><tr><th scope="col">表</th><th scope="col">字段</th><th scope="col">值</th><th scope="col">视图字段</th></tr></thead>
+<tbody>
+<tr><td><code>cov62_before_name</code></td><td><code>id</code></td><td><code>7</code></td><td><code>stable_id</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE cov62_before_name (id int);
+INSERT INTO cov62_before_name VALUES (7);
+CREATE TEMP VIEW cov62_rename_view AS
+SELECT id AS stable_id FROM cov62_before_name;
+ALTER TABLE cov62_before_name RENAME TO cov62_after_name;
+ALTER TABLE cov62_after_name RENAME COLUMN id TO ticket_id;
+
+SELECT v.stable_id, t.ticket_id,
+       to_regclass(&#x27;pg_temp.cov62_before_name&#x27;) IS NULL AS old_name_gone
+FROM cov62_rename_view AS v CROSS JOIN cov62_after_name AS t;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT v.stable_id, t.ticket_id,
+       to_regclass(&#x27;pg_temp.cov62_before_name&#x27;) IS NULL AS old_name_gone
+FROM cov62_rename_view AS v CROSS JOIN cov62_after_name AS t;</code></span></caption>
+<thead><tr><th scope="col">stable_id</th><th scope="col">ticket_id</th><th scope="col">old_name_gone</th></tr></thead>
+<tbody>
+<tr><td><code>7</code></td><td><code>7</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-altertable.html">PostgreSQL 官方文档 1</a> · <a href="https://www.postgresql.org/docs/19/ddl-depend.html">PostgreSQL 官方文档 2</a></p>
+</section>
+<section id="move-schema" class="point" data-dialects="postgresql">
+<h2>ALTER TABLE SET SCHEMA · 移动表及所属序列</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">identity 列演示需 PostgreSQL 10+。</span></p>
+<p>SET SCHEMA 改对象所在模式。表所属索引和序列随表移动，已登记的跨模式视图继续引用该表。一般需要拥有表，并具有目标模式的 CREATE 权限。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="迁移前的对象" tabindex="0">
+<table class="sql-result"><caption>迁移前的对象</caption>
+<thead><tr><th scope="col">源模式</th><th scope="col">目标模式</th><th scope="col">表和序列</th><th scope="col">引用视图</th></tr></thead>
+<tbody>
+<tr><td><code>cov62_from</code></td><td><code>cov62_to</code></td><td><code>cards；cards_id_seq</code></td><td><code>cov62_from.cards_view</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+CREATE SCHEMA cov62_from;
+CREATE SCHEMA cov62_to;
+CREATE TABLE cov62_from.cards (id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY);
+INSERT INTO cov62_from.cards DEFAULT VALUES;
+CREATE VIEW cov62_from.cards_view AS SELECT id FROM cov62_from.cards;
+ALTER TABLE cov62_from.cards SET SCHEMA cov62_to;
+
+SELECT id,
+       to_regclass(&#x27;cov62_from.cards&#x27;) IS NULL AS old_name_gone,
+       to_regclass(&#x27;cov62_to.cards&#x27;) IS NOT NULL AS moved_table,
+       pg_get_serial_sequence(&#x27;cov62_to.cards&#x27;,&#x27;id&#x27;) AS moved_sequence
+FROM cov62_from.cards_view;
+
+ROLLBACK;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,
+       to_regclass(&#x27;cov62_from.cards&#x27;) IS NULL AS old_name_gone,
+       to_regclass(&#x27;cov62_to.cards&#x27;) IS NOT NULL AS moved_table,
+       pg_get_serial_sequence(&#x27;cov62_to.cards&#x27;,&#x27;id&#x27;) AS moved_sequence
+FROM cov62_from.cards_view;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">old_name_gone</th><th scope="col">moved_table</th><th scope="col">moved_sequence</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>true</code></td><td><code>true</code></td><td><code>cov62_to.cards_id_seq</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">在专用练习数据库运行。上述模式名需尚未使用，最后回滚本例对象。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-altertable.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="reset-settings" class="point" data-dialects="postgresql">
+<h2>RESET 与 RESET ALL · 恢复会话参数</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>RESET 恢复一个参数，RESET ALL 恢复全部可重置的运行时参数。恢复目标取决于当前会话从未 SET 该参数时适用的值。配置重载可能改变它，以 pg_settings.reset_val 为准，角色、数据库或实例可能定义了不同默认值。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两项会话设置" tabindex="0">
+<table class="sql-result"><caption>两项会话设置</caption>
+<thead><tr><th scope="col">参数</th><th scope="col">临时值</th></tr></thead>
+<tbody>
+<tr><td><code>work_mem</code></td><td><code>8MB</code></td></tr>
+<tr><td><code>application_name</code></td><td><code>cov62_reset_demo</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SET work_mem = &#x27;8MB&#x27;;
+SET application_name = &#x27;cov62_reset_demo&#x27;;
+RESET work_mem;
+CREATE TEMP TABLE cov62_reset_observation AS
+SELECT setting = reset_val AS work_mem_reset,
+       current_setting(&#x27;application_name&#x27;) = &#x27;cov62_reset_demo&#x27; AS app_unaffected
+FROM pg_catalog.pg_settings WHERE name = &#x27;work_mem&#x27;;
+RESET ALL;
+
+SELECT o.work_mem_reset, o.app_unaffected,
+       s.setting = s.reset_val AS app_reset
+FROM cov62_reset_observation AS o
+CROSS JOIN pg_catalog.pg_settings AS s
+WHERE s.name = &#x27;application_name&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT o.work_mem_reset, o.app_unaffected,
+       s.setting = s.reset_val AS app_reset
+FROM cov62_reset_observation AS o
+CROSS JOIN pg_catalog.pg_settings AS s
+WHERE s.name = &#x27;application_name&#x27;;</code></span></caption>
+<thead><tr><th scope="col">work_mem_reset</th><th scope="col">app_unaffected</th><th scope="col">app_reset</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>true</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">新开练习连接运行。RESET ALL 会恢复其他设置，例如此前修改过的 search_path。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-reset.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="deallocate-all" class="point" data-dialects="postgresql">
+<h2>DEALLOCATE ALL · 移除命名预备语句</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>SQL PREPARE 的名字在当前会话有效。DEALLOCATE name 释放一条，DEALLOCATE ALL 释放当前会话全部预备语句。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两条预备语句" tabindex="0">
+<table class="sql-result"><caption>两条预备语句</caption>
+<thead><tr><th scope="col">名称</th><th scope="col">用途</th></tr></thead>
+<tbody>
+<tr><td><code>cov62_p_one</code></td><td><code>参数加 1</code></td></tr>
+<tr><td><code>cov62_p_two</code></td><td><code>返回常量 2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>PREPARE cov62_p_one(int) AS SELECT $1 + 1;
+PREPARE cov62_p_two AS SELECT 2;
+CREATE TEMP TABLE cov62_prepared_before AS
+SELECT COUNT(*) AS named_before
+FROM pg_catalog.pg_prepared_statements
+WHERE name IN (&#x27;cov62_p_one&#x27;,&#x27;cov62_p_two&#x27;);
+DEALLOCATE ALL;
+
+SELECT named_before,
+       (SELECT COUNT(*) FROM pg_catalog.pg_prepared_statements
+        WHERE name IN (&#x27;cov62_p_one&#x27;,&#x27;cov62_p_two&#x27;)) AS named_after
+FROM cov62_prepared_before;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT named_before,
+       (SELECT COUNT(*) FROM pg_catalog.pg_prepared_statements
+        WHERE name IN (&#x27;cov62_p_one&#x27;,&#x27;cov62_p_two&#x27;)) AS named_after
+FROM cov62_prepared_before;</code></span></caption>
+<thead><tr><th scope="col">named_before</th><th scope="col">named_after</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">在新建练习连接运行，以免释放其他代码正复用的语句。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-deallocate.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="discard-plans" class="point" data-dialects="postgresql">
+<h2>DISCARD PLANS · 使缓存计划在下次使用时重建</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">强制 generic plan 的演示设置需 PostgreSQL 12+。</span></p>
+<p>DISCARD PLANS 使缓存的查询计划失效。已命名的 PREPARE 项仍存在，下次执行时可重建计划。DEALLOCATE 则释放预备语句本身。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="预备语句的两次输入" tabindex="0">
+<table class="sql-result"><caption>预备语句的两次输入</caption>
+<thead><tr><th scope="col">预备语句</th><th scope="col">准备阶段先执行的参数</th><th scope="col">丢弃计划后参数</th></tr></thead>
+<tbody>
+<tr><td><code>cov62_cached</code></td><td><code>1</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SET plan_cache_mode = &#x27;force_generic_plan&#x27;;
+PREPARE cov62_cached(int) AS SELECT $1 + 1 AS calculated;
+EXECUTE cov62_cached(1);
+DISCARD PLANS;
+
+EXECUTE cov62_cached(5);
+
+DEALLOCATE cov62_cached;
+RESET plan_cache_mode;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXECUTE cov62_cached(5);</code></span></caption>
+<thead><tr><th scope="col">calculated</th></tr></thead>
+<tbody>
+<tr><td><code>6</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">第一次执行回传 2 并建立通用计划。清除缓存计划后无需再次 PREPARE，第二次执行回传 6。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-discard.html">PostgreSQL 官方文档 1</a> · <a href="https://www.postgresql.org/docs/19/sql-prepare.html">PostgreSQL 官方文档 2</a></p>
+</section>
+<section id="discard-partial" class="point" data-dialects="postgresql">
+<h2>DISCARD SEQUENCES 与 DISCARD TEMP</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>DISCARD SEQUENCES 清掉本会话的序列缓存和 currval/lastval 记录。DISCARD TEMP 删除本会话的临时表。为避免清理别的练习状态，请用新开的独立连接。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="会话中准备的资源" tabindex="0">
+<table class="sql-result"><caption>会话中准备的资源</caption>
+<thead><tr><th scope="col">序列</th><th scope="col">已经领取的值</th><th scope="col">临时表</th></tr></thead>
+<tbody>
+<tr><td><code>cov62_cached_seq</code></td><td><code>10</code></td><td><code>cov62_temp_only</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP SEQUENCE cov62_cached_seq START WITH 10;
+CREATE TEMP TABLE cov62_temp_only (id int);
+DO $demo$ BEGIN
+  PERFORM nextval(&#x27;cov62_cached_seq&#x27;);
+END $demo$;
+DISCARD SEQUENCES;
+DO $demo$ BEGIN
+  PERFORM currval(&#x27;cov62_cached_seq&#x27;);
+EXCEPTION WHEN SQLSTATE &#x27;55000&#x27; THEN
+  PERFORM set_config(&#x27;cov62.seq_state&#x27;,SQLSTATE,false);
+END $demo$;
+DISCARD TEMP;
+
+SELECT current_setting(&#x27;cov62.seq_state&#x27;,true) AS currval_sqlstate,
+       to_regclass(&#x27;pg_temp.cov62_temp_only&#x27;) IS NULL AS table_gone;
+
+RESET cov62.seq_state;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT current_setting(&#x27;cov62.seq_state&#x27;,true) AS currval_sqlstate,
+       to_regclass(&#x27;pg_temp.cov62_temp_only&#x27;) IS NULL AS table_gone;</code></span></caption>
+<thead><tr><th scope="col">currval_sqlstate</th><th scope="col">table_gone</th></tr></thead>
+<tbody>
+<tr><td><code>55000</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">55000 表示本会话已经没有可供 currval 读取的记录。DISCARD SEQUENCES 不重置序列在数据库中的计数。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-discard.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="discard-all" class="point" data-dialects="postgresql">
+<h2>DISCARD ALL · 清空可复用连接的会话状态</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>DISCARD ALL 重置会话层的参数和身份，清理预备语句、临时表、监听、会话级 advisory lock 等状态。它必须作为独立顶层命令运行，不能在事务块中运行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待清理的状态" tabindex="0">
+<table class="sql-result"><caption>待清理的状态</caption>
+<thead><tr><th scope="col">会话设置</th><th scope="col">预备语句</th><th scope="col">临时表</th></tr></thead>
+<tbody>
+<tr><td><code>application_name = cov62_discard_demo</code></td><td><code>cov62_everything</code></td><td><code>cov62_discard_tbl</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SET application_name = &#x27;cov62_discard_demo&#x27;;
+PREPARE cov62_everything AS SELECT 9;
+CREATE TEMP TABLE cov62_discard_tbl (id int);
+DISCARD ALL;
+
+SELECT to_regclass(&#x27;pg_temp.cov62_discard_tbl&#x27;) IS NULL AS table_gone,
+       NOT EXISTS (SELECT 1 FROM pg_catalog.pg_prepared_statements
+                   WHERE name = &#x27;cov62_everything&#x27;) AS plan_gone,
+       (SELECT setting = reset_val FROM pg_catalog.pg_settings
+        WHERE name = &#x27;application_name&#x27;) AS setting_reset;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT to_regclass(&#x27;pg_temp.cov62_discard_tbl&#x27;) IS NULL AS table_gone,
+       NOT EXISTS (SELECT 1 FROM pg_catalog.pg_prepared_statements
+                   WHERE name = &#x27;cov62_everything&#x27;) AS plan_gone,
+       (SELECT setting = reset_val FROM pg_catalog.pg_settings
+        WHERE name = &#x27;application_name&#x27;) AS setting_reset;</code></span></caption>
+<thead><tr><th scope="col">table_gone</th><th scope="col">plan_gone</th><th scope="col">setting_reset</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>true</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">用新开的 psql 连接按段执行，或把整段作为 psql 脚本运行。某些驱动会把多条 SQL 打包成同一事务，使用这些驱动时逐条发送。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-discard.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="reassign-owned" class="point" data-dialects="postgresql">
+<h2>REASSIGN OWNED · 批量迁移对象所有权</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>REASSIGN OWNED 能转交来源角色在当前数据库的对象，以及它拥有的数据库和表空间。运行者须有来源与目标角色的相应成员资格。跨多库迁移要逐库核对对象。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="同一事务创建的角色和对象" tabindex="0">
+<table class="sql-result"><caption>同一事务创建的角色和对象</caption>
+<thead><tr><th scope="col">来源角色</th><th scope="col">对象</th><th scope="col">新角色</th></tr></thead>
+<tbody>
+<tr><td><code>cov62_owner_old</code></td><td><code>cov62_transfer.items</code></td><td><code>cov62_owner_new</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+CREATE ROLE cov62_owner_old NOLOGIN;
+CREATE ROLE cov62_owner_new NOLOGIN;
+CREATE SCHEMA cov62_transfer;
+CREATE TABLE cov62_transfer.items (id int);
+ALTER TABLE cov62_transfer.items OWNER TO cov62_owner_old;
+CREATE TEMP TABLE cov62_previous_owner AS
+SELECT tableowner::text AS owner_before
+FROM pg_catalog.pg_tables
+WHERE schemaname = &#x27;cov62_transfer&#x27; AND tablename = &#x27;items&#x27;;
+REASSIGN OWNED BY cov62_owner_old TO cov62_owner_new;
+
+SELECT p.owner_before, t.tableowner::text AS owner_after
+FROM cov62_previous_owner AS p CROSS JOIN pg_catalog.pg_tables AS t
+WHERE t.schemaname = &#x27;cov62_transfer&#x27; AND t.tablename = &#x27;items&#x27;;
+
+ROLLBACK;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT p.owner_before, t.tableowner::text AS owner_after
+FROM cov62_previous_owner AS p CROSS JOIN pg_catalog.pg_tables AS t
+WHERE t.schemaname = &#x27;cov62_transfer&#x27; AND t.tablename = &#x27;items&#x27;;</code></span></caption>
+<thead><tr><th scope="col">owner_before</th><th scope="col">owner_after</th></tr></thead>
+<tbody>
+<tr><td><code>cov62_owner_old</code></td><td><code>cov62_owner_new</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">仅用隔离实例的练习管理员执行。角色名和模式名应为全新名称。复制完整块，末尾回滚此例所有角色和对象。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-reassign-owned.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="drop-owned" class="point" data-dialects="postgresql">
+<h2>DROP OWNED RESTRICT · 清理指定角色的对象和授权</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>DROP OWNED 删除指定角色在当前数据库中拥有的对象，并撤销授予该角色的相关权限。RESTRICT 遇到依赖会拒绝，CASCADE 可能波及其他所有者的依赖对象。角色本身仍存在。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="刚刚准备的角色状态" tabindex="0">
+<table class="sql-result"><caption>刚刚准备的角色状态</caption>
+<thead><tr><th scope="col">角色</th><th scope="col">拥有的表</th><th scope="col">额外收到的权限</th></tr></thead>
+<tbody>
+<tr><td><code>cov62_to_cleanup</code></td><td><code>cov62_cleanup.owned_item</code></td><td><code>SELECT ON cov62_cleanup.read_only</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+CREATE ROLE cov62_to_cleanup NOLOGIN;
+CREATE SCHEMA cov62_cleanup;
+CREATE TABLE cov62_cleanup.owned_item (id int);
+CREATE TABLE cov62_cleanup.read_only (id int);
+ALTER TABLE cov62_cleanup.owned_item OWNER TO cov62_to_cleanup;
+GRANT SELECT ON cov62_cleanup.read_only TO cov62_to_cleanup;
+DROP OWNED BY cov62_to_cleanup RESTRICT;
+
+SELECT to_regclass(&#x27;cov62_cleanup.owned_item&#x27;) IS NULL AS owned_table_gone,
+       has_table_privilege(&#x27;cov62_to_cleanup&#x27;,&#x27;cov62_cleanup.read_only&#x27;,&#x27;SELECT&#x27;)
+         AS still_granted_select,
+       EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = &#x27;cov62_to_cleanup&#x27;)
+         AS role_remains;
+
+ROLLBACK;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT to_regclass(&#x27;cov62_cleanup.owned_item&#x27;) IS NULL AS owned_table_gone,
+       has_table_privilege(&#x27;cov62_to_cleanup&#x27;,&#x27;cov62_cleanup.read_only&#x27;,&#x27;SELECT&#x27;)
+         AS still_granted_select,
+       EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = &#x27;cov62_to_cleanup&#x27;)
+         AS role_remains;</code></span></caption>
+<thead><tr><th scope="col">owned_table_gone</th><th scope="col">still_granted_select</th><th scope="col">role_remains</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>false</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">仅在隔离实例运行完整块。练习角色和模式必须由本块新建，末尾回滚。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-drop-owned.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="large-object-owner" class="point" data-dialects="postgresql">
+<h2>lo_from_bytea 与 ALTER LARGE OBJECT OWNER TO</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">lo_from_bytea 和 lo_get 自 PostgreSQL 9.4 起可用。</span></p>
+<p>lo_from_bytea 创建大对象并返回其 OID。传入 0 可让数据库挑选可用的 OID。ALTER LARGE OBJECT 用 OID 转移所有权。执行者需要拥有该对象，并可切换为新所有者。此例应使用专用实例的练习超级用户，以便在转移所有者后仍能读取这个大对象。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="在事务中创建的大对象" tabindex="0">
+<table class="sql-result"><caption>在事务中创建的大对象</caption>
+<thead><tr><th scope="col">初始十六进制字节</th><th scope="col">新所有者</th></tr></thead>
+<tbody>
+<tr><td><code>4100ff</code></td><td><code>cov62_blob_owner</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+CREATE ROLE cov62_blob_owner NOLOGIN;
+CREATE TEMP TABLE cov62_blob_ref AS
+SELECT lo_from_bytea(0, decode(&#x27;4100ff&#x27;,&#x27;hex&#x27;)) AS blob_oid;
+DO $demo$ BEGIN
+  EXECUTE format(&#x27;ALTER LARGE OBJECT %s OWNER TO cov62_blob_owner&#x27;,
+                 (SELECT blob_oid FROM cov62_blob_ref));
+END $demo$;
+
+SELECT pg_get_userbyid(m.lomowner)::text AS owner_after,
+       encode(lo_get(r.blob_oid),&#x27;hex&#x27;) AS bytes_after
+FROM cov62_blob_ref AS r
+JOIN pg_catalog.pg_largeobject_metadata AS m ON m.oid = r.blob_oid;
+
+ROLLBACK;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT pg_get_userbyid(m.lomowner)::text AS owner_after,
+       encode(lo_get(r.blob_oid),&#x27;hex&#x27;) AS bytes_after
+FROM cov62_blob_ref AS r
+JOIN pg_catalog.pg_largeobject_metadata AS m ON m.oid = r.blob_oid;</code></span></caption>
+<thead><tr><th scope="col">owner_after</th><th scope="col">bytes_after</th></tr></thead>
+<tbody>
+<tr><td><code>cov62_blob_owner</code></td><td><code>4100ff</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">仅用隔离实例的练习管理员执行。动态 SQL 只插入本事务生成的数值 OID。末尾回滚大对象和角色。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-alterlargeobject.html">PostgreSQL 官方文档 1</a> · <a href="https://www.postgresql.org/docs/19/lo-funcs.html">PostgreSQL 官方文档 2</a></p>
+</section>
+<section id="session-authorization" class="point" data-dialects="postgresql">
+<h2>SET SESSION AUTHORIZATION 与 SET ROLE 的身份差别</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>SET SESSION AUTHORIZATION 改会话用户与当前用户，设置为其他用户要求初始身份是超级用户。SET ROLE 改当前用户，权限检查采用当前用户。RESET ROLE 和 RESET SESSION AUTHORIZATION 恢复各自的身份状态。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个临时练习角色" tabindex="0">
+<table class="sql-result"><caption>两个临时练习角色</caption>
+<thead><tr><th scope="col">模拟登录身份</th><th scope="col">获授成员角色</th></tr></thead>
+<tbody>
+<tr><td><code>cov62_simulated_login</code></td><td><code>cov62_simulated_reader</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>BEGIN;
+CREATE ROLE cov62_simulated_login NOLOGIN;
+CREATE ROLE cov62_simulated_reader NOLOGIN;
+GRANT cov62_simulated_reader TO cov62_simulated_login;
+CREATE TEMP TABLE cov62_identity_steps (step int, login_name name, effective_name name);
+GRANT INSERT ON cov62_identity_steps TO cov62_simulated_login, cov62_simulated_reader;
+SET SESSION AUTHORIZATION cov62_simulated_login;
+INSERT INTO cov62_identity_steps VALUES (1, SESSION_USER, CURRENT_USER);
+SET ROLE cov62_simulated_reader;
+INSERT INTO cov62_identity_steps VALUES (2, SESSION_USER, CURRENT_USER);
+RESET ROLE;
+INSERT INTO cov62_identity_steps VALUES (3, SESSION_USER, CURRENT_USER);
+RESET SESSION AUTHORIZATION;
+
+SELECT step, login_name, effective_name
+FROM cov62_identity_steps ORDER BY step;
+
+ROLLBACK;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT step, login_name, effective_name
+FROM cov62_identity_steps ORDER BY step;</code></span></caption>
+<thead><tr><th scope="col">step</th><th scope="col">login_name</th><th scope="col">effective_name</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>cov62_simulated_login</code></td><td><code>cov62_simulated_login</code></td></tr>
+<tr><td><code>2</code></td><td><code>cov62_simulated_login</code></td><td><code>cov62_simulated_reader</code></td></tr>
+<tr><td><code>3</code></td><td><code>cov62_simulated_login</code></td><td><code>cov62_simulated_login</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">仅在隔离实例以练习超级用户运行。RESET SESSION AUTHORIZATION 恢复真实连接身份，最后回滚本例角色。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-set-session-authorization.html">PostgreSQL 官方文档 1</a> · <a href="https://www.postgresql.org/docs/19/sql-set-role.html">PostgreSQL 官方文档 2</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#comment">COMMENT 添加或修改表和字段说明</a></li>
+<li><a href="#rename-dependency">RENAME TO 与 RENAME COLUMN · 视图仍识别对象</a></li>
+<li><a href="#move-schema">ALTER TABLE SET SCHEMA · 移动表及所属序列</a></li>
+<li><a href="#reset-settings">RESET 与 RESET ALL · 恢复会话参数</a></li>
+<li><a href="#deallocate-all">DEALLOCATE ALL · 移除命名预备语句</a></li>
+<li><a href="#discard-plans">DISCARD PLANS · 使缓存计划在下次使用时重建</a></li>
+<li><a href="#discard-partial">清理当前会话的序列缓存和临时表</a></li>
+<li><a href="#discard-all">DISCARD ALL · 清空可复用连接的会话状态</a></li>
+<li><a href="#reassign-owned">REASSIGN OWNED · 批量迁移对象所有权</a></li>
+<li><a href="#drop-owned">DROP OWNED RESTRICT · 清理指定角色的对象和授权</a></li>
+<li><a href="#large-object-owner">创建大对象并转移所有权</a></li>
+<li><a href="#session-authorization">切换会话用户或执行角色</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="49-postgresql-versions.html">← PostgreSQL 版本与迁移附录</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="../v1.html#reference-appendices">参考附录 →</a></nav>
+</main>
+</body>
+</html>

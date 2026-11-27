@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>54 · SQL Server · 表结构、约束、视图与分区 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 54 章 · 原生语法</p>
+<h1>SQL Server · 表结构、约束、视图与分区</h1>
+<p class="lead">在单独的练习库逐卡操作。通过系统目录验证身份列、约束状态、视图索引与分区结果。预置文件组的卡片需使用具备对应功能的隔离实例。</p>
+<div class="layout"><article class="content">
+<section id="identity" class="point" data-dialects="sqlserver">
+<h2>IDENTITY 与 DBCC CHECKIDENT</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025 · 独立练习库 · 需要创建表及修改对应架构的权限</span></p>
+<p>IDENTITY 把编号生成器绑定到列，PRIMARY KEY 独立保证唯一。已有行时 RESEED 设定当前值，下一次普通 INSERT 再加步长。回滚和缓存都可能留下编号空洞。只对本节练习表重设计数。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="初始行" tabindex="0">
+<table class="sql-result"><caption>初始行</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>first</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d54_identity (
+    id int IDENTITY(1,1) PRIMARY KEY,
+    label varchar(10) NOT NULL
+);
+INSERT dbo.d54_identity(label) VALUES (&#x27;first&#x27;);
+DBCC CHECKIDENT (&#x27;dbo.d54_identity&#x27;, RESEED, 20) WITH NO_INFOMSGS;
+INSERT dbo.d54_identity(label) VALUES (&#x27;second&#x27;);
+
+SELECT id, label FROM dbo.d54_identity ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, label FROM dbo.d54_identity ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>first</code></td></tr>
+<tr><td><code>21</code></td><td><code>second</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkident-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="sequence" class="point" data-dialects="sqlserver">
+<h2>SEQUENCE 与 NEXT VALUE FOR</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+ · 需要 CREATE SEQUENCE 与表权限；其它用户直接取号需相应 UPDATE 权限</span></p>
+<p>序列是独立架构对象。同一序列可被多个表引用，也可用 NEXT VALUE FOR 主动领号。NO CACHE 不会使序列与事务回滚绑定。DEFAULT 从该序列为每个新行取值。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="序列及请求" tabindex="0">
+<table class="sql-result"><caption>序列及请求</caption>
+<thead><tr><th scope="col">START WITH</th><th scope="col">INCREMENT BY</th><th scope="col">请求次序</th></tr></thead>
+<tbody>
+<tr><td><code>100</code></td><td><code>10</code></td><td><code>显式取号 → 使用列默认值</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE SEQUENCE dbo.d54_serial AS int
+    START WITH 100 INCREMENT BY 10 NO CACHE;
+CREATE TABLE dbo.d54_sequence_use (
+    id int PRIMARY KEY DEFAULT (NEXT VALUE FOR dbo.d54_serial)
+);
+DECLARE @taken int = NEXT VALUE FOR dbo.d54_serial;
+INSERT dbo.d54_sequence_use(id) VALUES (@taken);
+INSERT dbo.d54_sequence_use DEFAULT VALUES;
+
+SELECT id FROM dbo.d54_sequence_use ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id FROM dbo.d54_sequence_use ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>100</code></td></tr>
+<tr><td><code>110</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-sequence-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="temp" class="point" data-dialects="sqlserver">
+<h2>局部临时表、全局临时表和表变量</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server · 同一连接、同一批次 · Azure SQL Database 的 ## 表作用域为当前数据库</span></p>
+<p>当前连接可访问 # 表。SQL Server 实例的 ## 表允许其他会话访问，应用应避免名称碰撞，默认自动清除时机取决于创建连接及最后仍引用它的活动语句。@table 局部于当前批次、过程或函数。原样在同一批次运行，保持连接打开。全局临时表名称须未占用。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="写入三个对象" tabindex="0">
+<table class="sql-result"><caption>写入三个对象</caption>
+<thead><tr><th scope="col">对象</th><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>#d54_local</code></td><td><code>10</code></td></tr>
+<tr><td><code>##d54_global</code></td><td><code>20</code></td></tr>
+<tr><td><code>@d54_var</code></td><td><code>30</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #d54_local (id int NOT NULL);
+CREATE TABLE ##d54_global (id int NOT NULL);
+DECLARE @d54_var TABLE (id int NOT NULL);
+INSERT #d54_local VALUES (10);
+INSERT ##d54_global VALUES (20);
+INSERT @d54_var VALUES (30);
+
+SELECT
+    (SELECT id FROM #d54_local) AS local_id,
+    (SELECT id FROM ##d54_global) AS global_id,
+    (SELECT id FROM @d54_var) AS variable_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT
+    (SELECT id FROM #d54_local) AS local_id,
+    (SELECT id FROM ##d54_global) AS global_id,
+    (SELECT id FROM @d54_var) AS variable_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">local_id</th><th scope="col">global_id</th><th scope="col">variable_id</th></tr></thead>
+<tbody>
+<tr><td><code>10</code></td><td><code>20</code></td><td><code>30</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql?view=sql-server-ver17#temporary-tables">SQL Server 官方文档</a></p>
+</section>
+<section id="persisted" class="point" data-dialects="sqlserver">
+<h2>计算列与 PERSISTED</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025 · 独立练习库 · 需要创建表及修改对应架构的权限</span></p>
+<p>计算列表达式使用同一行的列。PERSISTED 物理存储计算值，基础列改变时自动更新。计算列索引另有表达式确定性、精度、允许类型和会话 SET 要求。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="更新前" tabindex="0">
+<table class="sql-result"><caption>更新前</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">price</th><th scope="col">total</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td><td><code>7.50</code></td><td><code>15.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d54_line (
+    id int PRIMARY KEY,
+    qty int NOT NULL,
+    price decimal(8,2) NOT NULL,
+    total AS CONVERT(decimal(12,2), qty * price) PERSISTED
+);
+INSERT dbo.d54_line(id, qty, price) VALUES (1, 2, 7.50);
+UPDATE dbo.d54_line SET qty = 3 WHERE id = 1;
+
+SELECT l.id, l.qty, l.price, l.total, c.is_persisted
+FROM dbo.d54_line AS l
+CROSS JOIN sys.computed_columns AS c
+WHERE c.object_id = OBJECT_ID(N&#x27;dbo.d54_line&#x27;) AND c.name = N&#x27;total&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT l.id, l.qty, l.price, l.total, c.is_persisted
+FROM dbo.d54_line AS l
+CROSS JOIN sys.computed_columns AS c
+WHERE c.object_id = OBJECT_ID(N&#x27;dbo.d54_line&#x27;) AND c.name = N&#x27;total&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">price</th><th scope="col">total</th><th scope="col">is_persisted</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>3</code></td><td><code>7.50</code></td><td><code>22.50</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/tables/specify-computed-columns-in-a-table?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="trust" class="point" data-dialects="sqlserver">
+<h2>WITH NOCHECK、验证旧行与受信约束</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025 · 独立练习库 · 需要创建表及修改对应架构的权限</span></p>
+<p>WITH NOCHECK ADD 跳过旧行扫描，新写入仍受约束。NOCHECK CONSTRAINT 则会禁用已有约束。WITH CHECK CHECK CONSTRAINT 验证已有数据并恢复信任，优化器可以利用已验证的约束。旧行违反约束时应先修正再验证。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="新增约束但尚未验证旧行" tabindex="0">
+<table class="sql-result"><caption>新增约束但尚未验证旧行</caption>
+<thead><tr><th scope="col">name</th><th scope="col">is_disabled</th><th scope="col">is_not_trusted</th></tr></thead>
+<tbody>
+<tr><td><code>CK_d54_valid_qty</code></td><td><code>0</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d54_valid (id int PRIMARY KEY, qty int NOT NULL);
+INSERT dbo.d54_valid VALUES (1, 2);
+ALTER TABLE dbo.d54_valid WITH NOCHECK
+ADD CONSTRAINT CK_d54_valid_qty CHECK (qty &gt; 0);
+ALTER TABLE dbo.d54_valid WITH CHECK CHECK CONSTRAINT CK_d54_valid_qty;
+
+SELECT name, is_disabled, is_not_trusted
+FROM sys.check_constraints
+WHERE parent_object_id = OBJECT_ID(N&#x27;dbo.d54_valid&#x27;) AND name = N&#x27;CK_d54_valid_qty&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, is_disabled, is_not_trusted
+FROM sys.check_constraints
+WHERE parent_object_id = OBJECT_ID(N&#x27;dbo.d54_valid&#x27;) AND name = N&#x27;CK_d54_valid_qty&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">is_disabled</th><th scope="col">is_not_trusted</th></tr></thead>
+<tbody>
+<tr><td><code>CK_d54_valid_qty</code></td><td><code>0</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/tables/disable-check-constraints-with-insert-and-update-statements?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="foreign-key-trust" class="point" data-dialects="sqlserver">
+<h2>启用外键与验证外键是两步</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025 · 独立练习库 · 需要创建表及修改对应架构的权限</span></p>
+<p>CHECK CONSTRAINT 恢复未来写入检查。WITH CHECK CHECK CONSTRAINT 还验证既有的引用关系。按约束名从 sys.foreign_keys 查 is_disabled 与 is_not_trusted，能确认实际状态。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="禁用后" tabindex="0">
+<table class="sql-result"><caption>禁用后</caption>
+<thead><tr><th scope="col">parent.id</th><th scope="col">child.parent_id</th><th scope="col">is_disabled</th><th scope="col">is_not_trusted</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td><td><code>1</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d54_parent (id int PRIMARY KEY);
+CREATE TABLE dbo.d54_child (
+    id int PRIMARY KEY,
+    parent_id int NOT NULL,
+    CONSTRAINT FK_d54_child_parent FOREIGN KEY(parent_id) REFERENCES dbo.d54_parent(id)
+);
+INSERT dbo.d54_parent VALUES (1);
+INSERT dbo.d54_child VALUES (1, 1);
+ALTER TABLE dbo.d54_child NOCHECK CONSTRAINT FK_d54_child_parent;
+ALTER TABLE dbo.d54_child WITH CHECK CHECK CONSTRAINT FK_d54_child_parent;
+
+SELECT name, is_disabled, is_not_trusted
+FROM sys.foreign_keys
+WHERE parent_object_id = OBJECT_ID(N&#x27;dbo.d54_child&#x27;) AND name = N&#x27;FK_d54_child_parent&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, is_disabled, is_not_trusted
+FROM sys.foreign_keys
+WHERE parent_object_id = OBJECT_ID(N&#x27;dbo.d54_child&#x27;) AND name = N&#x27;FK_d54_child_parent&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">is_disabled</th><th scope="col">is_not_trusted</th></tr></thead>
+<tbody>
+<tr><td><code>FK_d54_child_parent</code></td><td><code>0</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/tables/disable-foreign-key-constraints-with-insert-and-update-statements?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="create-or-alter" class="point" data-dialects="sqlserver">
+<h2>CREATE OR ALTER VIEW 与批次</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016 SP1+ · 需要 CREATE VIEW 及架构权限</span></p>
+<p>CREATE OR ALTER 创建缺失的视图或更新已有定义。视图定义需从一个批次的开头开始，例中 EXEC 将文本作为独立批次执行。使用客户端时也可用 GO 划分，读取视图时再按需要排序。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="基础商品" tabindex="0">
+<table class="sql-result"><caption>基础商品</caption>
+<thead><tr><th scope="col">id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>9.00</code></td></tr>
+<tr><td><code>2</code></td><td><code>12.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d54_product (id int PRIMARY KEY, price decimal(8,2) NOT NULL);
+INSERT dbo.d54_product VALUES (1, 9.00), (2, 12.00);
+EXEC(N&#x27;CREATE OR ALTER VIEW dbo.d54_deals AS
+SELECT id, price FROM dbo.d54_product WHERE price &lt; 10;&#x27;);
+
+SELECT id, price FROM dbo.d54_deals ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, price FROM dbo.d54_deals ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>9.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-view-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="schema-synonym" class="point" data-dialects="sqlserver">
+<h2>架构、sp_rename 与同义词</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server · 需要创建架构和同义词及修改练习表的权限</span></p>
+<p>架构是命名空间。sp_rename 修改对象的名称，已有 SQL 与依赖视图可能需要手动更新。同义词为目标对象提供替代名称，创建时对目标的绑定检查推迟到使用时。本例仅重命名自己创建的表。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="重命名前" tabindex="0">
+<table class="sql-result"><caption>重命名前</caption>
+<thead><tr><th scope="col">完整名称</th><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>d54_lab.old_stock</code></td><td><code>1</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>EXEC(N&#x27;CREATE SCHEMA d54_lab;&#x27;);
+CREATE TABLE d54_lab.old_stock (id int PRIMARY KEY, qty int NOT NULL);
+INSERT d54_lab.old_stock VALUES (1, 8);
+EXEC sys.sp_rename N&#x27;d54_lab.old_stock&#x27;, N&#x27;stock&#x27;, N&#x27;OBJECT&#x27;;
+CREATE SYNONYM d54_lab.inventory FOR d54_lab.stock;
+
+SELECT i.id, i.qty, PARSENAME(s.base_object_name, 1) AS target_name
+FROM d54_lab.inventory AS i
+CROSS JOIN sys.synonyms AS s
+WHERE s.name = N&#x27;inventory&#x27; AND s.schema_id = SCHEMA_ID(N&#x27;d54_lab&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT i.id, i.qty, PARSENAME(s.base_object_name, 1) AS target_name
+FROM d54_lab.inventory AS i
+CROSS JOIN sys.synonyms AS s
+WHERE s.name = N&#x27;inventory&#x27; AND s.schema_id = SCHEMA_ID(N&#x27;d54_lab&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">target_name</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>8</code></td><td><code>stock</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-synonym-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="indexed-view" class="point" data-dialects="sqlserver">
+<h2>SCHEMABINDING 与索引视图</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server · 表和视图同所有者 · 使用独立会话设置 SET · 聚合索引视图另需 COUNT_BIG(*) 等规定</span></p>
+<p>SCHEMABINDING 要求用两段名引用同库基础对象并限制破坏依赖的结构变更。先建唯一聚集索引，使视图结果物理存储并在写入时维护。创建及维护索引视图需保持示例的七项 SET。显式 NOEXPAND 使查询直接访问索引视图，优化器能否自动匹配视图受版本类型影响。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="基础行" tabindex="0">
+<table class="sql-result"><caption>基础行</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>4</code></td></tr>
+<tr><td><code>2</code></td><td><code>6</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET ANSI_NULLS ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET QUOTED_IDENTIFIER ON;
+SET NUMERIC_ROUNDABORT OFF;
+CREATE TABLE dbo.d54_inventory (id int NOT NULL PRIMARY KEY, qty int NOT NULL);
+INSERT dbo.d54_inventory VALUES (1, 4), (2, 6);
+EXEC(N&#x27;CREATE VIEW dbo.d54_inventory_v WITH SCHEMABINDING AS
+SELECT id, qty FROM dbo.d54_inventory;&#x27;);
+CREATE UNIQUE CLUSTERED INDEX CIX_d54_inventory_v ON dbo.d54_inventory_v(id);
+
+SELECT v.id, v.qty, i.type_desc, i.is_unique
+FROM dbo.d54_inventory_v AS v WITH (NOEXPAND)
+CROSS JOIN sys.indexes AS i
+WHERE v.id = 1 AND i.object_id = OBJECT_ID(N&#x27;dbo.d54_inventory_v&#x27;)
+    AND i.name = N&#x27;CIX_d54_inventory_v&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT v.id, v.qty, i.type_desc, i.is_unique
+FROM dbo.d54_inventory_v AS v WITH (NOEXPAND)
+CROSS JOIN sys.indexes AS i
+WHERE v.id = 1 AND i.object_id = OBJECT_ID(N&#x27;dbo.d54_inventory_v&#x27;)
+    AND i.name = N&#x27;CIX_d54_inventory_v&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">type_desc</th><th scope="col">is_unique</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>4</code></td><td><code>CLUSTERED</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/views/create-indexed-views?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="partition" class="point" data-dialects="sqlserver">
+<h2>PARTITION FUNCTION、SCHEME 与 RANGE RIGHT</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016 SP1 起各版本类型均支持分区 · 需要分区数据空间及建表权限</span></p>
+<p>函数定义边界，方案把逻辑分区映射到文件组。本例所有分区映射到 PRIMARY。RANGE RIGHT 把边界日归入右侧分区，适合日期的半开区间。$PARTITION 显示值所在的分区编号。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="日期分界" tabindex="0">
+<table class="sql-result"><caption>日期分界</caption>
+<thead><tr><th scope="col">类型</th><th scope="col">边界 1</th><th scope="col">边界 2</th></tr></thead>
+<tbody>
+<tr><td><code>RANGE RIGHT</code></td><td><code>2025-01-01</code></td><td><code>2025-02-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE PARTITION FUNCTION d54_date_pf(date)
+AS RANGE RIGHT FOR VALUES (&#x27;20250101&#x27;, &#x27;20250201&#x27;);
+CREATE PARTITION SCHEME d54_date_ps
+AS PARTITION d54_date_pf ALL TO ([PRIMARY]);
+CREATE TABLE dbo.d54_dates (booked date NOT NULL) ON d54_date_ps(booked);
+INSERT dbo.d54_dates VALUES (&#x27;20241231&#x27;), (&#x27;20250101&#x27;), (&#x27;20250201&#x27;);
+
+SELECT booked, $PARTITION.d54_date_pf(booked) AS partition_no
+FROM dbo.d54_dates ORDER BY booked;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT booked, $PARTITION.d54_date_pf(booked) AS partition_no
+FROM dbo.d54_dates ORDER BY booked;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">booked</th><th scope="col">partition_no</th></tr></thead>
+<tbody>
+<tr><td><code>2024-12-31</code></td><td><code>1</code></td></tr>
+<tr><td><code>2025-01-01</code></td><td><code>2</code></td></tr>
+<tr><td><code>2025-02-01</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/partitions/create-partitioned-tables-and-indexes?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="switch" class="point" data-dialects="sqlserver">
+<h2>ALTER TABLE SWITCH 切换分区</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server · 需要修改两个练习表及创建分区数据空间的权限</span></p>
+<p>把同文件组且结构匹配的待装载表切换到空目标分区。可信 CHECK 约束证明源日期全部落在目标范围。示例都是堆。若有索引，还要逐一对齐。SWITCH 调整分区归属并取得所需锁，切换后的源表仍存在。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="切换前行数" tabindex="0">
+<table class="sql-result"><caption>切换前行数</caption>
+<thead><tr><th scope="col">stage_rows</th><th scope="col">target_rows</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE PARTITION FUNCTION d54_switch_pf(date)
+AS RANGE RIGHT FOR VALUES (&#x27;20250101&#x27;, &#x27;20250201&#x27;);
+CREATE PARTITION SCHEME d54_switch_ps
+AS PARTITION d54_switch_pf ALL TO ([PRIMARY]);
+CREATE TABLE dbo.d54_switch_part (booked date NOT NULL) ON d54_switch_ps(booked);
+CREATE TABLE dbo.d54_switch_stage (
+    booked date NOT NULL,
+    CONSTRAINT CK_d54_switch_month CHECK (booked &gt;= &#x27;20250101&#x27; AND booked &lt; &#x27;20250201&#x27;)
+) ON [PRIMARY];
+INSERT dbo.d54_switch_stage VALUES (&#x27;20250115&#x27;);
+ALTER TABLE dbo.d54_switch_stage SWITCH TO dbo.d54_switch_part PARTITION 2;
+
+SELECT (SELECT COUNT(*) FROM dbo.d54_switch_stage) AS stage_rows,
+       (SELECT COUNT(*) FROM dbo.d54_switch_part
+         WHERE $PARTITION.d54_switch_pf(booked) = 2) AS target_rows;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT (SELECT COUNT(*) FROM dbo.d54_switch_stage) AS stage_rows,
+       (SELECT COUNT(*) FROM dbo.d54_switch_part
+         WHERE $PARTITION.d54_switch_pf(booked) = 2) AS target_rows;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">stage_rows</th><th scope="col">target_rows</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-table-transact-sql?view=sql-server-ver17#switch--partition-source_partition_number_expression-to-target_table--partition-target_partition_number_expression-">SQL Server 官方文档</a></p>
+</section>
+<section id="filestream" class="point" data-dialects="sqlserver">
+<h2>FILESTREAM 与 FileTable</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server Windows 实例 · FILESTREAM 2008+、FileTable 2012+ · 核对版本类型、已有 FILESTREAM 文件组、目录与实例权限</span></p>
+<p>FILESTREAM 将 varbinary(max) 与数据库文件系统容器关联。表还需唯一非空的 ROWGUIDCOL。FileTable 通过预定义列提供文件层次结构。管理员先在隔离库配置 Windows FILESTREAM、带有容器的默认 FILESTREAM 文件组 d54_stream_fg、数据库目录及访问级别，然后用本例建立两个练习表。示例插入的只是两个字节。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="写入内容及存储前提" tabindex="0">
+<table class="sql-result"><caption>写入内容及存储前提</caption>
+<thead><tr><th scope="col">payload</th><th scope="col">length</th><th scope="col">文件组</th></tr></thead>
+<tbody>
+<tr><td><code>0x4142</code></td><td><code>2</code></td><td><code>d54_stream_fg</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d54_stream (
+    id uniqueidentifier ROWGUIDCOL NOT NULL UNIQUE DEFAULT NEWID(),
+    payload varbinary(max) FILESTREAM NULL
+) ON [PRIMARY] FILESTREAM_ON d54_stream_fg;
+INSERT dbo.d54_stream(payload) VALUES (0x4142);
+CREATE TABLE dbo.d54_files AS FileTable
+WITH (FILETABLE_DIRECTORY = &#x27;d54_files&#x27;,
+      FILETABLE_COLLATE_FILENAME = Latin1_General_100_CI_AS);
+
+SELECT DATALENGTH(s.payload) AS stored_bytes, t.is_filetable
+FROM dbo.d54_stream AS s
+CROSS JOIN sys.tables AS t WHERE t.object_id = OBJECT_ID(N&#x27;dbo.d54_files&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATALENGTH(s.payload) AS stored_bytes, t.is_filetable
+FROM dbo.d54_stream AS s
+CROSS JOIN sys.tables AS t WHERE t.object_id = OBJECT_ID(N&#x27;dbo.d54_files&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">stored_bytes</th><th scope="col">is_filetable</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/blob/enable-the-prerequisites-for-filetable?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="memory-optimized" class="point" data-dialects="sqlserver">
+<h2>内存优化表与 SCHEMA_ONLY</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2014+ · 使用支持 In-Memory OLTP 的版本类型、数据库和文件组 · 版本类型内存上限不同</span></p>
+<p>内存优化表由 In-Memory OLTP 引擎管理。SCHEMA_ONLY 保留表定义，实例重启或故障转移后该表的数据不会保留。HASH 索引适合按完整键做等值查找，BUCKET_COUNT 要按实际不同键数评估。先由管理员在隔离库配好 MEMORY_OPTIMIZED_DATA 文件组及容器。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待插入的数据" tabindex="0">
+<table class="sql-result"><caption>待插入的数据</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.d54_memory (
+    id int NOT NULL PRIMARY KEY NONCLUSTERED HASH WITH (BUCKET_COUNT = 16),
+    qty int NOT NULL
+) WITH (MEMORY_OPTIMIZED = ON, DURABILITY = SCHEMA_ONLY);
+INSERT dbo.d54_memory VALUES (1, 8);
+
+SELECT m.id, m.qty, t.is_memory_optimized, t.durability_desc
+FROM dbo.d54_memory AS m
+CROSS JOIN sys.tables AS t WHERE t.object_id = OBJECT_ID(N&#x27;dbo.d54_memory&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT m.id, m.qty, t.is_memory_optimized, t.durability_desc
+FROM dbo.d54_memory AS m
+CROSS JOIN sys.tables AS t WHERE t.object_id = OBJECT_ID(N&#x27;dbo.d54_memory&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">is_memory_optimized</th><th scope="col">durability_desc</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>8</code></td><td><code>1</code></td><td><code>SCHEMA_ONLY</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/in-memory-oltp/creating-a-memory-optimized-table-and-a-natively-compiled-stored-procedure?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#identity">自动编号并检查或重设起点</a></li>
+<li><a href="#sequence">从独立序列分配编号</a></li>
+<li><a href="#temp">按作用域选择临时数据容器</a></li>
+<li><a href="#persisted">按表达式生成列并持久化结果</a></li>
+<li><a href="#trust">WITH NOCHECK、验证旧行与受信约束</a></li>
+<li><a href="#foreign-key-trust">启用外键与验证外键是两步</a></li>
+<li><a href="#create-or-alter">在独立批次创建或更新视图</a></li>
+<li><a href="#schema-synonym">架构、sp_rename 与同义词</a></li>
+<li><a href="#indexed-view">绑定底表定义并为视图建索引</a></li>
+<li><a href="#partition">PARTITION FUNCTION、SCHEME 与 RANGE RIGHT</a></li>
+<li><a href="#switch">ALTER TABLE SWITCH 切换分区</a></li>
+<li><a href="#filestream">把文件数据交给数据库管理</a></li>
+<li><a href="#memory-optimized">内存优化表与 SCHEMA_ONLY</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="53-sqlserver-documents.html">← JSON、XML、全文、正则和模糊匹配</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="55-sqlserver-history-graph.html">时态、变更跟踪、图与账本 →</a></nav>
+</main>
+</body>
+</html>

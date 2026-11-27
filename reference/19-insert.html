@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>插入数据 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 19 章 · 原书第 131–138 页</p>
+<h1>插入数据</h1>
+<p class="lead" data-dialects="mysql">用 INSERT 添加单行、多行，或导入查询结果。示例对共享表的修改会回滚。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section class="point" id="quick-insert-one" data-dialects="postgresql sqlserver mysql">
+<h2>插入一行</h2>
+<div data-dialects="postgresql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres</code>。示例指定了 sql_notes_lab 模式。需要订单明细表的 SELECT 和 INSERT 权限。练习数据里订单 102 与商品 4 都已存在，两者尚无对应明细。使用没有打开事务的新连接，保留客户端默认的自动提交设置。在同一个查询窗口依次执行。先核对第一条查询，结果与示例一致后再修改。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>BEGIN;
+
+SELECT order_id, product_id, qty, unit_price
+FROM sql_notes_lab.order_items
+WHERE order_id = 102 AND product_id = 4;
+
+INSERT INTO sql_notes_lab.order_items (order_id, product_id, qty, unit_price)
+VALUES (102, 4, 1, 5.00);
+
+SELECT order_id, product_id, qty, unit_price
+FROM sql_notes_lab.order_items
+WHERE order_id = 102 AND product_id = 4;
+
+ROLLBACK;
+
+SELECT order_id, product_id, qty, unit_price
+FROM sql_notes_lab.order_items
+WHERE order_id = 102 AND product_id = 4;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="① 执行前" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty, unit_price
+FROM sql_notes_lab.order_items
+WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">① 执行前</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td colspan="4">0 行</td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="② 操作后" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty, unit_price
+FROM sql_notes_lab.order_items
+WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">② 操作后</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>4</code></td><td><code>1</code></td><td><code>5.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="③ 回滚后" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty, unit_price
+FROM sql_notes_lab.order_items
+WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">③ 回滚后</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td colspan="4">0 行</td></tr>
+</tbody>
+</table></div>
+</div>
+<p>插入一条明细后用回滚撤销本次练习。</p>
+</div>
+<div data-dialects="sqlserver">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。需要订单明细表的 SELECT 和 INSERT 权限。练习数据里订单 102 与商品 4 都已存在，两者尚无对应明细。使用没有打开事务的新连接，保留客户端默认的自动提交设置。在同一个查询窗口依次执行。先核对第一条查询，结果与示例一致后再修改。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>BEGIN TRANSACTION;
+
+SELECT order_id, product_id, qty, unit_price
+FROM dbo.order_items
+WHERE order_id = 102 AND product_id = 4;
+
+INSERT INTO dbo.order_items (order_id, product_id, qty, unit_price)
+VALUES (102, 4, 1, 5.00);
+
+SELECT order_id, product_id, qty, unit_price
+FROM dbo.order_items
+WHERE order_id = 102 AND product_id = 4;
+
+ROLLBACK TRANSACTION;
+
+SELECT order_id, product_id, qty, unit_price
+FROM dbo.order_items
+WHERE order_id = 102 AND product_id = 4;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · ① 执行前" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty, unit_price
+FROM dbo.order_items
+WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">预期结果 · ① 执行前</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td colspan="4">0 行</td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · ② 操作后" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty, unit_price
+FROM dbo.order_items
+WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">预期结果 · ② 操作后</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>4</code></td><td><code>1</code></td><td><code>5.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · ③ 回滚后" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty, unit_price
+FROM dbo.order_items
+WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">预期结果 · ③ 回滚后</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td colspan="4">0 行</td></tr>
+</tbody>
+</table></div>
+</div>
+<p>插入一条明细后用回滚撤销本次练习。</p>
+</div>
+<div data-dialects="mysql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。练习表使用 InnoDB。需要订单明细表的 SELECT 和 INSERT 权限。练习数据里订单 102 与商品 4 都已存在，两者尚无对应明细。使用没有打开事务的新连接，保留客户端默认的自动提交设置。在同一个查询窗口依次执行。先核对第一条查询，结果与示例一致后再修改。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>START TRANSACTION;
+
+SELECT order_id, product_id, qty, unit_price
+FROM order_items
+WHERE order_id = 102 AND product_id = 4;
+
+INSERT INTO order_items (order_id, product_id, qty, unit_price)
+VALUES (102, 4, 1, 5.00);
+
+SELECT order_id, product_id, qty, unit_price
+FROM order_items
+WHERE order_id = 102 AND product_id = 4;
+
+ROLLBACK;
+
+SELECT order_id, product_id, qty, unit_price
+FROM order_items
+WHERE order_id = 102 AND product_id = 4;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="① 执行前" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty, unit_price
+FROM order_items
+WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">① 执行前</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td colspan="4">0 行</td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="② 操作后" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty, unit_price
+FROM order_items
+WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">② 操作后</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>4</code></td><td><code>1</code></td><td><code>5.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="③ 回滚后" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, product_id, qty, unit_price
+FROM order_items
+WHERE order_id = 102 AND product_id = 4;</code><span class="sql-caption-context">③ 回滚后</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead>
+<tbody>
+<tr><td colspan="4">0 行</td></tr>
+</tbody>
+</table></div>
+</div>
+<p>插入一条明细后用回滚撤销本次练习。</p>
+</div>
+</section>
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-insert"><h2>插入完整一行</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>不写列清单时，值按表中的列顺序对应。显式写列更容易检查映射。值数要与目标列数一致，写入需要相应 INSERT 权限，见<a href="28-access-control.html">第 28 章</a>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">START TRANSACTION;
+INSERT INTO customers VALUES (90, &#x27;Eli&#x27;, NULL);
+INSERT INTO customers (name, customer_id, city) VALUES (&#x27;Fay&#x27;, 91, &#x27;杭州&#x27;);
+SELECT customer_id, name, city FROM customers WHERE customer_id &gt;= 90 ORDER BY customer_id;
+ROLLBACK;
+SELECT COUNT(*) AS after_rollback FROM customers WHERE customer_id IN (90, 91);</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="数据变化 · customers" tabindex="0">
+<table class="sql-result"><caption>数据变化 · customers</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">customer_id</th><th scope="col">name</th><th scope="col">city</th><th scope="col">该编号的行</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>90、91</code></td><td class="sql-na"><span aria-label="不适用">—</span></td><td class="sql-na"><span aria-label="不适用">—</span></td><td><code>0 行</code></td></tr>
+<tr><td><code>事务内</code></td><td><code>90</code></td><td><code>Eli</code></td><td class="sql-null"><code>NULL</code></td><td><code>1 行</code></td></tr>
+<tr><td><code>事务内</code></td><td><code>91</code></td><td><code>Fay</code></td><td><code>杭州</code></td><td><code>1 行</code></td></tr>
+<tr><td><code>回滚后</code></td><td><code>90、91</code></td><td class="sql-na"><span aria-label="不适用">—</span></td><td class="sql-na"><span aria-label="不适用">—</span></td><td><code>0 行</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT customer_id, name, city FROM customers WHERE customer_id &gt;= 90 ORDER BY customer_id;</code></span></caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">name</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>90</code></td><td><code>Eli</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td class="sql-number"><code>91</code></td><td><code>Fay</code></td><td><code>杭州</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT COUNT(*) AS after_rollback FROM customers WHERE customer_id IN (90, 91);</code></span></caption>
+<thead><tr><th scope="col">after_rollback</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　customers 只有编号 1–4，尚无 90 和 91。</p><p><strong>执行后</strong>　事务内新增 <code>90 | Eli | NULL</code>、<code>91 | Fay | 杭州</code>。回滚后的计数为 <code>0</code>。</p>
+<p class="outcome">先看见两条新行，90 的城市是 NULL，91 的城市是杭州。最后回滚。</p>
+</details>
+</div>
+<figure><figcaption>SQL · 预期报错</figcaption><pre><code data-kind="sql-error">INSERT INTO customers (customer_id, name) VALUES (90);</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　目标列为 customer_id、name，VALUES 仅给了一个值。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>INSERT INTO customers (customer_id, name) VALUES (90);</code><span class="sql-caption-context">预期报错</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">新增行数</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1136</code></td><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　<code>ERROR 1136</code>，客户表没有新增行。</p>
+<p class="outcome">预期 1136，值的数量与列数不一致。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-insert"><h2>省略有默认值、可空或自增的列</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>列名和 VALUES 的位置一一配对。省略列可取得默认值，允许 NULL 且没有其它默认规则时取 NULL，自增列可由服务器生成。严格模式下，省略没有默认值的必填列会报错。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch19_signup (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(40) NOT NULL,
+  city VARCHAR(40),
+  status VARCHAR(12) NOT NULL DEFAULT &#x27;new&#x27;
+);
+INSERT INTO ch19_signup (name) VALUES (&#x27;Eli&#x27;);
+SELECT LAST_INSERT_ID(), name, city, status FROM ch19_signup;
+INSERT INTO ch19_signup (id, name, status) VALUES (NULL, &#x27;Mina&#x27;, DEFAULT);
+SELECT id, status FROM ch19_signup WHERE name = &#x27;Mina&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="数据变化 · ch19_signup" tabindex="0">
+<table class="sql-result"><caption>各次插入产生的行 · ch19_signup</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">id</th><th scope="col">name</th><th scope="col">city</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>首次插入后</code></td><td class="sql-number"><code>1</code></td><td><code>Eli</code></td><td class="sql-null"><code>NULL</code></td><td><code>new</code></td></tr>
+<tr><td><code>第二次插入后</code></td><td class="sql-number"><code>2</code></td><td><code>Mina</code></td><td class="sql-null"><code>NULL</code></td><td><code>new</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT LAST_INSERT_ID(), name, city, status FROM ch19_signup;</code></span></caption>
+<thead><tr><th scope="col">LAST_INSERT_ID()</th><th scope="col">name</th><th scope="col">city</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Eli</code></td><td class="sql-null"><code>NULL</code></td><td><code>new</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT id, status FROM ch19_signup WHERE name = &#x27;Mina&#x27;;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td><code>new</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　当前会话还没有 <code>ch19_signup</code>。本段新建带自增 id、可空 city 和默认状态 new 的临时表。</p><p><strong>执行后</strong>　首行 <code>1 | Eli | NULL | new</code>。第二行显式传入 NULL 和 DEFAULT 仍得到 <code>2 | new</code>。</p>
+<p class="outcome">新建临时表后第一行得到 1、Eli、NULL、new。显式传入 NULL 和 DEFAULT 的第二行得到 2、new。该表只在当前连接可见。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-insert"><h2>批量 VALUES</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>多个元组以逗号分隔，在一条语句中完成多行写入，能减少来回通信。LOW_PRIORITY 是表级锁引擎的选项，在 InnoDB 上不改变写入优先级。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">START TRANSACTION;
+INSERT LOW_PRIORITY INTO customers (customer_id, name)
+VALUES (90, &#x27;Eli&#x27;), (91, &#x27;Fay&#x27;);
+SELECT ROW_COUNT() AS inserted;
+ROLLBACK;
+SELECT COUNT(*) AS after_rollback FROM customers WHERE customer_id IN (90, 91);</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="数据变化 · customers" tabindex="0">
+<table class="sql-result"><caption>数据变化 · customers</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">匹配编号</th><th scope="col">行数</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>90、91</code></td><td class="sql-number"><code>0</code></td></tr>
+<tr><td><code>批量插入后</code></td><td><code>90、91</code></td><td class="sql-number"><code>2</code></td></tr>
+<tr><td><code>回滚后</code></td><td><code>90、91</code></td><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>查看 SQL 返回结果</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT ROW_COUNT() AS inserted;</code></span></caption>
+<thead><tr><th scope="col">inserted</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT COUNT(*) AS after_rollback FROM customers WHERE customer_id IN (90, 91);</code></span></caption>
+<thead><tr><th scope="col">after_rollback</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　客户 90、91 均不存在。</p><p><strong>执行后</strong>　一条 INSERT 写入两行，<code>ROW_COUNT() = 2</code>。回滚后的计数为 <code>0</code>。</p>
+<p class="outcome">插入后立即执行 ROW_COUNT()，得到 2。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-copy-table"><h2>INSERT SELECT 从查询批量导入</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>先查看 SELECT 的结果，确认目标列、类型和键。列名可以不同，按列的位置配对。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch19_buyers (
+  id INT PRIMARY KEY, customer_name VARCHAR(40) NOT NULL
+);
+INSERT INTO ch19_buyers (id, customer_name)
+SELECT customer_id, name FROM customers WHERE city = &#x27;北京&#x27;;
+SELECT id, customer_name FROM ch19_buyers ORDER BY id;
+INSERT INTO ch19_buyers (id, customer_name)
+SELECT customer_id, name FROM customers WHERE customer_id &lt; 0;
+SELECT ROW_COUNT();</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="customers · 练习数据" tabindex="0">
+<table class="sql-result"><caption>customers · 练习数据</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">name</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Ana</code></td><td><code>北京</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>Bo</code></td><td><code>上海</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Chen</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Dina</code></td><td><code>北京</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT id, customer_name FROM ch19_buyers ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">customer_name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Ana</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Dina</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT ROW_COUNT();</code></span></caption>
+<thead><tr><th scope="col">ROW_COUNT()</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　目标临时表为空，原表的北京客户是 1 和 4。</p><p><strong>执行后</strong>　复制后有 <code>1 | Ana</code>、<code>4 | Dina</code>。空 SELECT 二次写入时 <code>ROW_COUNT() = 0</code>。</p>
+<p class="outcome">导入 1 Ana、4 Dina。空 SELECT 插入 0 行。再次导入已有主键时会冲突。</p>
+</details>
+</div></section>
+<section id="w3-select-into" class="point" data-dialects="mysql" data-alternate-anchor="dial-copy-table"><h2>把查询结果复制到新表</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>在 MySQL 用 <code>CREATE TABLE … AS SELECT</code> 创建并填充新表。用 <code>TEMPORARY</code> 将表限制在当前连接。需要主键、索引或外键时，按目标结构显式定义。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE w3_stationery AS
+SELECT product_id, name FROM products WHERE category = &#x27;stationery&#x27;;
+
+SELECT product_id, name FROM w3_stationery ORDER BY product_id;
+SHOW INDEX FROM w3_stationery;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 将复制的行" tabindex="0">
+<table class="sql-result"><caption>products · 将复制的行</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id, name FROM w3_stationery ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SHOW INDEX FROM w3_stationery;</code></span></caption>
+<thead><tr><th scope="col">Table</th><th scope="col">Key_name</th><th scope="col">Column_name</th></tr></thead>
+<tbody>
+<tr><td class="sql-no-rows" colspan="3">0 行</td></tr>
+</tbody>
+</table></div>
+</div>
+<p>SQL Server 新表可写 <code>SELECT product_id, name INTO #w3_stationery FROM products WHERE category = 'stationery';</code>。MySQL 的 <code>SELECT … INTO</code> 可用于变量或文件。已有目标表时用<a href="#p4">INSERT INTO … SELECT</a>。</p>
+<p class="sources"><a href="https://www.w3schools.com/sql/sql_select_into.asp">W3Schools SELECT INTO</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/create-table-select.html">MySQL CREATE TABLE … SELECT</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/select-into.html">MySQL SELECT … INTO</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-into-clause-transact-sql">SQL Server SELECT INTO</a></p></section>
+<section id="dial-insert" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>批量插入与返回新增行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>显式列清单让数据与表定义独立演进。RETURNING 和 OUTPUT 可直接返回写入结果，包括自动编号和默认值。新建的临时表是空表。OUTPUT 的行顺序可能因运行环境而异。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待插入的姓名" tabindex="0">
+<table class="sql-result"><caption>待插入的姓名</caption><thead><tr><th scope="col">name</th></tr></thead>
+<tbody><tr><td><code>Eli</code></td></tr><tr><td><code>Fay</code></td></tr></tbody></table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_notes_signup (
+  id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY, name varchar(40) NOT NULL,
+  status varchar(12) NOT NULL DEFAULT &#x27;new&#x27;
+);
+INSERT INTO pg_notes_signup(name) VALUES (&#x27;Eli&#x27;), (&#x27;Fay&#x27;)
+RETURNING id, name, status;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO pg_notes_signup(name) VALUES (&#x27;Eli&#x27;), (&#x27;Fay&#x27;) RETURNING id, name, status;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">name</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Eli</code></td><td><code>new</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>Fay</code></td><td><code>new</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE #notes_signup (
+  id int IDENTITY(1,1) PRIMARY KEY, name nvarchar(40) NOT NULL,
+  status varchar(12) NOT NULL DEFAULT &#x27;new&#x27;
+);
+INSERT INTO #notes_signup(name)
+OUTPUT inserted.id, inserted.name, inserted.status
+VALUES (N&#x27;Eli&#x27;), (N&#x27;Fay&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO #notes_signup(name) OUTPUT inserted.id, inserted.name, inserted.status VALUES (N&#x27;Eli&#x27;), (N&#x27;Fay&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">name</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Eli</code></td><td><code>new</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>Fay</code></td><td><code>new</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-insert.html">PostgreSQL INSERT</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/output-clause-transact-sql">SQL Server OUTPUT</a></p>
+</section>
+<section id="dial-copy-table" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p4">
+<h2>INSERT SELECT 与查询建表</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>用 INSERT SELECT 把结果写入已有目标表。创建新表时 PostgreSQL 使用 CREATE TABLE AS，SQL Server 常用 SELECT INTO。下面只复制两条文具记录。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 执行前练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_copy AS SELECT product_id, name FROM products WHERE 1=0;
+INSERT INTO pg_copy(product_id,name)
+SELECT product_id,name FROM products WHERE category=&#x27;stationery&#x27;;
+SELECT product_id,name FROM pg_copy ORDER BY product_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id,name FROM pg_copy ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT product_id, name INTO #notes_copy FROM products WHERE 1=0;
+INSERT INTO #notes_copy(product_id,name)
+SELECT product_id,name FROM products WHERE category=&#x27;stationery&#x27;;
+SELECT product_id,name FROM #notes_copy ORDER BY product_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id,name FROM #notes_copy ORDER BY product_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-createtableas.html">PostgreSQL CREATE TABLE AS</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-into-clause-transact-sql">SQL Server SELECT INTO</a></p>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>把上海客户复制进独立临时表，只保留姓名。</p><details><summary>查看答案</summary><figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch19_shanghai (name VARCHAR(40));
+INSERT INTO ch19_shanghai (name) SELECT name FROM customers WHERE city = &#x27;上海&#x27;;
+SELECT name FROM ch19_shanghai;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="customers · 练习数据" tabindex="0">
+<table class="sql-result"><caption>customers · 练习数据</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">name</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Ana</code></td><td><code>北京</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>Bo</code></td><td><code>上海</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Chen</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Dina</code></td><td><code>北京</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name FROM ch19_shanghai;</code></span></caption>
+<thead><tr><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>Bo</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　来源里上海只有 Bo，目标临时表为空。</p><p><strong>执行后</strong>　目标表唯一一行 <code>Bo</code>。</p>
+<p class="outcome">得 Bo。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/insert.html">INSERT</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/insert-select.html">INSERT SELECT</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#quick-insert-one">插入一行</a></li>
+<li data-dialects="mysql"><a href="#p1">插入完整一行</a></li><li data-dialects="mysql"><a href="#p2">省略有默认值、可空或自增的列</a></li><li data-dialects="mysql"><a href="#p3">VALUES 一次插入多行</a></li><li data-dialects="mysql"><a href="#p4">INSERT SELECT 从查询批量导入</a></li><li data-dialects="mysql"><a href="#w3-select-into">把查询结果复制到新表</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-insert">批量插入与返回新增行</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-copy-table">把查询结果写入已有表或新表</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="18-fulltext.html">← 全文本搜索</a><a href="../v1.html">章节目录</a><a rel="next" href="20-update-delete.html">更新和删除数据 →</a></nav>
+</main>
+</body></html>

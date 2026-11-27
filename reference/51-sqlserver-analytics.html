@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>51 · SQL Server · 聚合、窗口与分析函数 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 51 章 · 原生语法</p>
+<h1>SQL Server · 聚合、窗口与分析函数</h1>
+<p class="lead">从每组统计到逐行排名，跟踪哪些行进入聚合、窗口怎样处理并列，以及新功能需要的引擎版本和兼容级别。</p>
+<div class="layout"><article class="content">
+<section id="count-big" class="point" data-dialects="sqlserver">
+<h2>COUNT_BIG · 按 bigint 计数</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>COUNT_BIG 的返回类型是 bigint，适合超过 int 容量的行数。星号统计所有行，列参数忽略 NULL，DISTINCT 还会去重。表达式计数的默认 ALL 保留重复。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待计数的行" tabindex="0">
+<table class="sql-result"><caption>待计数的行</caption>
+<thead><tr><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>5</code></td></tr>
+<tr><td><code>5</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT COUNT_BIG(*) AS all_rows, COUNT_BIG(qty) AS known_rows,
+       COUNT_BIG(DISTINCT qty) AS distinct_values,
+       SQL_VARIANT_PROPERTY(COUNT_BIG(*), &#x27;BaseType&#x27;) AS big_count_type,
+       SQL_VARIANT_PROPERTY(COUNT(*), &#x27;BaseType&#x27;) AS count_type
+FROM (VALUES (5), (5), (NULL)) AS t(qty);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT_BIG(*) AS all_rows, COUNT_BIG(qty) AS known_rows,
+       COUNT_BIG(DISTINCT qty) AS distinct_values,
+       SQL_VARIANT_PROPERTY(COUNT_BIG(*), &#x27;BaseType&#x27;) AS big_count_type,
+       SQL_VARIANT_PROPERTY(COUNT(*), &#x27;BaseType&#x27;) AS count_type
+FROM (VALUES (5), (5), (NULL)) AS t(qty);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">all_rows</th><th scope="col">known_rows</th><th scope="col">distinct_values</th><th scope="col">big_count_type</th><th scope="col">count_type</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td><td><code>2</code></td><td><code>1</code></td><td><code>bigint</code></td><td><code>int</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/count-big-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="string-agg" class="point" data-dialects="sqlserver">
+<h2>STRING_AGG · 组内排序再拼接</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2017+ · WITHIN GROUP 需兼容级别 110+</span></p>
+<p>WITHIN GROUP 的 ORDER BY 决定拼接顺序。NULL 既不参与拼接，也不产生分隔符。先把输入转成 nvarchar(max)，可避免固定宽度输出类型带来的长度限制。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="拼接输入" tabindex="0">
+<table class="sql-result"><caption>拼接输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>sql</code></td></tr>
+<tr><td><code>2</code></td><td><code>db</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT STRING_AGG(CONVERT(nvarchar(max), label), N&#x27;,&#x27;)
+         WITHIN GROUP (ORDER BY id DESC) AS labels
+FROM (VALUES (1, N&#x27;sql&#x27;), (2, N&#x27;db&#x27;), (3, NULL)) AS t(id, label);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT STRING_AGG(CONVERT(nvarchar(max), label), N&#x27;,&#x27;)
+         WITHIN GROUP (ORDER BY id DESC) AS labels
+FROM (VALUES (1, N&#x27;sql&#x27;), (2, N&#x27;db&#x27;), (3, NULL)) AS t(id, label);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">labels</th></tr></thead>
+<tbody>
+<tr><td><code>db,sql</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">只使用 STRING_AGG 时可用任意兼容级别。需要去重时先在子查询去重，再拼接。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/string-agg-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="conditional-aggregate" class="point" data-dialects="sqlserver">
+<h2>用 CASE 做条件聚合</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>条件聚合在同一组上计算多个指标。COUNT 的 CASE 省略 ELSE 时，未匹配行产生 NULL。SUM 给未匹配行 0，可以在非空分组内展示缺失类别的零值。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="订单数量" tabindex="0">
+<table class="sql-result"><caption>订单数量</caption>
+<thead><tr><th scope="col">status</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>paid</code></td><td><code>4</code></td></tr>
+<tr><td><code>paid</code></td><td><code>2</code></td></tr>
+<tr><td><code>pending</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT COUNT(*) AS all_orders,
+       COUNT(CASE WHEN status = &#x27;paid&#x27; THEN 1 END) AS paid_orders,
+       SUM(CASE WHEN status = &#x27;paid&#x27; THEN qty ELSE 0 END) AS paid_qty,
+       SUM(CASE WHEN status = &#x27;canceled&#x27; THEN qty ELSE 0 END) AS canceled_qty
+FROM (VALUES (&#x27;paid&#x27;, 4), (&#x27;paid&#x27;, 2), (&#x27;pending&#x27;, 3)) AS t(status, qty);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS all_orders,
+       COUNT(CASE WHEN status = &#x27;paid&#x27; THEN 1 END) AS paid_orders,
+       SUM(CASE WHEN status = &#x27;paid&#x27; THEN qty ELSE 0 END) AS paid_qty,
+       SUM(CASE WHEN status = &#x27;canceled&#x27; THEN qty ELSE 0 END) AS canceled_qty
+FROM (VALUES (&#x27;paid&#x27;, 4), (&#x27;paid&#x27;, 2), (&#x27;pending&#x27;, 3)) AS t(status, qty);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">all_orders</th><th scope="col">paid_orders</th><th scope="col">paid_qty</th><th scope="col">canceled_qty</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td><td><code>2</code></td><td><code>6</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">整个输入为空时 SUM 返回 NULL。需要零时在聚合结果外使用 COALESCE。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/case-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="grouping-sets" class="point" data-dialects="sqlserver">
+<h2>GROUPING SETS · 明细、小计和总计</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2008+ · 兼容级别 100+</span></p>
+<p>GROUPING SETS 显式列出分组组合，空括号代表总计。GROUPING(channel) 为 1 表示这一列在该组被汇总。GROUPING_ID 把各列标记合并成位掩码，最后一个参数对应最低位。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="地区、渠道及金额" tabindex="0">
+<table class="sql-result"><caption>地区、渠道及金额</caption>
+<thead><tr><th scope="col">region</th><th scope="col">channel</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>E</code></td><td><code>web</code></td><td><code>10</code></td></tr>
+<tr><td><code>E</code></td><td class="sql-null"><code>NULL</code></td><td><code>3</code></td></tr>
+<tr><td><code>W</code></td><td><code>web</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT region, channel, SUM(amount) AS total,
+       GROUPING(channel) AS channel_rollup,
+       GROUPING_ID(region, channel) AS grouping_mask
+FROM (VALUES (&#x27;E&#x27;, &#x27;web&#x27;, 10), (&#x27;E&#x27;, NULL, 3), (&#x27;W&#x27;, &#x27;web&#x27;, 7))
+     AS t(region, channel, amount)
+GROUP BY GROUPING SETS ((region, channel), (region), ())
+ORDER BY grouping_mask, region, channel;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT region, channel, SUM(amount) AS total,
+       GROUPING(channel) AS channel_rollup,
+       GROUPING_ID(region, channel) AS grouping_mask
+FROM (VALUES (&#x27;E&#x27;, &#x27;web&#x27;, 10), (&#x27;E&#x27;, NULL, 3), (&#x27;W&#x27;, &#x27;web&#x27;, 7))
+     AS t(region, channel, amount)
+GROUP BY GROUPING SETS ((region, channel), (region), ())
+ORDER BY grouping_mask, region, channel;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">region</th><th scope="col">channel</th><th scope="col">total</th><th scope="col">channel_rollup</th><th scope="col">grouping_mask</th></tr></thead>
+<tbody>
+<tr><td><code>E</code></td><td class="sql-null"><code>NULL</code></td><td><code>3</code></td><td><code>0</code></td><td><code>0</code></td></tr>
+<tr><td><code>E</code></td><td><code>web</code></td><td><code>10</code></td><td><code>0</code></td><td><code>0</code></td></tr>
+<tr><td><code>W</code></td><td><code>web</code></td><td><code>7</code></td><td><code>0</code></td><td><code>0</code></td></tr>
+<tr><td><code>E</code></td><td class="sql-null"><code>NULL</code></td><td><code>13</code></td><td><code>1</code></td><td><code>1</code></td></tr>
+<tr><td><code>W</code></td><td class="sql-null"><code>NULL</code></td><td><code>7</code></td><td><code>1</code></td><td><code>1</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>20</code></td><td><code>1</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">同样显示 NULL 的渠道可代表真实未知值或汇总占位，判断时看 channel_rollup。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-group-by-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="rollup-cube" class="point" data-dialects="sqlserver">
+<h2>ROLLUP 层级小计与 CUBE 所有维度</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2008+ · 兼容级别 100+</span></p>
+<p>对 (region, channel) 使用 ROLLUP 会产生明细、地区小计及总计。CUBE 还会增加仅按渠道分组的层级。用 GROUPING_ID 区分层级并统计各层产生的行数。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两条销售记录" tabindex="0">
+<table class="sql-result"><caption>两条销售记录</caption>
+<thead><tr><th scope="col">region</th><th scope="col">channel</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>E</code></td><td><code>web</code></td><td><code>10</code></td></tr>
+<tr><td><code>W</code></td><td><code>store</code></td><td><code>20</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>WITH sales AS (
+  SELECT * FROM (VALUES (&#x27;E&#x27;, &#x27;web&#x27;, 10), (&#x27;W&#x27;, &#x27;store&#x27;, 20))
+       AS t(region, channel, amount)
+), grouped AS (
+  SELECT &#x27;ROLLUP&#x27; AS method, GROUPING_ID(region, channel) AS grouping_mask
+  FROM sales GROUP BY ROLLUP (region, channel)
+  UNION ALL
+  SELECT &#x27;CUBE&#x27;, GROUPING_ID(region, channel)
+  FROM sales GROUP BY CUBE (region, channel)
+)
+SELECT method, grouping_mask, COUNT(*) AS group_count
+FROM grouped GROUP BY method, grouping_mask ORDER BY method, grouping_mask;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sales AS (
+  SELECT * FROM (VALUES (&#x27;E&#x27;, &#x27;web&#x27;, 10), (&#x27;W&#x27;, &#x27;store&#x27;, 20))
+       AS t(region, channel, amount)
+), grouped AS (
+  SELECT &#x27;ROLLUP&#x27; AS method, GROUPING_ID(region, channel) AS grouping_mask
+  FROM sales GROUP BY ROLLUP (region, channel)
+  UNION ALL
+  SELECT &#x27;CUBE&#x27;, GROUPING_ID(region, channel)
+  FROM sales GROUP BY CUBE (region, channel)
+)
+SELECT method, grouping_mask, COUNT(*) AS group_count
+FROM grouped GROUP BY method, grouping_mask ORDER BY method, grouping_mask;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">method</th><th scope="col">grouping_mask</th><th scope="col">group_count</th></tr></thead>
+<tbody>
+<tr><td><code>CUBE</code></td><td><code>0</code></td><td><code>2</code></td></tr>
+<tr><td><code>CUBE</code></td><td><code>1</code></td><td><code>2</code></td></tr>
+<tr><td><code>CUBE</code></td><td><code>2</code></td><td><code>2</code></td></tr>
+<tr><td><code>CUBE</code></td><td><code>3</code></td><td><code>1</code></td></tr>
+<tr><td><code>ROLLUP</code></td><td><code>0</code></td><td><code>2</code></td></tr>
+<tr><td><code>ROLLUP</code></td><td><code>1</code></td><td><code>2</code></td></tr>
+<tr><td><code>ROLLUP</code></td><td><code>3</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-group-by-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="percentiles" class="point" data-dialects="sqlserver">
+<h2>PERCENTILE_CONT 与 PERCENTILE_DISC</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+ · WITHIN GROUP 兼容级别 110+</span></p>
+<p>CONT 按连续分布插值，DISC 返回累计分布达到该百分位的第一个输入值。两者均忽略 NULL。在 SQL Server 中两者用 WITHIN GROUP 写排序，用 OVER 指定分区。这里 SELECT DISTINCT 每个分区只保留一个结果。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="百分位输入" tabindex="0">
+<table class="sql-result"><caption>百分位输入</caption>
+<thead><tr><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>10</code></td></tr>
+<tr><td><code>20</code></td></tr>
+<tr><td><code>40</code></td></tr>
+<tr><td><code>80</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT DISTINCT
+       PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount) OVER () AS continuous_p50,
+       PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY amount) OVER () AS discrete_p50
+FROM (VALUES (10), (20), (40), (80), (NULL)) AS t(amount);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DISTINCT
+       PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount) OVER () AS continuous_p50,
+       PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY amount) OVER () AS discrete_p50
+FROM (VALUES (10), (20), (40), (80), (NULL)) AS t(amount);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">continuous_p50</th><th scope="col">discrete_p50</th></tr></thead>
+<tbody>
+<tr><td><code>30</code></td><td><code>20</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">偶数个值的连续中位数在中间两值 20 与 40 之间，离散中位数取已有值 20。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/percentile-cont-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="approx-count" class="point" data-dialects="sqlserver">
+<h2>APPROX_COUNT_DISTINCT · 近似去重数</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2019+</span></p>
+<p>返回组内不同非 NULL 值的近似数量，结果类型为 bigint。数据量大时，它可用较少内存换取估计值。微软文档给出的误差保证是 97% 概率内最多 2%。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="只有一个不同的非 NULL 值" tabindex="0">
+<table class="sql-result"><caption>只有一个不同的非 NULL 值</caption>
+<thead><tr><th scope="col">item</th></tr></thead>
+<tbody>
+<tr><td><code>20</code></td></tr>
+<tr><td><code>20</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT COUNT_BIG(DISTINCT item) AS exact_count,
+       APPROX_COUNT_DISTINCT(item) AS approximate_count
+FROM (VALUES (20), (20), (NULL)) AS t(item);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT_BIG(DISTINCT item) AS exact_count,
+       APPROX_COUNT_DISTINCT(item) AS approximate_count
+FROM (VALUES (20), (20), (NULL)) AS t(item);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">exact_count</th><th scope="col">approximate_count</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">规模较大的输入下两列可能不同。检查字符列时还要留意该函数按二进制匹配，实际等值规则可能与列排序规则不同。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/approx-count-distinct-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="approx-percentiles" class="point" data-dialects="sqlserver">
+<h2>APPROX_PERCENTILE_CONT 与 APPROX_PERCENTILE_DISC</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+ · WITHIN GROUP 兼容级别 110+</span></p>
+<p>这两种近似百分位是组聚合函数，直接指定 WITHIN GROUP。用 KLL 摘要减少内存。文档的误差约束针对排序位置，不能换算成固定金额误差。同组含多个不同值时，多次运行可能得到不同结果。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="非 NULL 输入都为 20" tabindex="0">
+<table class="sql-result"><caption>非 NULL 输入都为 20</caption>
+<thead><tr><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>20</code></td></tr>
+<tr><td><code>20</code></td></tr>
+<tr><td><code>20</code></td></tr>
+<tr><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT APPROX_PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount) AS approx_cont_p50,
+       APPROX_PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY amount) AS approx_disc_p50
+FROM (VALUES (20), (20), (20), (NULL)) AS t(amount);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT APPROX_PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY amount) AS approx_cont_p50,
+       APPROX_PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY amount) AS approx_disc_p50
+FROM (VALUES (20), (20), (20), (NULL)) AS t(amount);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">approx_cont_p50</th><th scope="col">approx_disc_p50</th></tr></thead>
+<tbody>
+<tr><td><code>20</code></td><td><code>20</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">连续与离散两种结果在这组重复输入上相同。离散版本支持的输入类型更受限，本例使用 int。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/approx-percentile-cont-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="ranking-distribution" class="point" data-dialects="sqlserver">
+<h2>排名、分桶与累积分布</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">本例含 PERCENT_RANK/CUME_DIST · SQL Server 2012+</span></p>
+<p>ROW_NUMBER 每行各有编号。RANK 给并列行相同名次并跳号，DENSE_RANK 不跳号。NTILE 按指定排序大致均分行。PERCENT_RANK 使用相对名次，CUME_DIST 把当前并列的所有行都计入累计比例。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="商品价格" tabindex="0">
+<table class="sql-result"><caption>商品价格</caption>
+<thead><tr><th scope="col">id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>30</code></td></tr>
+<tr><td><code>2</code></td><td><code>30</code></td></tr>
+<tr><td><code>3</code></td><td><code>20</code></td></tr>
+<tr><td><code>4</code></td><td><code>10</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT id,
+       ROW_NUMBER() OVER (ORDER BY price DESC, id) AS sequence_no,
+       RANK() OVER (ORDER BY price DESC) AS price_rank,
+       DENSE_RANK() OVER (ORDER BY price DESC) AS dense_price_rank,
+       NTILE(2) OVER (ORDER BY price DESC, id) AS bucket,
+       CAST(PERCENT_RANK() OVER (ORDER BY price DESC) AS decimal(4,2)) AS relative_rank,
+       CAST(CUME_DIST() OVER (ORDER BY price DESC) AS decimal(4,2)) AS cumulative_share
+FROM (VALUES (1, 30), (2, 30), (3, 20), (4, 10)) AS t(id, price)
+ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,
+       ROW_NUMBER() OVER (ORDER BY price DESC, id) AS sequence_no,
+       RANK() OVER (ORDER BY price DESC) AS price_rank,
+       DENSE_RANK() OVER (ORDER BY price DESC) AS dense_price_rank,
+       NTILE(2) OVER (ORDER BY price DESC, id) AS bucket,
+       CAST(PERCENT_RANK() OVER (ORDER BY price DESC) AS decimal(4,2)) AS relative_rank,
+       CAST(CUME_DIST() OVER (ORDER BY price DESC) AS decimal(4,2)) AS cumulative_share
+FROM (VALUES (1, 30), (2, 30), (3, 20), (4, 10)) AS t(id, price)
+ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">sequence_no</th><th scope="col">price_rank</th><th scope="col">dense_price_rank</th><th scope="col">bucket</th><th scope="col">relative_rank</th><th scope="col">cumulative_share</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td><td><code>1</code></td><td><code>1</code></td><td><code>1</code></td><td><code>0.00</code></td><td><code>0.50</code></td></tr>
+<tr><td><code>2</code></td><td><code>2</code></td><td><code>1</code></td><td><code>1</code></td><td><code>1</code></td><td><code>0.00</code></td><td><code>0.50</code></td></tr>
+<tr><td><code>3</code></td><td><code>3</code></td><td><code>3</code></td><td><code>2</code></td><td><code>2</code></td><td><code>0.67</code></td><td><code>0.75</code></td></tr>
+<tr><td><code>4</code></td><td><code>4</code></td><td><code>4</code></td><td><code>3</code></td><td><code>2</code></td><td><code>1.00</code></td><td><code>1.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">给 ROW_NUMBER 和 NTILE 添唯一键可固定并列内部顺序。RANK 和 CUME_DIST 若也加唯一键，价格并列就会被拆开。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/ranking-functions-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="window-frames" class="point" data-dialects="sqlserver">
+<h2>ROWS 与 RANGE · 逐行还是逐个排序值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">窗口框架 · SQL Server 2012+</span></p>
+<p>ROWS 按排序后的物理行数划定窗口，排序键含唯一 id 以得到稳定结果。RANGE 在 CURRENT ROW 边界包含所有排序键相同的行。带 ORDER BY 的 SUM 省略窗口框架时，本例默认是 RANGE 从分区开头到当前排序值。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="前两行同一天" tabindex="0">
+<table class="sql-result"><caption>前两行同一天</caption>
+<thead><tr><th scope="col">id</th><th scope="col">day_no</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td><td><code>10</code></td></tr>
+<tr><td><code>2</code></td><td><code>1</code></td><td><code>20</code></td></tr>
+<tr><td><code>3</code></td><td><code>2</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT id, day_no,
+       SUM(amount) OVER (ORDER BY day_no, id ROWS UNBOUNDED PRECEDING) AS row_total,
+       SUM(amount) OVER (ORDER BY day_no RANGE UNBOUNDED PRECEDING) AS day_total,
+       SUM(amount) OVER (ORDER BY day_no) AS default_total,
+       SUM(amount) OVER (ORDER BY day_no, id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS recent_two
+FROM (VALUES (1, 1, 10), (2, 1, 20), (3, 2, 5)) AS t(id, day_no, amount)
+ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, day_no,
+       SUM(amount) OVER (ORDER BY day_no, id ROWS UNBOUNDED PRECEDING) AS row_total,
+       SUM(amount) OVER (ORDER BY day_no RANGE UNBOUNDED PRECEDING) AS day_total,
+       SUM(amount) OVER (ORDER BY day_no) AS default_total,
+       SUM(amount) OVER (ORDER BY day_no, id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS recent_two
+FROM (VALUES (1, 1, 10), (2, 1, 20), (3, 2, 5)) AS t(id, day_no, amount)
+ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">day_no</th><th scope="col">row_total</th><th scope="col">day_total</th><th scope="col">default_total</th><th scope="col">recent_two</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td><td><code>10</code></td><td><code>30</code></td><td><code>30</code></td><td><code>10</code></td></tr>
+<tr><td><code>2</code></td><td><code>1</code></td><td><code>30</code></td><td><code>30</code></td><td><code>30</code></td><td><code>30</code></td></tr>
+<tr><td><code>3</code></td><td><code>2</code></td><td><code>35</code></td><td><code>35</code></td><td><code>35</code></td><td><code>25</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">SQL Server 的 RANGE 不支持 1 PRECEDING 这类数字偏移边界。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="named-window" class="point" data-dialects="sqlserver">
+<h2>WINDOW · 复用分区和排序</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+ · 兼容级别 160+</span></p>
+<p>同一查询中的多个窗口函数可以引用命名窗口。先定义分区及排序，再由某次 OVER 补充框架。已定义的分区、排序或框架属性不能在引用处重写。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="分组及每行金额" tabindex="0">
+<table class="sql-result"><caption>分组及每行金额</caption>
+<thead><tr><th scope="col">grp</th><th scope="col">id</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>A</code></td><td><code>1</code></td><td><code>10</code></td></tr>
+<tr><td><code>A</code></td><td><code>2</code></td><td><code>20</code></td></tr>
+<tr><td><code>B</code></td><td><code>3</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT grp, id,
+       ROW_NUMBER() OVER w AS ordered_row,
+       SUM(amount) OVER (w ROWS UNBOUNDED PRECEDING) AS running_amount
+FROM (VALUES (&#x27;A&#x27;, 1, 10), (&#x27;A&#x27;, 2, 20), (&#x27;B&#x27;, 3, 5)) AS t(grp, id, amount)
+WINDOW w AS (PARTITION BY grp ORDER BY id)
+ORDER BY grp, id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT grp, id,
+       ROW_NUMBER() OVER w AS ordered_row,
+       SUM(amount) OVER (w ROWS UNBOUNDED PRECEDING) AS running_amount
+FROM (VALUES (&#x27;A&#x27;, 1, 10), (&#x27;A&#x27;, 2, 20), (&#x27;B&#x27;, 3, 5)) AS t(grp, id, amount)
+WINDOW w AS (PARTITION BY grp ORDER BY id)
+ORDER BY grp, id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">grp</th><th scope="col">id</th><th scope="col">ordered_row</th><th scope="col">running_amount</th></tr></thead>
+<tbody>
+<tr><td><code>A</code></td><td><code>1</code></td><td><code>1</code></td><td><code>10</code></td></tr>
+<tr><td><code>A</code></td><td><code>2</code></td><td><code>2</code></td><td><code>30</code></td></tr>
+<tr><td><code>B</code></td><td><code>3</code></td><td><code>1</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-window-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="lag-lead-nulls" class="point" data-dialects="sqlserver">
+<h2>LAG、LEAD · 跳过缺失值或按行偏移</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">NULLS 子句 · SQL Server 2022+ · 2022 系列建议 CU4+</span></p>
+<p>LAG 向前看，LEAD 向后看。RESPECT NULLS 按行计数，且为默认。IGNORE NULLS 跳过表达式为 NULL 的行。超出可用范围时默认返回 NULL，可在函数第三个参数指定替代值。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="中间含缺失值的序列" tabindex="0">
+<table class="sql-result"><caption>中间含缺失值的序列</caption>
+<thead><tr><th scope="col">id</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>10</code></td></tr>
+<tr><td><code>3</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>4</code></td><td><code>20</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT id,
+       LAG(amount) RESPECT NULLS OVER (ORDER BY id) AS prev_row,
+       LAG(amount) IGNORE NULLS OVER (ORDER BY id) AS prev_known,
+       LEAD(amount) RESPECT NULLS OVER (ORDER BY id) AS next_row,
+       LEAD(amount) IGNORE NULLS OVER (ORDER BY id) AS next_known
+FROM (VALUES (1, NULL), (2, 10), (3, NULL), (4, 20)) AS t(id, amount)
+ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,
+       LAG(amount) RESPECT NULLS OVER (ORDER BY id) AS prev_row,
+       LAG(amount) IGNORE NULLS OVER (ORDER BY id) AS prev_known,
+       LEAD(amount) RESPECT NULLS OVER (ORDER BY id) AS next_row,
+       LEAD(amount) IGNORE NULLS OVER (ORDER BY id) AS next_known
+FROM (VALUES (1, NULL), (2, 10), (3, NULL), (4, 20)) AS t(id, amount)
+ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">prev_row</th><th scope="col">prev_known</th><th scope="col">next_row</th><th scope="col">next_known</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>10</code></td><td><code>10</code></td></tr>
+<tr><td><code>2</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>20</code></td></tr>
+<tr><td><code>3</code></td><td><code>10</code></td><td><code>10</code></td><td><code>20</code></td><td><code>20</code></td></tr>
+<tr><td><code>4</code></td><td class="sql-null"><code>NULL</code></td><td><code>10</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">LAG 和 LEAD 自 SQL Server 2012 提供。SQL Server 2022 CU4 修复了两者 IGNORE NULLS 的问题。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/lag-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="first-last-nulls" class="point" data-dialects="sqlserver">
+<h2>FIRST_VALUE、LAST_VALUE · 分区有效端点</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">NULLS 子句 · SQL Server 2022+</span></p>
+<p>FIRST_VALUE 和 LAST_VALUE 看当前窗口框架的首尾值。需要整个分区的端点时，显式框定从 UNBOUNDED PRECEDING 到 UNBOUNDED FOLLOWING。IGNORE NULLS 跳过缺失的端点，RESPECT NULLS 保留。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="分区首尾都缺值" tabindex="0">
+<table class="sql-result"><caption>分区首尾都缺值</caption>
+<thead><tr><th scope="col">id</th><th scope="col">amount</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>10</code></td></tr>
+<tr><td><code>3</code></td><td><code>20</code></td></tr>
+<tr><td><code>4</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT DISTINCT
+       FIRST_VALUE(amount) RESPECT NULLS OVER
+         (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_row,
+       FIRST_VALUE(amount) IGNORE NULLS OVER
+         (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_known,
+       LAST_VALUE(amount) RESPECT NULLS OVER
+         (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_row,
+       LAST_VALUE(amount) IGNORE NULLS OVER
+         (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_known
+FROM (VALUES (1, NULL), (2, 10), (3, 20), (4, NULL)) AS t(id, amount);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DISTINCT
+       FIRST_VALUE(amount) RESPECT NULLS OVER
+         (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_row,
+       FIRST_VALUE(amount) IGNORE NULLS OVER
+         (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_known,
+       LAST_VALUE(amount) RESPECT NULLS OVER
+         (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_row,
+       LAST_VALUE(amount) IGNORE NULLS OVER
+         (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_known
+FROM (VALUES (1, NULL), (2, 10), (3, 20), (4, NULL)) AS t(id, amount);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">first_row</th><th scope="col">first_known</th><th scope="col">last_row</th><th scope="col">last_known</th></tr></thead>
+<tbody>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>10</code></td><td class="sql-null"><code>NULL</code></td><td><code>20</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">两个基础函数从 SQL Server 2012 可用。四个结果对整个分区都相同，因此用 DISTINCT 只展示一行。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/last-value-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="generate-series" class="point" data-dialects="sqlserver">
+<h2>GENERATE_SERIES · 生成数值序列</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+ · 默认需兼容级别 160+</span></p>
+<p>输入起点、终点和可选步长，得到一列 value。起点和终点类型应一致，步长可以是正数或负数但不能为零。方向和步长不匹配时返回零行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="倒数的参数" tabindex="0">
+<table class="sql-result"><caption>倒数的参数</caption>
+<thead><tr><th scope="col">start</th><th scope="col">stop</th><th scope="col">step</th></tr></thead>
+<tbody>
+<tr><td><code>5</code></td><td><code>1</code></td><td><code>-2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT value FROM GENERATE_SERIES(5, 1, -2) ORDER BY value DESC;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT value FROM GENERATE_SERIES(5, 1, -2) ORDER BY value DESC;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">value</th></tr></thead>
+<tbody>
+<tr><td><code>5</code></td></tr>
+<tr><td><code>3</code></td></tr>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">省略步长时，升序默认 1，降序默认 -1。开启 Azure SQL Database / SQL database in Microsoft Fabric 的预览配置 ALLOW_BUILTIN_TVF_IN_ALL_COMPAT_LEVELS 时可放宽兼容级别门槛。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/generate-series-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="logical-functions" class="point" data-dialects="sqlserver">
+<h2>CHOOSE、IIF 与一行中的 GREATEST/LEAST</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">CHOOSE/IIF · SQL Server 2012+；GREATEST/LEAST · SQL Server 2022+</span></p>
+<p>CHOOSE 从 1 开始按位置取值，越界返回 NULL。IIF 是 CASE 的简写，条件为假或未知时走第三个参数。GREATEST/LEAST 在同一行的参数中取最大最小，有非 NULL 值时跳过 NULL。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="序号、条件与比较值" tabindex="0">
+<table class="sql-result"><caption>序号、条件与比较值</caption>
+<thead><tr><th scope="col">choose_index</th><th scope="col">outside_index</th><th scope="col">condition_input</th><th scope="col">a</th><th scope="col">b</th><th scope="col">c</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>3</code></td><td class="sql-null"><code>NULL</code></td><td><code>10</code></td><td class="sql-null"><code>NULL</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CHOOSE(2, &#x27;sql&#x27;, &#x27;db&#x27;) AS chosen,
+       CHOOSE(3, &#x27;sql&#x27;, &#x27;db&#x27;) AS outside_choice,
+       IIF(CAST(NULL AS int) &gt; 0, &#x27;positive&#x27;, &#x27;fallback&#x27;) AS label,
+       GREATEST(10, NULL, 3) AS max_value,
+       LEAST(10, NULL, 3) AS min_value;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CHOOSE(2, &#x27;sql&#x27;, &#x27;db&#x27;) AS chosen,
+       CHOOSE(3, &#x27;sql&#x27;, &#x27;db&#x27;) AS outside_choice,
+       IIF(CAST(NULL AS int) &gt; 0, &#x27;positive&#x27;, &#x27;fallback&#x27;) AS label,
+       GREATEST(10, NULL, 3) AS max_value,
+       LEAST(10, NULL, 3) AS min_value;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">chosen</th><th scope="col">outside_choice</th><th scope="col">label</th><th scope="col">max_value</th><th scope="col">min_value</th></tr></thead>
+<tbody>
+<tr><td><code>db</code></td><td class="sql-null"><code>NULL</code></td><td><code>fallback</code></td><td><code>10</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">SQL Server 的 GREATEST/LEAST 在参数全为 NULL 时返回 NULL。MySQL 同名函数遇到任一 NULL 即返回 NULL。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/logical-functions-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#count-big">COUNT_BIG · 按 bigint 计数</a></li>
+<li><a href="#string-agg">STRING_AGG · 组内排序再拼接</a></li>
+<li><a href="#conditional-aggregate">用 CASE 做条件聚合</a></li>
+<li><a href="#grouping-sets">GROUPING SETS · 明细、小计和总计</a></li>
+<li><a href="#rollup-cube">ROLLUP 层级小计与 CUBE 所有维度</a></li>
+<li><a href="#percentiles">求连续或离散百分位数</a></li>
+<li><a href="#approx-count">APPROX_COUNT_DISTINCT · 近似去重数</a></li>
+<li><a href="#approx-percentiles">近似计算连续或离散百分位数</a></li>
+<li><a href="#ranking-distribution">用窗口函数排名、分桶并计算分布</a></li>
+<li><a href="#window-frames">ROWS 与 RANGE · 逐行还是逐个排序值</a></li>
+<li><a href="#named-window">WINDOW · 复用分区和排序</a></li>
+<li><a href="#lag-lead-nulls">LAG、LEAD · 跳过缺失值或按行偏移</a></li>
+<li><a href="#first-last-nulls">FIRST_VALUE、LAST_VALUE · 分区有效端点</a></li>
+<li><a href="#generate-series">GENERATE_SERIES · 生成数值序列</a></li>
+<li><a href="#logical-functions">按位置或条件选值并比较同行极值</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="50-sqlserver-batches.html">← 批次、名称解析和表达式</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="52-sqlserver-types.html">类型、字符串与时间 →</a></nav>
+</main>
+</body>
+</html>

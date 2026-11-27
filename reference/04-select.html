@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>检索数据 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 4 章 · 原书第 20–27 页</p>
+<h1>检索数据</h1>
+<p class="lead" data-dialects="mysql">用 SELECT 选列、去重和限制条数。每次查询先确定要返回的列和结果粒度。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section class="point" id="quick-top-n" data-dialects="postgresql sqlserver mysql">
+<h2>取前 N 行</h2>
+<div data-dialects="postgresql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres</code>。示例指定了 sql_notes_lab 模式。账号需能查询订单表。把 <code>2</code> 换成要取的正整数。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT order_id
+FROM sql_notes_lab.orders
+ORDER BY order_id
+LIMIT 2;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id
+FROM sql_notes_lab.orders
+ORDER BY order_id
+LIMIT 2;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td></tr>
+<tr><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>先按订单编号确定顺序，再取前两行。</p>
+</div>
+<div data-dialects="sqlserver">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。账号需能查询订单表。把 <code>2</code> 换成要取的正整数。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT TOP (2) order_id
+FROM dbo.orders
+ORDER BY order_id;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT TOP (2) order_id
+FROM dbo.orders
+ORDER BY order_id;</code><span class="sql-caption-context">预期结果 · 查询结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td></tr>
+<tr><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>先按订单编号确定顺序，再取前两行。</p>
+</div>
+<div data-dialects="mysql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。账号需能查询订单表。把 <code>2</code> 换成要取的正整数。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT order_id
+FROM orders
+ORDER BY order_id
+LIMIT 2;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id
+FROM orders
+ORDER BY order_id
+LIMIT 2;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td></tr>
+<tr><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>先按订单编号确定顺序，再取前两行。</p>
+</div>
+</section>
+<section id="p1" class="point" data-dialects="postgresql sqlserver mysql" data-alternate-anchor="dial-projection"><h2>查询一列、数列及全部列</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>SELECT</code> 写要返回的列，<code>FROM</code> 写数据来源。列名用逗号隔开，最后一列后直接写 FROM。<code>*</code> 取全部可见列，交付查询时显式写列可以稳定输出结构。SQL 关键字可用大小写，表名大小写则受配置和平台影响。</p>
+<figure><figcaption>SQL · 通用写法</figcaption><pre><code data-kind="sql">SELECT name FROM products;
+SELECT name, price FROM products;
+SELECT * FROM products;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT name FROM products;</code></span></caption>
+<thead><tr><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Basics</code></td></tr>
+<tr><td><code>SQL Practice</code></td></tr>
+<tr><td><code>Notebook</code></td></tr>
+<tr><td><code>Pen</code></td></tr>
+<tr><td><code>SQLX</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT name, price FROM products;</code></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Basics</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td><code>SQL Practice</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td><code>Notebook</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td><code>Pen</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td><code>SQLX</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT * FROM products;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　<code>products</code> 有 5 行、5 列。商品 1 为 <code>(1, SQL Basics, book, 20.00, 2025-01-10)</code>。</p><p><strong>执行后</strong>　同一行依次投影为 <code>SQL Basics</code>、<code>SQL Basics | 20.00</code>、完整的 5 列。三条查询各返回 5 行。</p>
+<p class="outcome">每条返回五行，分别显示 1、2、5 列。未写 ORDER BY 时，行顺序无保证。空格或换行可用于排版，用分号结束客户端中的语句。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="postgresql sqlserver mysql" data-alternate-anchor="dial-projection"><h2>DISTINCT 对整行投影去重</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>DISTINCT</code> 作用于 SELECT 列表里的值组合。</p>
+<figure><figcaption>SQL · 通用写法</figcaption><pre><code data-kind="sql">SELECT DISTINCT category FROM products ORDER BY category;
+SELECT DISTINCT category, price FROM products ORDER BY category, price;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">category</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>book</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT DISTINCT category FROM products ORDER BY category;</code></span></caption>
+<thead><tr><th scope="col">category</th></tr></thead>
+<tbody>
+<tr><td><code>book</code></td></tr>
+<tr><td><code>stationery</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT DISTINCT category, price FROM products ORDER BY category, price;</code></span></caption>
+<thead><tr><th scope="col">category</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>book</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　输入的「类别、价格」为 <code>(book,20)</code>、<code>(book,30)</code> 两次、<code>(stationery,5)</code>、<code>(stationery,10)</code>。</p><p><strong>执行后</strong>　只选类别得 <code>book, stationery</code>。按两列去重得到 4 个组合，<code>(book,30)</code> 留一次。</p>
+<p class="outcome">第一条得到 book 和 stationery。第二条得到四组类别与价格，两个 30.00 的 book 合并为一组。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-pagination"><h2>LIMIT 限制行数与偏移</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>偏移量从 0 数。<code>LIMIT 1, 2</code> 中的第一个数是偏移，第二个数是行数。分页时先加能打破并列的排序键。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT product_id FROM products ORDER BY product_id LIMIT 2;
+SELECT product_id FROM products ORDER BY product_id LIMIT 2 OFFSET 1;
+SELECT product_id FROM products ORDER BY product_id LIMIT 1, 2;
+SELECT product_id FROM products ORDER BY product_id LIMIT 3 OFFSET 4;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id FROM products ORDER BY product_id LIMIT 2;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT product_id FROM products ORDER BY product_id LIMIT 2 OFFSET 1;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT product_id FROM products ORDER BY product_id LIMIT 1, 2;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>显示其余 1 个结果表</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 4" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">4 · </span><code>SELECT product_id FROM products ORDER BY product_id LIMIT 3 OFFSET 4;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　排序后的编号为 1、2、3、4、5。</p><p><strong>执行后</strong>　四条查询依次返回 <code>[1,2]</code>、<code>[2,3]</code>、<code>[2,3]</code>、<code>[5]</code>。</p>
+<p class="outcome">第一条读出 1、2。第二、三条跳过一行，读出 2、3。LIMIT 给出行数上限，第四条只剩编号 5。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-projection"><h2>完全限定名</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>库名.表名.列名</code> 能标明具体来源，常用于消除跨库或联结查询里的同名歧义。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT products.name FROM products WHERE products.product_id = 1;
+SELECT learn_sql_lab.products.name
+FROM learn_sql_lab.products
+WHERE learn_sql_lab.products.product_id = 1;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 相关行" tabindex="0">
+<table class="sql-result"><caption>products · 相关行</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT products.name FROM products WHERE products.product_id = 1;</code></span></caption>
+<thead><tr><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT learn_sql_lab.products.name FROM learn_sql_lab.products WHERE learn_sql_lab.products.product_id = 1;</code></span></caption>
+<thead><tr><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　练习库中编号 1 的商品名是 <code>SQL Basics</code>。</p><p><strong>执行后</strong>　两种限定写法都返回 <code>SQL Basics</code>。</p>
+<p class="outcome">两条都返回 SQL Basics。访问完整名称时无需先设默认数据库，仍需有权限。</p>
+</details>
+</div></section>
+<section id="w3-top" class="point" data-dialects="mysql" data-alternate-anchor="dial-pagination"><h2>取前 N 行与并列</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>先用 <code>ORDER BY</code> 定义「前几行」。需要固定行数时用唯一键打破并列。要保留同价的第一名，只按价格计算 <code>RANK()</code>，再用编号确定展示顺序。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT product_id, price FROM products
+ORDER BY price DESC, product_id LIMIT 1;
+
+WITH ranked AS (
+  SELECT product_id, price, RANK() OVER (ORDER BY price DESC) AS price_rank
+  FROM products
+)
+SELECT product_id, price FROM ranked WHERE price_rank = 1 ORDER BY product_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="最高价的两条候选" tabindex="0">
+<table class="sql-result"><caption>最高价的两条候选</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id, price FROM products ORDER BY price DESC, product_id LIMIT 1;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>WITH ranked AS ( SELECT product_id, price, RANK() OVER (ORDER BY price DESC) AS price_rank FROM products ) SELECT product_id, price FROM ranked WHERE price_rank = 1 ORDER BY product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div class="sql-grid-viewport" role="region" aria-label="同一张 products 表，取按价格降序和编号升序排列的首行" tabindex="0">
+<table class="sql-result"><caption>同一张 products 表，取按价格降序和编号升序排列的首行</caption>
+<thead><tr><th scope="col">数据库</th><th scope="col">最小写法</th><th scope="col">商品编号</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Server</code></td><td><code>SELECT TOP (1) product_id FROM products ORDER BY price DESC, product_id;</code></td><td class="sql-number"><code>2</code></td></tr>
+<tr><td><code>PostgreSQL / Oracle</code></td><td><code>SELECT product_id FROM products ORDER BY price DESC, product_id FETCH FIRST 1 ROW ONLY;</code></td><td class="sql-number"><code>2</code></td></tr>
+<tr><td><code>旧式 Oracle</code></td><td><code>SELECT product_id FROM (SELECT product_id FROM products ORDER BY price DESC, product_id) WHERE ROWNUM &lt;= 1;</code></td><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<p>SQL Server 的 <code>SELECT TOP (50) PERCENT product_id FROM products ORDER BY price DESC, product_id;</code> 将五件商品的前一半向上取整，返回编号 2、5、1。SQL Server 的 <code>TOP (1) WITH TIES</code> 与 PostgreSQL、Oracle 的 <code>FETCH FIRST 1 ROW WITH TIES</code> 按排序键保留并列。查最高价并列时，让内层排序键只有价格。</p>
+<p class="sources"><a href="https://www.w3schools.com/sql/sql_top.asp">W3Schools SELECT TOP</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/top-transact-sql">SQL Server TOP</a> · <a href="https://www.postgresql.org/docs/current/sql-select.html">PostgreSQL SELECT</a> · <a href="https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/ROWNUM-Pseudocolumn.html">Oracle ROWNUM</a> · <a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/sqlrf/SELECT.html">Oracle FETCH FIRST</a></p></section>
+<section id="w3-comments" class="point" data-dialects="mysql" data-alternate-anchor="dial-projection"><h2>单行注释与块注释</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>MySQL 的 <code>--</code> 后要跟空白再写注释。<code>/* … */</code> 可以跨行。MySQL 也识别 <code>#</code> 单行注释。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>-- 这一行只解释下一条查询
+SELECT /* 这个块可以跨行
+          这里仍是注释 */ 2 + 3 AS total;
+# MySQL 的单行注释</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入常量" tabindex="0">
+<table class="sql-result"><caption>输入常量</caption>
+<thead><tr><th scope="col">value</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT /* 这个块可以跨行 这里仍是注释 */ 2 + 3 AS total;</code></span></caption>
+<thead><tr><th scope="col">total</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="sources"><a href="https://www.w3schools.com/sql/sql_comments.asp">W3Schools SQL Comments</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/comments.html">MySQL 注释语法</a></p></section>
+<section id="dial-projection" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>选列、去重与列别名</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>SELECT 投影指定字段。DISTINCT 按整行输出去重。列别名可以用于最终排序。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 执行前练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT product_id, name AS product_name FROM products WHERE product_id = 1;
+SELECT DISTINCT category FROM products ORDER BY category;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id, name AS product_name FROM products WHERE product_id = 1;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">product_name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT DISTINCT category FROM products ORDER BY category;</code></span></caption>
+<thead><tr><th scope="col">category</th></tr></thead>
+<tbody>
+<tr><td><code>book</code></td></tr>
+<tr><td><code>stationery</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT product_id, name AS product_name FROM products WHERE product_id = 1;
+SELECT DISTINCT category FROM products ORDER BY category;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id, name AS product_name FROM products WHERE product_id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">product_name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT DISTINCT category FROM products ORDER BY category;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">category</th></tr></thead>
+<tbody>
+<tr><td><code>book</code></td></tr>
+<tr><td><code>stationery</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+</section>
+<section id="dial-pagination" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p3">
+<h2>取前几行与分页</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>分页必须指定可重复性明确的排序。SQL Server 的 OFFSET / FETCH 隶属于 ORDER BY。两边都按商品编号跳过两行，再取两行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 执行前练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT product_id FROM products ORDER BY product_id LIMIT 2;
+SELECT product_id FROM products ORDER BY product_id LIMIT 2 OFFSET 2;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id FROM products ORDER BY product_id LIMIT 2;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT product_id FROM products ORDER BY product_id LIMIT 2 OFFSET 2;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT TOP (2) product_id FROM products ORDER BY product_id;
+SELECT product_id FROM products ORDER BY product_id OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT TOP (2) product_id FROM products ORDER BY product_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT product_id FROM products ORDER BY product_id OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-select.html">PostgreSQL SELECT</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/top-transact-sql">SQL Server TOP</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/select-order-by-clause-transact-sql">SQL Server ORDER BY</a></p>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>按编号排序后，只取第三件商品的编号。</p><details><summary>查看答案</summary><figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT product_id FROM products ORDER BY product_id LIMIT 1 OFFSET 2;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id FROM products ORDER BY product_id LIMIT 1 OFFSET 2;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　升序编号为 1、2、3、4、5。偏移 2 跳过前两行。</p><p><strong>执行后</strong>　<code>product_id = 3</code>。</p>
+<p class="outcome">返回 3。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/select.html">SELECT 语法</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/identifier-qualifiers.html">标识符限定</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#quick-top-n">限制返回行数</a></li>
+<li data-dialects="postgresql sqlserver mysql"><a href="#p1">查询一列、数列及全部列</a></li><li data-dialects="postgresql sqlserver mysql"><a href="#p2">DISTINCT 对整行投影去重</a></li><li data-dialects="mysql"><a href="#p3">LIMIT 限制行数与偏移</a></li><li data-dialects="mysql"><a href="#p4">用库名和表名定位字段</a></li><li data-dialects="mysql"><a href="#w3-top">取前 N 行与并列</a></li><li data-dialects="mysql"><a href="#w3-comments">用 -- 和 /* */ 注释 SQL</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-projection">选择返回列、去重并命名结果</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-pagination">取前几行与分页</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="03-mysql-basics.html">← 使用MySQL</a><a href="../v1.html">章节目录</a><a rel="next" href="05-order-by.html">排序检索数据 →</a></nav>
+</main>
+</body></html>

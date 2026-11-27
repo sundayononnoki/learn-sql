@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>57 · SQL Server · 程序结构与服务队列 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 57 章 · 原生语法</p>
+<h1>SQL Server · 程序结构与服务队列</h1>
+<p class="lead">把常用逻辑封装成过程或函数，再用触发器和 Service Broker 观察事件处理与异步通信。 含 GO 的示例使用 SSMS 或 sqlcmd，遇错按批次停止检查。</p>
+<div class="layout"><article class="content">
+<section id="procedure-return" class="point" data-dialects="sqlserver">
+<h2>存储过程、OUTPUT 与 RETURN</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">CREATE OR ALTER PROCEDURE：SQL Server 2016 SP1+</span></p>
+<p>过程可以通过 SELECT 返回结果集，OUTPUT 参数带回值，RETURN 是整数状态。在调用端也要写 OUTPUT。创建过程独占一个客户端批次。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="调用参数" tabindex="0">
+<table class="sql-result"><caption>调用参数</caption>
+<thead><tr><th scope="col">@left</th><th scope="col">@right</th><th scope="col">@total 传入值</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>3</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE OR ALTER PROCEDURE dbo.ch57_sum
+  @left int, @right int, @total int OUTPUT
+AS
+BEGIN
+  SET NOCOUNT ON;
+  SET @total = @left + @right;
+  RETURN 0;
+END;
+GO
+
+DECLARE @sum int, @status int;
+EXEC @status = dbo.ch57_sum @left = 2, @right = 3, @total = @sum OUTPUT;
+SELECT @sum AS total, @status AS return_status;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @sum AS total, @status AS return_status;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">total</th><th scope="col">return_status</th></tr></thead>
+<tbody>
+<tr><td><code>5</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-procedure-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="result-sets" class="point" data-dialects="sqlserver">
+<h2>EXECUTE WITH RESULT SETS</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">WITH RESULT SETS：SQL Server 2012+</span></p>
+<p>执行过程时可为结果重新指定列名和类型。列数与结果集数要匹配，数据值还必须能转换成声明的类型。本例的 CREATE OR ALTER PROCEDURE 需要 SQL Server 2016 SP1 或以上。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="过程原始结果集" tabindex="0">
+<table class="sql-result"><caption>过程原始结果集</caption>
+<thead><tr><th scope="col">raw_id</th><th scope="col">raw_status</th></tr></thead>
+<tbody>
+<tr><td><code>7</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE OR ALTER PROCEDURE dbo.ch57_emit
+AS
+SELECT 7 AS raw_id, N&#x27;paid&#x27; AS raw_status;
+GO
+
+EXEC dbo.ch57_emit
+WITH RESULT SETS ((order_id bigint NOT NULL, status nvarchar(10) NOT NULL));</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXEC dbo.ch57_emit
+WITH RESULT SETS ((order_id bigint NOT NULL, status nvarchar(10) NOT NULL));</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>7</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/execute-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="dynamic-sql" class="point" data-dialects="sqlserver">
+<h2>sp_executesql 与 QUOTENAME</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>用 sp_executesql 绑定值，动态批次使用自己的变量作用域。对象名作为语句组成部分，先做白名单校验，再以 QUOTENAME 引用每一级名称。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="练习数据 dbo.products" tabindex="0">
+<table class="sql-result"><caption>练习数据 dbo.products</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @object sysname = N&#x27;products&#x27;, @sql nvarchar(max);
+IF @object IS NULL OR @object NOT IN (N&#x27;products&#x27;) THROW 50057, N&#x27;Unknown table&#x27;, 1;
+SET @sql = N&#x27;SELECT name FROM dbo.&#x27; + QUOTENAME(@object)
+         + N&#x27; WHERE product_id = @id;&#x27;;
+EXEC sys.sp_executesql @sql, N&#x27;@id int&#x27;, @id = 1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXEC sys.sp_executesql @sql, N&#x27;@id int&#x27;, @id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-executesql-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="functions" class="point" data-dialects="sqlserver">
+<h2>标量 UDF、内联 TVF 与多语句 TVF</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">CREATE OR ALTER FUNCTION：SQL Server 2016 SP1+</span></p>
+<p>标量 UDF 返回单个值。内联 TVF 用一个 RETURN 查询定义结果，多语句 TVF 通过声明的表变量积累返回行。调用表值函数时写在 FROM 或 APPLY 中。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="传给三种 UDF 的参数" tabindex="0">
+<table class="sql-result"><caption>传给三种 UDF 的参数</caption>
+<thead><tr><th scope="col">@n</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE OR ALTER FUNCTION dbo.ch57_double(@n int)
+RETURNS int
+AS
+BEGIN
+  RETURN @n * 2;
+END;
+GO
+CREATE OR ALTER FUNCTION dbo.ch57_inline(@n int)
+RETURNS TABLE
+AS RETURN (SELECT @n + 1 AS amount);
+GO
+CREATE OR ALTER FUNCTION dbo.ch57_multi(@n int)
+RETURNS @result TABLE (amount int)
+AS
+BEGIN
+  INSERT INTO @result VALUES (@n + 2);
+  RETURN;
+END;
+GO
+
+SELECT dbo.ch57_double(3) AS scalar_amount,
+       i.amount AS inline_amount, m.amount AS multi_amount
+FROM dbo.ch57_inline(3) AS i CROSS JOIN dbo.ch57_multi(3) AS m;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT dbo.ch57_double(3) AS scalar_amount,
+       i.amount AS inline_amount, m.amount AS multi_amount
+FROM dbo.ch57_inline(3) AS i CROSS JOIN dbo.ch57_multi(3) AS m;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">scalar_amount</th><th scope="col">inline_amount</th><th scope="col">multi_amount</th></tr></thead>
+<tbody>
+<tr><td><code>6</code></td><td><code>4</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-function-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="tvp" class="point" data-dialects="sqlserver">
+<h2>用户定义表类型与 READONLY 参数</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">表值参数：SQL Server 2008+。CREATE OR ALTER PROCEDURE：2016 SP1+</span></p>
+<p>表值参数可以一次传多行。过程的表值形参必须声明 READONLY，可查询或联结。调用者需要对类型的适当权限。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="传入的表值参数 @ids" tabindex="0">
+<table class="sql-result"><caption>传入的表值参数 @ids</caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+<tr><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TYPE dbo.ch57_id_list AS TABLE (id int PRIMARY KEY);
+GO
+CREATE OR ALTER PROCEDURE dbo.ch57_tvp @ids dbo.ch57_id_list READONLY
+AS
+SELECT COUNT(*) AS input_count, SUM(id) AS id_total FROM @ids;
+GO
+
+DECLARE @ids dbo.ch57_id_list;
+INSERT INTO @ids VALUES (2), (4);
+EXEC dbo.ch57_tvp @ids = @ids;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXEC dbo.ch57_tvp @ids = @ids;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">input_count</th><th scope="col">id_total</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>6</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/tables/use-table-valued-parameters-database-engine?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="cursor" class="point" data-dialects="sqlserver">
+<h2>批次、WHILE 与游标</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>批次内的 BEGIN…END 把多个语句组成块。游标按 OPEN、FETCH、CLOSE、DEALLOCATE 使用，FETCH 后立刻读连接级 @@FETCH_STATUS。只做累加时可直接使用 SUM。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="游标的输入行" tabindex="0">
+<table class="sql-result"><caption>游标的输入行</caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @n int, @total int = 0;
+DECLARE ch57_c CURSOR LOCAL FAST_FORWARD FOR
+  SELECT v.n FROM (VALUES (1), (2)) AS v(n) ORDER BY v.n;
+OPEN ch57_c;
+FETCH NEXT FROM ch57_c INTO @n;
+WHILE @@FETCH_STATUS = 0
+BEGIN
+  SET @total += @n;
+  FETCH NEXT FROM ch57_c INTO @n;
+END;
+CLOSE ch57_c;
+DEALLOCATE ch57_c;
+SELECT @total AS total;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @total AS total;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">total</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/declare-cursor-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="dml-trigger" class="point" data-dialects="sqlserver">
+<h2>DML 触发器与 inserted／deleted</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">CREATE OR ALTER TRIGGER：SQL Server 2016 SP1+</span></p>
+<p>DML 触发器对一条语句执行一次，一次可出现多行。inserted、deleted 提供变更后和变更前的整套行。嵌套触发器与直接递归由独立设置控制，跨表写入需要防止循环依赖。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="更新前的 dbo.ch57_items" tabindex="0">
+<table class="sql-result"><caption>更新前的 dbo.ch57_items</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td></tr>
+<tr><td><code>2</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.ch57_items (id int PRIMARY KEY, qty int NOT NULL);
+CREATE TABLE dbo.ch57_qty_log (id int, old_qty int, new_qty int);
+INSERT INTO dbo.ch57_items VALUES (1, 2), (2, 4);
+GO
+CREATE OR ALTER TRIGGER dbo.ch57_items_au ON dbo.ch57_items
+AFTER UPDATE AS
+BEGIN
+  SET NOCOUNT ON;
+  INSERT INTO dbo.ch57_qty_log (id, old_qty, new_qty)
+  SELECT i.id, d.qty, i.qty FROM inserted AS i JOIN deleted AS d ON d.id = i.id;
+END;
+GO
+UPDATE dbo.ch57_items SET qty = qty + 1;
+
+SELECT id, old_qty, new_qty FROM dbo.ch57_qty_log ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, old_qty, new_qty FROM dbo.ch57_qty_log ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">old_qty</th><th scope="col">new_qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td><td><code>3</code></td></tr>
+<tr><td><code>2</code></td><td><code>4</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-trigger-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="ddl-trigger" class="point" data-dialects="sqlserver">
+<h2>数据库 DDL 触发器与 EVENTDATA</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">实例 SQL Server，可在专用练习库执行</span></p>
+<p>DDL 触发器通过 EVENTDATA() 获取事件名和对象。ON DATABASE 只捕获所在库的指定事件。这个教学触发器验证后禁用，避免影响其他练习。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="触发器与事件" tabindex="0">
+<table class="sql-result"><caption>触发器与事件</caption>
+<thead><tr><th scope="col">日志初始行数</th><th scope="col">DDL 事件</th><th scope="col">目标对象</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td><code>CREATE_TABLE</code></td><td><code>ch57_test</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TABLE dbo.ch57_ddl_log (object_name nvarchar(128));
+GO
+CREATE TRIGGER ch57_ddl_event ON DATABASE
+AFTER CREATE_TABLE AS
+BEGIN
+  SET NOCOUNT ON;
+  DECLARE @event xml = EVENTDATA();
+  IF @event.value(&#x27;(/EVENT_INSTANCE/ObjectName)[1]&#x27;, &#x27;nvarchar(128)&#x27;) = N&#x27;ch57_test&#x27;
+    INSERT INTO dbo.ch57_ddl_log VALUES (N&#x27;ch57_test&#x27;);
+END;
+GO
+CREATE TABLE dbo.ch57_test (id int);
+DISABLE TRIGGER ch57_ddl_event ON DATABASE;
+
+SELECT object_name FROM dbo.ch57_ddl_log ORDER BY object_name;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT object_name FROM dbo.ch57_ddl_log ORDER BY object_name;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">object_name</th></tr></thead>
+<tbody>
+<tr><td><code>ch57_test</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/triggers/ddl-triggers?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="logon-trigger" class="point" data-dialects="sqlserver">
+<h2>实例 LOGON 触发器的启停</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 实例级。ON ALL SERVER 需 CONTROL SERVER</span></p>
+<p>LOGON 在身份验证成功后、会话建立前触发。登录条件写错可能影响实例连接。仅在一次性本地实例以有 CONTROL SERVER 的账号运行，保留管理员连接。本例触发体只设 NOCOUNT，随后禁用。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="实例级触发器创建后" tabindex="0">
+<table class="sql-result"><caption>实例级触发器创建后</caption>
+<thead><tr><th scope="col">name</th><th scope="col">is_disabled</th></tr></thead>
+<tbody>
+<tr><td><code>ch57_logon_demo</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE TRIGGER ch57_logon_demo ON ALL SERVER
+AFTER LOGON AS
+BEGIN
+  SET NOCOUNT ON;
+END;
+GO
+DISABLE TRIGGER ch57_logon_demo ON ALL SERVER;
+
+SELECT name, is_disabled FROM sys.server_triggers WHERE name = N&#x27;ch57_logon_demo&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, is_disabled FROM sys.server_triggers WHERE name = N&#x27;ch57_logon_demo&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">is_disabled</th></tr></thead>
+<tbody>
+<tr><td><code>ch57_logon_demo</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/triggers/logon-triggers?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="waitfor" class="point" data-dialects="sqlserver">
+<h2>WAITFOR DELAY 与队列等待</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>DELAY 让当前批次暂停。WAITFOR 也可搭配 Service Broker RECEIVE 和以毫秒计的 TIMEOUT。实际调度时刻可能晚于指定时间。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="暂停参数" tabindex="0">
+<table class="sql-result"><caption>暂停参数</caption>
+<thead><tr><th scope="col">时间参数</th><th scope="col">操作</th></tr></thead>
+<tbody>
+<tr><td><code>00:00:01</code></td><td><code>DELAY</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>WAITFOR DELAY &#x27;00:00:01&#x27;;
+SELECT N&#x27;done&#x27; AS step;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT N&#x27;done&#x27; AS step;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">step</th></tr></thead>
+<tbody>
+<tr><td><code>done</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/language-elements/waitfor-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="broker" class="point" data-dialects="sqlserver">
+<h2>Service Broker 消息、契约、队列与往返</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 启用 Service Broker 的库，或所支持的 Azure SQL Managed Instance。本例为同库、单发起会话</span></p>
+<p>在启用了 Service Broker 的独立练习库执行，可先查 sys.databases.is_broker_enabled。契约允许发起者发请求，目标服务把消息放进 dbo.ch57_target_q。接收超时至多 5 秒。若队列没有消息，先查看 sys.transmission_queue 的 transmission_status。交易内 SEND 与 RECEIVE 分别受所在事务提交控制。在独立、自动提交的练习数据库内运行，不复用现有队列。Service Broker 队列需 RECEIVE，开始对话还需相应契约 REFERENCES。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="发送的请求" tabindex="0">
+<table class="sql-result"><caption>发送的请求</caption>
+<thead><tr><th scope="col">message_type</th><th scope="col">payload</th></tr></thead>
+<tbody>
+<tr><td><code>ch57_request</code></td><td><code>ping</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE MESSAGE TYPE [ch57_request] VALIDATION = NONE;
+CREATE CONTRACT [ch57_contract] ([ch57_request] SENT BY INITIATOR);
+CREATE QUEUE dbo.ch57_sender_q;
+CREATE QUEUE dbo.ch57_target_q;
+CREATE SERVICE [ch57_sender] ON QUEUE dbo.ch57_sender_q;
+CREATE SERVICE [ch57_target] ON QUEUE dbo.ch57_target_q ([ch57_contract]);
+GO
+
+DECLARE @sent uniqueidentifier, @received uniqueidentifier,
+        @type sysname, @body varbinary(max),
+        @payload varbinary(max) = CONVERT(varbinary(max), N&#x27;ping&#x27;);
+BEGIN DIALOG CONVERSATION @sent
+  FROM SERVICE [ch57_sender] TO SERVICE N&#x27;ch57_target&#x27;
+  ON CONTRACT [ch57_contract] WITH ENCRYPTION = OFF;
+SEND ON CONVERSATION @sent MESSAGE TYPE [ch57_request] (@payload);
+WAITFOR (
+  RECEIVE TOP (1) @received = conversation_handle,
+                 @type = message_type_name, @body = message_body
+  FROM dbo.ch57_target_q
+), TIMEOUT 5000;
+IF @received IS NOT NULL
+BEGIN
+  END CONVERSATION @received;
+  WAITFOR (RECEIVE TOP (1) @sent = conversation_handle FROM dbo.ch57_sender_q), TIMEOUT 5000;
+END;
+END CONVERSATION @sent;
+SELECT @type AS message_type, CONVERT(nvarchar(20), @body) AS payload;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @type AS message_type, CONVERT(nvarchar(20), @body) AS payload;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">message_type</th><th scope="col">payload</th></tr></thead>
+<tbody>
+<tr><td><code>ch57_request</code></td><td><code>ping</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/database-engine/configure-windows/sql-server-service-broker?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#procedure-return">调用过程并读取输出参数和状态码</a></li>
+<li><a href="#result-sets">为过程结果指定列名和类型</a></li>
+<li><a href="#dynamic-sql">绑定动态查询参数并引用对象名</a></li>
+<li><a href="#functions">按返回单值或表选择函数形式</a></li>
+<li><a href="#tvp">给过程传入只读的多行数据</a></li>
+<li><a href="#cursor">批次、WHILE 与游标</a></li>
+<li><a href="#dml-trigger">用触发器查看写入前后的行</a></li>
+<li><a href="#ddl-trigger">数据库 DDL 触发器与 EVENTDATA</a></li>
+<li><a href="#logon-trigger">实例 LOGON 触发器的启停</a></li>
+<li><a href="#waitfor">WAITFOR DELAY 与队列等待</a></li>
+<li><a href="#broker">Service Broker 消息、契约、队列与往返</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="56-sqlserver-plans.html">← 索引、统计、计划与诊断</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="58-sqlserver-transactions.html">事务、隔离和错误处理 →</a></nav>
+</main>
+</body>
+</html>

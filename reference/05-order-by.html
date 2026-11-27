@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>排序检索数据 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 5 章 · 原书第 28–33 页</p>
+<h1>排序检索数据</h1>
+<p class="lead" data-dialects="mysql">用 ORDER BY 控制显示顺序，用唯一键补齐并列规则。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section class="point" id="quick-sort" data-dialects="postgresql sqlserver mysql">
+<h2>排序</h2>
+<div data-dialects="postgresql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres</code>。示例指定了 sql_notes_lab 模式。账号需能查询订单表。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT order_id, ordered_on
+FROM sql_notes_lab.orders
+ORDER BY ordered_on DESC, order_id ASC;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, ordered_on
+FROM sql_notes_lab.orders
+ORDER BY ordered_on DESC, order_id ASC;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">ordered_on</th></tr></thead>
+<tbody>
+<tr><td><code>103</code></td><td><code>2025-02-02</code></td></tr>
+<tr><td><code>104</code></td><td><code>2025-02-02</code></td></tr>
+<tr><td><code>102</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td><code>101</code></td><td><code>2025-01-10</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>下单日期从新到旧。同一天的订单再按编号从小到大排列。</p>
+</div>
+<div data-dialects="sqlserver">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。账号需能查询订单表。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT order_id, ordered_on
+FROM dbo.orders
+ORDER BY ordered_on DESC, order_id ASC;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, ordered_on
+FROM dbo.orders
+ORDER BY ordered_on DESC, order_id ASC;</code><span class="sql-caption-context">预期结果 · 查询结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">ordered_on</th></tr></thead>
+<tbody>
+<tr><td><code>103</code></td><td><code>2025-02-02</code></td></tr>
+<tr><td><code>104</code></td><td><code>2025-02-02</code></td></tr>
+<tr><td><code>102</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td><code>101</code></td><td><code>2025-01-10</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>下单日期从新到旧。同一天的订单再按编号从小到大排列。</p>
+</div>
+<div data-dialects="mysql">
+<p class="dialect-tags"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>先<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。账号需能查询订单表。</p>
+<figure><figcaption>SQL 查询窗口（或已连接的 SQL 客户端提示符）</figcaption><pre><code>SELECT order_id, ordered_on
+FROM orders
+ORDER BY ordered_on DESC, order_id ASC;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="查询结果" tabindex="0">
+<table class="sql-result">
+<caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT order_id, ordered_on
+FROM orders
+ORDER BY ordered_on DESC, order_id ASC;</code><span class="sql-caption-context">查询结果</span></span></caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">ordered_on</th></tr></thead>
+<tbody>
+<tr><td><code>103</code></td><td><code>2025-02-02</code></td></tr>
+<tr><td><code>104</code></td><td><code>2025-02-02</code></td></tr>
+<tr><td><code>102</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td><code>101</code></td><td><code>2025-01-10</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>下单日期从新到旧。同一天的订单再按编号从小到大排列。</p>
+</div>
+</section>
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-stable-sort"><h2>按单列排序</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>省略排序时行顺序无保证。<code>ORDER BY</code> 放在 WHERE 之后、LIMIT 之前。默认 <code>ASC</code> 升序，可按本次结果未显示的列排序，DISTINCT 等场景另有限制。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT product_id FROM products WHERE price &lt; 30 ORDER BY price;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id FROM products WHERE price &lt; 30 ORDER BY price;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>4</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td></tr>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　符合 <code>price &lt; 30</code> 的编号和价格是 <code>1:20</code>、<code>3:10</code>、<code>4:5</code>。</p><p><strong>执行后</strong>　只显示编号，按价格升序得到 <code>4, 3, 1</code>。</p>
+<p class="outcome">按价格从低到高得到编号 4、3、1。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="postgresql sqlserver mysql" data-alternate-anchor="dial-stable-sort"><h2>多列排序</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>先比第一列，第一列打平时才比后面的列。按主键打破并列可在数据固定时给出确定的分页顺序。</p>
+<figure><figcaption>SQL · 通用写法</figcaption><pre><code data-kind="sql">SELECT product_id, price FROM products ORDER BY price, product_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id, price FROM products ORDER BY price, product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　编号 1–5 的价格依次是 <code>20, 30, 10, 5, 30</code>。</p><p><strong>执行后</strong>　<code>4:5.00 → 3:10.00 → 1:20.00 → 2:30.00 → 5:30.00</code>。</p>
+<p class="outcome">编号顺序为 4、3、1、2、5。两个 30.00 按编号升序。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-stable-sort"><h2>混合排序方向与取首条</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>DESC</code> 只修饰它前面的一项，下一项仍单独指定方向。文本的比较顺序受排序规则影响。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT product_id, price FROM products
+ORDER BY price DESC, product_id ASC LIMIT 1;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id, price FROM products ORDER BY price DESC, product_id ASC LIMIT 1;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　编号 2 和 5 同为最高价 30.00。</p><p><strong>执行后</strong>　编号升序打破并列，取到 <code>2 | 30.00</code>。</p>
+<p class="outcome">最高价有编号 2、5 两件，结果只留下编号较小的 2，价格 30.00。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-null-sort"><h2>排序规则影响文本顺序</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>同一批字符可按语言规则或二进制排序规则比较。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">WITH labels AS (SELECT _utf8mb4&#x27;a&#x27; AS label UNION ALL SELECT _utf8mb4&#x27;B&#x27;)
+SELECT label FROM labels ORDER BY label COLLATE utf8mb4_0900_ai_ci;
+WITH labels AS (SELECT _utf8mb4&#x27;a&#x27; AS label UNION ALL SELECT _utf8mb4&#x27;B&#x27;)
+SELECT label FROM labels ORDER BY label COLLATE utf8mb4_bin;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="比较的行" tabindex="0">
+<table class="sql-result"><caption>比较的行</caption>
+<thead><tr><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>a</code></td></tr>
+<tr><td><code>B</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>WITH labels AS (SELECT _utf8mb4&#x27;a&#x27; AS label UNION ALL SELECT _utf8mb4&#x27;B&#x27;) SELECT label FROM labels ORDER BY label COLLATE utf8mb4_0900_ai_ci;</code></span></caption>
+<thead><tr><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>a</code></td></tr>
+<tr><td><code>B</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>WITH labels AS (SELECT _utf8mb4&#x27;a&#x27; AS label UNION ALL SELECT _utf8mb4&#x27;B&#x27;) SELECT label FROM labels ORDER BY label COLLATE utf8mb4_bin;</code></span></caption>
+<thead><tr><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>B</code></td></tr>
+<tr><td><code>a</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　两条文本值为 <code>a</code>、<code>B</code>。</p><p><strong>执行后</strong>　<code>utf8mb4_0900_ai_ci</code> 排成 <code>a, B</code>。<code>utf8mb4_bin</code> 排成 <code>B, a</code>。</p>
+<p class="outcome">分别得到 a、B 和 B、a。</p>
+</details>
+</div></section>
+<section id="dial-stable-sort" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>多列排序与确定性</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>先按价格降序，再按唯一编号升序打破并列。查询执行顺序与最终显示顺序由数据库和 ORDER BY 分别决定。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 执行前练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT product_id, price FROM products ORDER BY price DESC, product_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id, price FROM products ORDER BY price DESC, product_id;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>5.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT product_id, price FROM products ORDER BY price DESC, product_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id, price FROM products ORDER BY price DESC, product_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>5.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+</section>
+<section id="dial-null-sort" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p4">
+<h2>控制 NULL 排在最后</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>两种数据库的默认 NULL 排序位置有所不同。指定编号作为第二排序键，可稳定处理并列。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="customers · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>customers · 执行前练习数据</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">name</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Ana</code></td><td><code>北京</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>Bo</code></td><td><code>上海</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Chen</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Dina</code></td><td><code>北京</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT customer_id, city FROM customers
+ORDER BY city COLLATE &quot;C&quot; ASC NULLS LAST, customer_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT customer_id, city FROM customers ORDER BY city COLLATE &quot;C&quot; ASC NULLS LAST, customer_id;</code></span></caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td><code>上海</code></td></tr>
+<tr><td class="sql-number"><code>1</code></td><td><code>北京</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>北京</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT customer_id, city FROM customers
+ORDER BY CASE WHEN city IS NULL THEN 1 ELSE 0 END,
+         city COLLATE Latin1_General_100_BIN2, customer_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT customer_id, city FROM customers ORDER BY CASE WHEN city IS NULL THEN 1 ELSE 0 END, city COLLATE Latin1_General_100_BIN2, customer_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td><code>上海</code></td></tr>
+<tr><td class="sql-number"><code>1</code></td><td><code>北京</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>北京</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>如果并列时想拿编号较大的最高价商品，改哪一处？</p><details><summary>查看答案</summary><figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT product_id FROM products ORDER BY price DESC, product_id DESC LIMIT 1;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id FROM products ORDER BY price DESC, product_id DESC LIMIT 1;</code></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　候选仍是同价的编号 2 和 5。</p><p><strong>执行后</strong>　改用编号降序，取到 <code>5</code>。</p>
+<p class="outcome">得到 5。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/select.html">ORDER BY / LIMIT</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/limit-optimization.html">LIMIT 优化</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#quick-sort">按订单日期排序</a></li>
+<li data-dialects="mysql"><a href="#p1">按单列排序</a></li><li data-dialects="postgresql sqlserver mysql"><a href="#p2">用第二排序列打破并列</a></li><li data-dialects="mysql"><a href="#p3">混合排序方向与取首条</a></li><li data-dialects="mysql"><a href="#p4">用排序规则控制文本顺序</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-stable-sort">用唯一编号稳定排序</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-null-sort">控制 NULL 排在最后</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="04-select.html">← 检索数据</a><a href="../v1.html">章节目录</a><a rel="next" href="06-where.html">过滤数据 →</a></nav>
+</main>
+</body></html>

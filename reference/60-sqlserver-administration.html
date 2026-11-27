@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="sqlserver">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>60 · SQL Server · 实例、备份、系统对象和外部数据 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 60 章 · 原生语法</p>
+<h1>SQL Server · 实例、备份、系统对象和外部数据</h1>
+<p class="lead">从一个隔离的 SQL Server 2025 实例入手。先读配置与权限，再用独立库完成完整、差异和日志备份的还原演练。组件和外部连接按各卡前置条件操作。</p>
+<div class="layout"><article class="content">
+<section id="instance-database" class="point" data-dialects="sqlserver">
+<h2>实例、数据库和兼容级别</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025（17.x）；ALTER DATABASE 需该库 ALTER 权限或等效权限。</span></p>
+<p>SQL Server 的实例版本与数据库兼容级别分别控制可用的引擎能力与部分语言、优化器行为。先取实例版本、版本类型与数据库配置，再在练习库中改兼容级别。170 是 SQL Server 2025 的级别。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="适用条件" tabindex="0">
+<table class="sql-result"><caption>适用条件</caption>
+<thead><tr><th scope="col">连接</th><th scope="col">数据库</th></tr></thead>
+<tbody>
+<tr><td><code>隔离的 SQL Server 2025 单机实例</code></td><td><code>新建 ch60_config，账号有创建与修改数据库的权限</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE DATABASE ch60_config;
+GO
+ALTER DATABASE ch60_config SET COMPATIBILITY_LEVEL = 160;
+GO
+USE ch60_config;
+SELECT name, compatibility_level FROM sys.databases WHERE database_id = DB_ID();
+
+ALTER DATABASE ch60_config SET COMPATIBILITY_LEVEL = 170;
+SELECT SERVERPROPERTY(&#x27;ProductMajorVersion&#x27;) AS engine_major,
+       SERVERPROPERTY(&#x27;Edition&#x27;) AS edition,
+       name, compatibility_level
+FROM sys.databases WHERE database_id = DB_ID();</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT SERVERPROPERTY(&#x27;ProductMajorVersion&#x27;) AS engine_major,
+       SERVERPROPERTY(&#x27;Edition&#x27;) AS edition,
+       name, compatibility_level
+FROM sys.databases WHERE database_id = DB_ID();</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">engine_major</th><th scope="col">edition</th><th scope="col">name</th><th scope="col">compatibility_level</th></tr></thead>
+<tbody>
+<tr><td><code>17</code></td><td><code>随发行版本</code></td><td><code>ch60_config</code></td><td><code>170</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">更改前查询显示 ch60_config 为 160。迁移时应在恢复的副本上验证查询、计划和作业再切换。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql-compatibility-level?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="scope" class="point" data-dialects="sqlserver">
+<h2>实例参数与库级配置</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2016+；示例以 2025 为基线。</span></p>
+<p>sys.configurations 的 value 是配置值，value_in_use 是实际值。sp_configure 可读写实例参数，修改及 RECONFIGURE 需要 ALTER SETTINGS。用 ALTER DATABASE SCOPED CONFIGURATION 在当前数据库覆盖 MAXDOP。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="适用条件" tabindex="0">
+<table class="sql-result"><caption>适用条件</caption>
+<thead><tr><th scope="col">数据库</th><th scope="col">权限</th></tr></thead>
+<tbody>
+<tr><td><code>上一节的隔离 ch60_config</code></td><td><code>ALTER ANY DATABASE SCOPED CONFIGURATION 或等效权限</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE ch60_config;
+SELECT name, value, value_in_use FROM sys.configurations
+WHERE name = N&#x27;max degree of parallelism&#x27;;
+SELECT name, value FROM sys.database_scoped_configurations WHERE name = N&#x27;MAXDOP&#x27;;
+
+ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = 2;
+SELECT name, value FROM sys.database_scoped_configurations WHERE name = N&#x27;MAXDOP&#x27;;
+
+ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = 0;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, value FROM sys.database_scoped_configurations WHERE name = N&#x27;MAXDOP&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">value</th></tr></thead>
+<tbody>
+<tr><td><code>MAXDOP</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">实例级确认也可运行 EXEC sys.sp_configure N&#x27;max degree of parallelism&#x27;; 若该高级选项未显示，sys.configurations 仍可读。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-scoped-configuration-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="set-options" class="point" data-dialects="sqlserver">
+<h2>连接范围的 SET 选项</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>SET 选项具备不同的生效时机。用 DBCC USEROPTIONS 看当前会话。DATEFIRST 影响 DATEPART(weekday)，用明确设置避免受登录默认语言影响。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="固定日期" tabindex="0">
+<table class="sql-result"><caption>固定日期</caption>
+<thead><tr><th scope="col">日历日期</th><th scope="col">星期</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-03</code></td><td><code>星期一</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>DECLARE @previous_datefirst int = @@DATEFIRST;
+
+SET DATEFIRST 1;
+SELECT @@DATEFIRST AS first_day,
+       DATEPART(weekday, CONVERT(date, &#x27;20250203&#x27;)) AS monday_no;
+SET DATEFIRST @previous_datefirst;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT @@DATEFIRST AS first_day,
+       DATEPART(weekday, CONVERT(date, &#x27;20250203&#x27;)) AS monday_no;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">first_day</th><th scope="col">monday_no</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">把初始化和语句一起执行，确保会话变量留在同一批次。隔离级别、ANSI 配置等可用 DBCC USEROPTIONS; 检查。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-datefirst-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="catalog-dmv" class="point" data-dialects="sqlserver">
+<h2>系统目录、动态管理视图和系统过程</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+ 看其他会话需 VIEW SERVER PERFORMANCE STATE。较早版本看其他会话通常需 VIEW SERVER STATE。任何用户可看本会话。</span></p>
+<p>sys.tables 记录可见对象。DMV 反映当前连接和运行状态。用 EXEC sys.sp_help N&#x27;dbo.对象名&#x27; 可获得类型、列、索引等多个结果集。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">连接</th><th scope="col">筛选</th></tr></thead>
+<tbody>
+<tr><td><code>当前数据库连接</code></td><td><code>session_id = @@SPID</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CASE WHEN s.session_id = @@SPID THEN 1 ELSE 0 END AS own_session,
+       CASE WHEN s.is_user_process = 1 THEN 1 ELSE 0 END AS user_process
+FROM sys.dm_exec_sessions AS s
+WHERE s.session_id = @@SPID;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CASE WHEN s.session_id = @@SPID THEN 1 ELSE 0 END AS own_session,
+       CASE WHEN s.is_user_process = 1 THEN 1 ELSE 0 END AS user_process
+FROM sys.dm_exec_sessions AS s
+WHERE s.session_id = @@SPID;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">own_session</th><th scope="col">user_process</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">系统目录受对象元数据可见性约束。获得其他连接的状态读权限与获得业务表 SELECT 权限是独立的。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-exec-sessions-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="backup-chain" class="point" data-dialects="sqlserver">
+<h2>完整、差异与日志备份</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 单机 Linux 路径示例。Windows 改成服务器端可写的绝对路径。管理账号需备份权限及读取 msdb 历史权限，数据库引擎身份需写文件的权限。</span></p>
+<p>FULL 恢复模型下先做一次常规完整备份，建立日志备份基础。差异备份依赖最近一次非 COPY_ONLY 的完整备份。日志备份接续日志链。CHECKSUM 帮助发现部分读写损坏。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="独立练习库" tabindex="0">
+<table class="sql-result"><caption>独立练习库</caption>
+<thead><tr><th scope="col">备份步骤</th><th scope="col">当时已提交的 id</th></tr></thead>
+<tbody>
+<tr><td><code>完整</code></td><td><code>1</code></td></tr>
+<tr><td><code>差异</code></td><td><code>1, 2</code></td></tr>
+<tr><td><code>日志</code></td><td><code>1, 2, 3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>-- 在隔离实例使用具备建库权限的管理连接。
+-- 确认 ch60_lab、三份备份和后续还原用文件均尚不存在。
+CREATE DATABASE ch60_lab;
+GO
+ALTER DATABASE ch60_lab SET RECOVERY FULL;
+GO
+USE ch60_lab;
+CREATE TABLE dbo.events (id int NOT NULL PRIMARY KEY);
+INSERT INTO dbo.events VALUES (1);
+
+BACKUP DATABASE ch60_lab TO DISK = N&#x27;/var/opt/mssql/data/ch60_full.bak&#x27; WITH CHECKSUM;
+INSERT INTO dbo.events VALUES (2);
+BACKUP DATABASE ch60_lab TO DISK = N&#x27;/var/opt/mssql/data/ch60_diff.bak&#x27;
+  WITH DIFFERENTIAL, CHECKSUM;
+INSERT INTO dbo.events VALUES (3);
+BACKUP LOG ch60_lab TO DISK = N&#x27;/var/opt/mssql/data/ch60_log.trn&#x27; WITH CHECKSUM;
+SELECT type AS backup_type
+FROM msdb.dbo.backupset
+WHERE database_name = N&#x27;ch60_lab&#x27;
+ORDER BY backup_set_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT type AS backup_type
+FROM msdb.dbo.backupset
+WHERE database_name = N&#x27;ch60_lab&#x27;
+ORDER BY backup_set_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">backup_type</th></tr></thead>
+<tbody>
+<tr><td><code>D</code></td></tr>
+<tr><td><code>I</code></td></tr>
+<tr><td><code>L</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">完整备份类型为 D，差异为 I，日志为 L。SIMPLE 恢复模型不支持日志备份。每次练习请换新库名和新备份文件名。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/backup-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="restore-chain" class="point" data-dialects="sqlserver">
+<h2>按顺序还原到独立数据库</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">复用上节路径与备份，适用于隔离 SQL Server 实例。新目标需建库权限，需确认目标库名和物理文件名都未使用。勿放进显式事务。</span></p>
+<p>完整、匹配的差异以及需要的日志按序还原。中间用 NORECOVERY 保持 RESTORING，最后用 RECOVERY 打开。先用 FILELISTONLY 取得逻辑文件名，用 MOVE 写入新的物理路径。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="备份与目标" tabindex="0">
+<table class="sql-result"><caption>备份与目标</caption>
+<thead><tr><th scope="col">文件</th><th scope="col">预期</th></tr></thead>
+<tbody>
+<tr><td><code>上节 full/diff/log 文件</code></td><td><code>按顺序恢复 id 1、2、3</code></td></tr>
+<tr><td><code>ch60_restored</code></td><td><code>原本不存在</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE master;
+RESTORE FILELISTONLY FROM DISK = N&#x27;/var/opt/mssql/data/ch60_full.bak&#x27;;
+
+RESTORE DATABASE ch60_restored FROM DISK = N&#x27;/var/opt/mssql/data/ch60_full.bak&#x27;
+  WITH NORECOVERY, CHECKSUM,
+       MOVE N&#x27;ch60_lab&#x27; TO N&#x27;/var/opt/mssql/data/ch60_restored.mdf&#x27;,
+       MOVE N&#x27;ch60_lab_log&#x27; TO N&#x27;/var/opt/mssql/data/ch60_restored_log.ldf&#x27;;
+RESTORE DATABASE ch60_restored FROM DISK = N&#x27;/var/opt/mssql/data/ch60_diff.bak&#x27; WITH NORECOVERY, CHECKSUM;
+RESTORE LOG ch60_restored FROM DISK = N&#x27;/var/opt/mssql/data/ch60_log.trn&#x27; WITH RECOVERY, CHECKSUM;
+SELECT id FROM ch60_restored.dbo.events ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id FROM ch60_restored.dbo.events ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">多个日志备份按 LSN 连续应用。按时间点还原时可指定 STOPAT，严格的时间点恢复需考虑恢复模型、最后一段日志和备份链。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/backup-restore/restore-a-database-to-a-new-location-sql-server?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="dbcc" class="point" data-dialects="sqlserver">
+<h2>验证备份与检查恢复库</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server；CHECKDB 需要 sysadmin 或目标库 db_owner 等适用权限。VERIFYONLY 与读取备份路径也需要相应权限。</span></p>
+<p>RESTORE VERIFYONLY 检查备份是否完整、可读，可验证已写入的校验和。DBCC CHECKDB 检查数据库分配、结构与逻辑一致性。用还原演练同时验证备份链和业务数据。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="前置" tabindex="0">
+<table class="sql-result"><caption>前置</caption>
+<thead><tr><th scope="col">备份路径</th><th scope="col">目标数据库</th></tr></thead>
+<tbody>
+<tr><td><code>/var/opt/mssql/data/ch60_full.bak</code></td><td><code>ch60_restored 已恢复</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE master;
+
+RESTORE VERIFYONLY FROM DISK = N&#x27;/var/opt/mssql/data/ch60_full.bak&#x27; WITH CHECKSUM;
+DBCC CHECKDB (N&#x27;ch60_restored&#x27;) WITH NO_INFOMSGS;
+SELECT COUNT(*) AS event_count FROM ch60_restored.dbo.events;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS event_count FROM ch60_restored.dbo.events;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">event_count</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">健康情况下 VERIFYONLY 表示备份集有效，NO_INFOMSGS 隐去 DBCC 信息消息。大库的 CHECKDB 有资源成本。核对损坏时先保全证据和可用备份。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkdb-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="agent" class="point" data-dialects="sqlserver">
+<h2>SQL Server Agent 的作业、步骤和目标</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server Agent 支持的版本与平台。要实际执行作业需启动 Agent，某些子系统只在 Windows 可用。</span></p>
+<p>SQL Server Agent 管理计划任务。练习只建一个禁用、无计划的本地作业，并读取作业配置。部署作业前要区分作业所有者、步骤运行身份和目标服务器。SQL Server Express 无 SQL Server Agent。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="适用条件" tabindex="0">
+<table class="sql-result"><caption>适用条件</caption>
+<thead><tr><th scope="col">组件</th><th scope="col">权限</th></tr></thead>
+<tbody>
+<tr><td><code>已安装 SQL Server Agent，Express 无 Agent</code></td><td><code>隔离实例的 sysadmin 或经授权的 msdb Agent 角色</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE msdb;
+EXEC dbo.sp_add_job @job_name = N&#x27;ch60_agent_demo&#x27;, @enabled = 0;
+EXEC dbo.sp_add_jobstep @job_name = N&#x27;ch60_agent_demo&#x27;, @step_name = N&#x27;Check&#x27;,
+  @subsystem = N&#x27;TSQL&#x27;, @command = N&#x27;SELECT 1;&#x27;, @database_name = N&#x27;master&#x27;;
+EXEC dbo.sp_add_jobserver @job_name = N&#x27;ch60_agent_demo&#x27;;
+
+SELECT j.name AS job_name, j.enabled, s.step_name
+FROM msdb.dbo.sysjobs AS j
+JOIN msdb.dbo.sysjobsteps AS s ON s.job_id = j.job_id
+WHERE j.name = N&#x27;ch60_agent_demo&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT j.name AS job_name, j.enabled, s.step_name
+FROM msdb.dbo.sysjobs AS j
+JOIN msdb.dbo.sysjobsteps AS s ON s.job_id = j.job_id
+WHERE j.name = N&#x27;ch60_agent_demo&#x27;;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">job_name</th><th scope="col">enabled</th><th scope="col">step_name</th></tr></thead>
+<tbody>
+<tr><td><code>ch60_agent_demo</code></td><td><code>0</code></td><td><code>Check</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">sp_add_jobschedule 添加作业计划，sp_help_job 查询运行状态，EXEC msdb.dbo.sp_start_job 可启动符合条件的作业。练习所建作业没有自动触发条件。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-add-job-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="always-on" class="point" data-dialects="sqlserver">
+<h2>Always On 主副本与版本门槛</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2012+；函数需要 VIEW SERVER STATE。完整 AG 与 Basic AG 的版本、平台和故障转移能力不同。</span></p>
+<p>Always On 可用性组以数据库为单位做副本同步和故障转移。备份放在哪个副本取决于作业、备份类型和可用性组设置。先读取实例开关与数据库本地副本角色。普通完整及差异备份在可用次副本上需要 SQL Server 2025。旧版次副本可用 COPY_ONLY 完整备份及事务日志备份。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="基础实例" tabindex="0">
+<table class="sql-result"><caption>基础实例</caption>
+<thead><tr><th scope="col">部署</th><th scope="col">当前数据库</th></tr></thead>
+<tbody>
+<tr><td><code>未启用 Always On 的独立实例</code></td><td><code>未加入可用性组的 ch60_config</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE ch60_config;
+
+SELECT CONVERT(int, SERVERPROPERTY(&#x27;IsHadrEnabled&#x27;)) AS hadr_enabled,
+       sys.fn_hadr_is_primary_replica(DB_NAME()) AS is_local_primary;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT CONVERT(int, SERVERPROPERTY(&#x27;IsHadrEnabled&#x27;)) AS hadr_enabled,
+       sys.fn_hadr_is_primary_replica(DB_NAME()) AS is_local_primary;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">hadr_enabled</th><th scope="col">is_local_primary</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">加入 AG 后，本地主副本返回 1，本地辅助副本返回 0。跨 Windows/Linux 部署按集群和终结点文档配置。2025 CU9 的多库 AG 连接 Azure SQL Managed Instance 是另一个预览能力。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/system-functions/sys-fn-hadr-is-primary-replica-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="replication" class="point" data-dialects="sqlserver">
+<h2>复制的发布、分发、订阅与运行检查</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">复制角色与类型受版本、操作系统和组件限制。Express 只能订阅，Linux SQL Server 2025 不支持合并复制。</span></p>
+<p>快照复制定时交付整批数据。事务复制先初始化，再传递发布的变化。合并复制支持多方改动和冲突解决。配置需要分发服务器、发布和订阅，也要考虑代理运行身份。sys.databases.is_subscribed 始终返回 0。可在发布端用 sp_helpsubscription 或复制监视器核对订阅。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="基础实例" tabindex="0">
+<table class="sql-result"><caption>基础实例</caption>
+<thead><tr><th scope="col">部署</th><th scope="col">数据库</th></tr></thead>
+<tbody>
+<tr><td><code>未配置发布的独立实例</code></td><td><code>ch60_config</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE ch60_config;
+
+SELECT name, is_published, is_merge_published, is_distributor
+FROM sys.databases WHERE database_id = DB_ID();</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, is_published, is_merge_published, is_distributor
+FROM sys.databases WHERE database_id = DB_ID();</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">is_published</th><th scope="col">is_merge_published</th><th scope="col">is_distributor</th></tr></thead>
+<tbody>
+<tr><td><code>ch60_config</code></td><td><code>0</code></td><td><code>0</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">发布库内可用 EXEC sys.sp_helppublication; 查看事务/快照发布。订阅关系还要在分发端或发布元数据核对，sys.databases 的某个标志不能单独证明链路健康。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/replication/sql-server-replication?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="linked-server" class="point" data-dialects="sqlserver">
+<h2>Linked Server、四段名与 OPENQUERY</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2025 的 MSOLEDBSQL 使用 OLE DB Driver 19。建链需要 ALTER ANY LINKED SERVER，查询需要能映射至远端表的读取身份。应核实所在平台的提供程序和登录支持情况。</span></p>
+<p>四段名明确关联链接服务器、库、架构和对象。OPENQUERY 直接把内层 SQL 发送给远端执行，返回第一个结果集。部署由管理员配置登录映射与最小权限。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="远端基础数据" tabindex="0">
+<table class="sql-result"><caption>远端基础数据</caption>
+<thead><tr><th scope="col">链接服务器</th><th scope="col">远程表</th><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>lesson_remote</code></td><td><code>remote_lab.dbo.products</code></td><td><code>1</code></td><td><code>Pen</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>-- 在两个受控实例中配置远程练习表、有效证书与身份映射。
+-- 管理员创建链接时可使用下面的结构，先改成受信的远端 DNS 名。
+EXEC sys.sp_addlinkedserver
+    @server = N&#x27;lesson_remote&#x27;, @srvproduct = N&#x27;&#x27;,
+    @provider = N&#x27;MSOLEDBSQL&#x27;, @datasrc = N&#x27;remote-sql.example.test&#x27;,
+    @provstr = N&#x27;Encrypt=Mandatory&#x27;;
+
+SELECT id, label
+FROM OPENQUERY(lesson_remote,
+  &#x27;SELECT id, label FROM remote_lab.dbo.products WHERE id = 1&#x27;);
+SELECT id, label FROM lesson_remote.remote_lab.dbo.products WHERE id = 1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, label FROM lesson_remote.remote_lab.dbo.products WHERE id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Pen</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">两个结果集各一行。Driver 19 示例显式使用 Encrypt=Mandatory，要求有效证书。远端连接超时、登录映射或证书错误应分别诊断。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/linked-servers/linked-servers-database-engine?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="ad-hoc-oledb" class="point" data-dialects="sqlserver">
+<h2>OPENROWSET 与 OPENDATASOURCE 的临时连接</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">受支持的 Windows SQL Server 提供程序情景。有效身份需要能够认证到远端，查询还受实例 Ad Hoc Distributed Queries 与提供程序 DisallowAdhocAccess 设置约束。</span></p>
+<p>临时提供程序访问适合偶发且经部署批准的读取。OPENROWSET 接收远端查询。OPENDATASOURCE 充当临时四段名的首段。两者与读取服务器文件的 OPENROWSET(BULK) 是不同入口。本例需注册 OLE DB Driver 19，信任远端证书且配置 Windows 身份委派。两个接口在给定数据上返回相同行。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="受控远端" tabindex="0">
+<table class="sql-result"><caption>受控远端</caption>
+<thead><tr><th scope="col">地址</th><th scope="col">安全条件</th><th scope="col">数据</th></tr></thead>
+<tbody>
+<tr><td><code>remote-sql.example.test</code></td><td><code>Windows 集成认证、受信证书、OLE DB Driver 19、允许临时分布式查询</code></td><td><code>remote_lab.dbo.products 含 1 / Pen</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT name, value_in_use FROM sys.configurations
+WHERE name = N&#x27;Ad Hoc Distributed Queries&#x27;;
+
+SELECT id, label
+FROM OPENROWSET(&#x27;MSOLEDBSQL19&#x27;,
+  &#x27;Data Source=remote-sql.example.test;Integrated Security=SSPI;Use Encryption for Data=Mandatory;&#x27;,
+  &#x27;SELECT id, label FROM remote_lab.dbo.products WHERE id = 1&#x27;) AS r;
+SELECT id, label
+FROM OPENDATASOURCE(&#x27;MSOLEDBSQL19&#x27;,
+  &#x27;Data Source=remote-sql.example.test;Integrated Security=SSPI;Use Encryption for Data=Mandatory;&#x27;)
+  .remote_lab.dbo.products
+WHERE id = 1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, label
+FROM OPENDATASOURCE(&#x27;MSOLEDBSQL19&#x27;,
+  &#x27;Data Source=remote-sql.example.test;Integrated Security=SSPI;Use Encryption for Data=Mandatory;&#x27;)
+  .remote_lab.dbo.products
+WHERE id = 1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Pen</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">每条查询各返回一行。缺少已批准的部署配置时只阅读示例，经常使用的连接通常配置成有明确映射的链接服务器。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/opendatasource-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="bulk-read" class="point" data-dialects="sqlserver">
+<h2>OPENROWSET(BULK) 直接读服务器文件</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server Linux 路径示例，Windows 改绝对路径。使用需适用 BULK 权限且实际文件读取身份具备文件权限。</span></p>
+<p>SINGLE_BLOB 把整个文件读成一个 varbinary(max) 值。适合核对文件存在、大小或原始内容。SQL Server 服务端文件路径与客户端路径可能不同。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="服务器端文件" tabindex="0">
+<table class="sql-result"><caption>服务器端文件</caption>
+<thead><tr><th scope="col">文件</th><th scope="col">十六进制字节</th><th scope="col">长度</th></tr></thead>
+<tbody>
+<tr><td><code>/var/opt/mssql/data/ch60-demo.bin</code></td><td><code>41 42 43</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>-- 由练习实例管理员预置仅含 0x414243、无结尾换行的文件。
+
+SELECT DATALENGTH(src.BulkColumn) AS byte_count,
+       CONVERT(varchar(6), src.BulkColumn, 2) AS raw_hex
+FROM OPENROWSET(BULK N&#x27;/var/opt/mssql/data/ch60-demo.bin&#x27;, SINGLE_BLOB) AS src;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DATALENGTH(src.BulkColumn) AS byte_count,
+       CONVERT(varchar(6), src.BulkColumn, 2) AS raw_hex
+FROM OPENROWSET(BULK N&#x27;/var/opt/mssql/data/ch60-demo.bin&#x27;, SINGLE_BLOB) AS src;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">byte_count</th><th scope="col">raw_hex</th></tr></thead>
+<tbody>
+<tr><td><code>3</code></td><td><code>414243</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">SINGLE_CLOB 与 SINGLE_NCLOB 读文字。ETL 应选择适合文件编码、列顺序与格式的 BULK INSERT 或显式文件格式。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/openrowset-bulk-transact-sql?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+<section id="polybase" class="point" data-dialects="sqlserver">
+<h2>PolyBase 外部文件格式与外部表</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-version">SQL Server 2022+ Azure Blob 外部存储情景。需安装并开启 PolyBase、具备访问存储的身份、数据库建外部对象权限及查询 SELECT 权限。</span></p>
+<p>外部数据源记录存储地址和凭据，外部文件格式定义分隔方式，外部表把文件映射到可查询的列。此处扫描 Azure Blob CSV，查询数据仍位于对象存储。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="隔离存储容器中准备 CSV 文件" tabindex="0">
+<table class="sql-result"><caption>隔离存储容器中准备 CSV 文件</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Pen</code></td></tr>
+<tr><td><code>2</code></td><td><code>Notebook</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>-- 在 ch60_config 内先由管理员配置数据库范围凭据 ch60_blob_cred。
+-- 把下列 Azure Blob URL 换成受控容器；文件为 UTF-8、无表头、逗号分隔。
+USE ch60_config;
+CREATE EXTERNAL DATA SOURCE ch60_blob
+WITH (
+  LOCATION = &#x27;abs://lesson@account.blob.core.windows.net&#x27;,
+  CREDENTIAL = ch60_blob_cred
+);
+CREATE EXTERNAL FILE FORMAT ch60_csv
+WITH (FORMAT_TYPE = DELIMITEDTEXT,
+      FORMAT_OPTIONS (FIELD_TERMINATOR = &#x27;,&#x27;, STRING_DELIMITER = &#x27;&quot;&#x27;));
+CREATE EXTERNAL TABLE dbo.ch60_external_products (
+    id int, label varchar(30)
+) WITH (LOCATION = &#x27;/products.csv&#x27;, DATA_SOURCE = ch60_blob, FILE_FORMAT = ch60_csv);
+
+SELECT id, label FROM dbo.ch60_external_products ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">预期结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, label FROM dbo.ch60_external_products ORDER BY id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Pen</code></td></tr>
+<tr><td><code>2</code></td><td><code>Notebook</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">数据源、文件格式和列类型需要与实际连接类型相容。SQL Server 2025 的 Linux PolyBase 支持更多关系/ODBC 连接器。组件与驱动应按官方矩阵选择。</p>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/relational-databases/polybase/data-virtualization-guide?view=sql-server-ver17">SQL Server 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#instance-database">查看实例版本和当前库的兼容级别</a></li>
+<li><a href="#scope">核对实例和数据库配置的生效值</a></li>
+<li><a href="#set-options">查看和修改当前连接的设置</a></li>
+<li><a href="#catalog-dmv">用系统目录和 DMV 检查对象与运行状态</a></li>
+<li><a href="#backup-chain">建立完整备份、差异备份和日志链</a></li>
+<li><a href="#restore-chain">按顺序还原到独立数据库</a></li>
+<li><a href="#dbcc">验证备份与检查恢复库</a></li>
+<li><a href="#agent">SQL Server Agent 的作业、步骤和目标</a></li>
+<li><a href="#always-on">检查本地副本角色和可用备份方式</a></li>
+<li><a href="#replication">复制的发布、分发、订阅与运行检查</a></li>
+<li><a href="#linked-server">连接远端服务器并执行远程查询</a></li>
+<li><a href="#ad-hoc-oledb">OPENROWSET 与 OPENDATASOURCE 的临时连接</a></li>
+<li><a href="#bulk-read">OPENROWSET(BULK) 直接读服务器文件</a></li>
+<li><a href="#polybase">PolyBase 外部文件格式与外部表</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="59-sqlserver-security.html">← 权限、加密和审计</a><a href="../v1.html#sqlserver-chapters">原生语法目录</a><a rel="next" href="61-sqlserver-versions.html">SQL Server 版本与迁移附录 →</a></nav>
+</main>
+</body>
+</html>

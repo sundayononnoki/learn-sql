@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>33 · PostgreSQL · 数据写入与同步 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 33 章 · 原生语法</p>
+<h1>PostgreSQL · 数据写入与同步</h1>
+<p class="lead">用带主键的小表练习同步、冲突处理和写入返回值。每段都能单独执行。 临时表示例重复运行时请开新连接。</p>
+<div class="layout"><article class="content">
+<section id="merge" class="point" data-dialects="postgresql">
+<h2>MERGE INTO · 按主键同步来源数据</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 15+</span></p>
+<p>ON 定义哪两行代表同一个对象。每行按顺序执行首个成立的 WHEN 分支。将来源按键去重，避免同一目标行被多次修改。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="目标 · 原库存" tabindex="0">
+<table class="sql-result"><caption>目标 · 原库存</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="来源 · 最新库存" tabindex="0">
+<table class="sql-result"><caption>来源 · 最新库存</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>7</code></td></tr>
+<tr><td><code>3</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_native_inventory (sku int PRIMARY KEY, qty int);
+INSERT INTO pg_native_inventory VALUES (1, 5), (2, 8);
+
+MERGE INTO pg_native_inventory AS target
+USING (VALUES (1, 7), (3, 4)) AS source(sku, qty)
+ON target.sku = source.sku
+WHEN MATCHED THEN UPDATE SET qty = source.qty
+WHEN NOT MATCHED THEN INSERT (sku, qty) VALUES (source.sku, source.qty);
+
+SELECT sku, qty FROM pg_native_inventory ORDER BY sku;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT sku, qty FROM pg_native_inventory ORDER BY sku;</code></span></caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>7</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+<tr><td><code>3</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/15/sql-merge.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="merge-action" class="point" data-dialects="postgresql">
+<h2>MERGE · 停用来源已缺失的记录</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 17+</span></p>
+<p>完整快照适合使用 BY SOURCE 分支处理缺失行。这里把旧行停用，并用 merge_action() 返回动作。只传增量时，来源中缺一行可能仅意味着该行本次未更新。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="目标 · 同步前" tabindex="0">
+<table class="sql-result"><caption>目标 · 同步前</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th><th scope="col">active</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td><td><code>true</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="来源 · 完整快照" tabindex="0">
+<table class="sql-result"><caption>来源 · 完整快照</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_native_snapshot (sku int PRIMARY KEY, qty int, active boolean);
+INSERT INTO pg_native_snapshot VALUES (1, 5, true), (2, 8, true);
+
+MERGE INTO pg_native_snapshot AS target
+USING (VALUES (1, 5)) AS source(sku, qty)
+ON target.sku = source.sku
+WHEN NOT MATCHED BY SOURCE AND target.active THEN
+  UPDATE SET active = false
+RETURNING merge_action() AS action, target.sku, target.active;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>MERGE INTO pg_native_snapshot AS target
+USING (VALUES (1, 5)) AS source(sku, qty)
+ON target.sku = source.sku
+WHEN NOT MATCHED BY SOURCE AND target.active THEN
+  UPDATE SET active = false
+RETURNING merge_action() AS action, target.sku, target.active;</code></span></caption>
+<thead><tr><th scope="col">action</th><th scope="col">sku</th><th scope="col">active</th></tr></thead>
+<tbody>
+<tr><td><code>UPDATE</code></td><td><code>2</code></td><td><code>false</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/17/release-17.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="upsert" class="point" data-dialects="postgresql">
+<h2>ON CONFLICT · 只接受更晚的事件</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 9.5+</span></p>
+<p>在唯一键冲突时，EXCLUDED 表示尝试插入的新行。更新条件筛掉过期事件。RETURNING 只返回实际写入的行，本例是空结果。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="目标 · 已保存状态" tabindex="0">
+<table class="sql-result"><caption>目标 · 已保存状态</caption>
+<thead><tr><th scope="col">id</th><th scope="col">seq</th><th scope="col">stage</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td><td><code>ready</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="来源 · 晚到的旧事件" tabindex="0">
+<table class="sql-result"><caption>来源 · 晚到的旧事件</caption>
+<thead><tr><th scope="col">id</th><th scope="col">seq</th><th scope="col">stage</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_native_events (id int PRIMARY KEY, seq int, stage text);
+INSERT INTO pg_native_events VALUES (1, 2, &#x27;ready&#x27;);
+
+INSERT INTO pg_native_events AS saved VALUES (1, 1, &#x27;pending&#x27;)
+ON CONFLICT (id) DO UPDATE SET seq = EXCLUDED.seq, stage = EXCLUDED.stage
+WHERE EXCLUDED.seq &gt; saved.seq
+RETURNING id, seq, stage;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO pg_native_events AS saved VALUES (1, 1, &#x27;pending&#x27;)
+ON CONFLICT (id) DO UPDATE SET seq = EXCLUDED.seq, stage = EXCLUDED.stage
+WHERE EXCLUDED.seq &gt; saved.seq
+RETURNING id, seq, stage;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">seq</th><th scope="col">stage</th></tr></thead>
+<tbody>
+<tr><td class="sql-no-rows" colspan="3">（0 行）</td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">原记录仍是 (1, 2, ready)。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/18/sql-insert.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="returning" class="point" data-dialects="postgresql">
+<h2>RETURNING OLD / NEW · 取同一次写入的旧值和新值</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 18+</span></p>
+<p>使用 OLD、NEW 引用更新的两个版本。数量变化由同一次写入返回，应用可以直接使用。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="更新前" tabindex="0">
+<table class="sql-result"><caption>更新前</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_native_returning (id int PRIMARY KEY, qty int);
+INSERT INTO pg_native_returning VALUES (1, 5);
+
+UPDATE pg_native_returning SET qty = qty + 2 WHERE id = 1
+RETURNING id, OLD.qty AS before_qty, NEW.qty AS after_qty;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>UPDATE pg_native_returning SET qty = qty + 2 WHERE id = 1
+RETURNING id, OLD.qty AS before_qty, NEW.qty AS after_qty;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">before_qty</th><th scope="col">after_qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/18/dml-returning.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="do-select" class="point" data-dialects="postgresql">
+<h2>ON CONFLICT DO SELECT · 查找或创建</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>发生冲突时读取已有行。RETURNING 必须写出要返回的内容。这里请求写入 incoming，最终读到已保存的 kept。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="已有记录" tabindex="0">
+<table class="sql-result"><caption>已有记录</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>kept</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="尝试插入" tabindex="0">
+<table class="sql-result"><caption>尝试插入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>incoming</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_native_get (id int PRIMARY KEY, label text);
+INSERT INTO pg_native_get VALUES (1, &#x27;kept&#x27;);
+
+INSERT INTO pg_native_get VALUES (1, &#x27;incoming&#x27;)
+ON CONFLICT (id) DO SELECT RETURNING id, label;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO pg_native_get VALUES (1, &#x27;incoming&#x27;)
+ON CONFLICT (id) DO SELECT RETURNING id, label;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>kept</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-insert.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="merge-delete" class="point" data-dialects="postgresql">
+<h2>MERGE · 条件优先级、DELETE 和 DO NOTHING</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 17+</span></p>
+<p>一个候选行只执行首个满足条件的 WHEN。本例优先删除已废弃项，再更新改量项。没有变化的匹配行进入 DO NOTHING。返回删除动作时取目标旧值。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="目标" tabindex="0">
+<table class="sql-result"><caption>目标</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td></tr>
+<tr><td><code>3</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="来源" tabindex="0">
+<table class="sql-result"><caption>来源</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th><th scope="col">obsolete</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>7</code></td><td><code>false</code></td></tr>
+<tr><td><code>2</code></td><td><code>8</code></td><td><code>false</code></td></tr>
+<tr><td><code>3</code></td><td><code>2</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_merge_rules(id int PRIMARY KEY, qty int);
+INSERT INTO pg_merge_rules VALUES (1,5),(2,8),(3,2);
+
+WITH changed AS (
+  MERGE INTO pg_merge_rules AS t
+  USING (VALUES (1,7,false),(2,8,false),(3,2,true)) AS s(id,qty,obsolete)
+  ON t.id = s.id
+  WHEN MATCHED AND s.obsolete THEN DELETE
+  WHEN MATCHED AND t.qty IS DISTINCT FROM s.qty THEN UPDATE SET qty = s.qty
+  WHEN MATCHED THEN DO NOTHING
+  RETURNING merge_action() AS action, t.id, t.qty
+)
+SELECT action,id,qty FROM changed ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH changed AS (
+  MERGE INTO pg_merge_rules AS t
+  USING (VALUES (1,7,false),(2,8,false),(3,2,true)) AS s(id,qty,obsolete)
+  ON t.id = s.id
+  WHEN MATCHED AND s.obsolete THEN DELETE
+  WHEN MATCHED AND t.qty IS DISTINCT FROM s.qty THEN UPDATE SET qty = s.qty
+  WHEN MATCHED THEN DO NOTHING
+  RETURNING merge_action() AS action, t.id, t.qty
+)
+SELECT action,id,qty FROM changed ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">action</th><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>UPDATE</code></td><td><code>1</code></td><td><code>7</code></td></tr>
+<tr><td><code>DELETE</code></td><td><code>3</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-merge.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="merge-source-keys" class="point" data-dialects="postgresql">
+<h2>MERGE · 用 GROUP BY 整理重复来源</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 17+</span></p>
+<p>多条来源记录匹配并试图改同一目标行会报错。先按业务键确定规则。这里把各渠道发来的增量求和，再合并。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="目标" tabindex="0">
+<table class="sql-result"><caption>目标</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="到货增量" tabindex="0">
+<table class="sql-result"><caption>到货增量</caption>
+<thead><tr><th scope="col">id</th><th scope="col">delta</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>2</code></td></tr>
+<tr><td><code>1</code></td><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_merge_delta(id int PRIMARY KEY, qty int);
+INSERT INTO pg_merge_delta VALUES (1,5);
+
+MERGE INTO pg_merge_delta AS t
+USING (
+  SELECT id, SUM(delta)::int AS delta
+  FROM (VALUES (1,2),(1,3)) AS v(id,delta)
+  GROUP BY id
+) AS s
+ON t.id = s.id
+WHEN MATCHED THEN UPDATE SET qty = t.qty + s.delta
+RETURNING t.id,t.qty;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>MERGE INTO pg_merge_delta AS t
+USING (
+  SELECT id, SUM(delta)::int AS delta
+  FROM (VALUES (1,2),(1,3)) AS v(id,delta)
+  GROUP BY id
+) AS s
+ON t.id = s.id
+WHEN MATCHED THEN UPDATE SET qty = t.qty + s.delta
+RETURNING t.id,t.qty;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>10</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">这是累加操作。同一批来源重放会再次累加，重试幂等需要另存事件编号。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-merge.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="named-conflict" class="point" data-dialects="postgresql">
+<h2>ON CONFLICT ON CONSTRAINT · 指定命名约束</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 9.5+</span></p>
+<p>指定命名唯一约束时，冲突处理只由该约束仲裁。DO NOTHING 跳过匹配行，RETURNING 确认哪些行实际插入。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="已有邮件" tabindex="0">
+<table class="sql-result"><caption>已有邮件</caption>
+<thead><tr><th scope="col">email</th></tr></thead>
+<tbody>
+<tr><td><code>a@example.test</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="待插入" tabindex="0">
+<table class="sql-result"><caption>待插入</caption>
+<thead><tr><th scope="col">email</th></tr></thead>
+<tbody>
+<tr><td><code>a@example.test</code></td></tr>
+<tr><td><code>b@example.test</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_mail_queue(email text CONSTRAINT pg_mail_unique UNIQUE);
+INSERT INTO pg_mail_queue VALUES (&#x27;a@example.test&#x27;);
+
+INSERT INTO pg_mail_queue VALUES (&#x27;a@example.test&#x27;),(&#x27;b@example.test&#x27;)
+ON CONFLICT ON CONSTRAINT pg_mail_unique DO NOTHING
+RETURNING email;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO pg_mail_queue VALUES (&#x27;a@example.test&#x27;),(&#x27;b@example.test&#x27;)
+ON CONFLICT ON CONSTRAINT pg_mail_unique DO NOTHING
+RETURNING email;</code></span></caption>
+<thead><tr><th scope="col">email</th></tr></thead>
+<tbody>
+<tr><td><code>b@example.test</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-insert.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="overriding" class="point" data-dialects="postgresql">
+<h2>OVERRIDING SYSTEM VALUE / USER VALUE · 迁移标识列</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 10+</span></p>
+<p>ALWAYS 标识列默认拒绝显式 id。迁移保留编号用 SYSTEM VALUE。重新编号用 USER VALUE，显式 id 被忽略。保留历史编号时应单独核对序列的下一值。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两次待插入" tabindex="0">
+<table class="sql-result"><caption>两次待插入</caption>
+<thead><tr><th scope="col">provided_id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>50</code></td><td><code>保留编号</code></td></tr>
+<tr><td><code>99</code></td><td><code>分配编号</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_identity_move(id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY, label text);
+INSERT INTO pg_identity_move(id,label) OVERRIDING SYSTEM VALUE VALUES (50,&#x27;保留编号&#x27;);
+INSERT INTO pg_identity_move(id,label) OVERRIDING USER VALUE VALUES (99,&#x27;分配编号&#x27;);
+
+SELECT id,label FROM pg_identity_move ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,label FROM pg_identity_move ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>分配编号</code></td></tr>
+<tr><td><code>50</code></td><td><code>保留编号</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-insert.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="delete-using" class="point" data-dialects="postgresql">
+<h2>DELETE USING 与可写 CTE · 移动后归档</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>USING 引入联结来源。DELETE RETURNING 产生被删除的行，用同一语句中的 INSERT 保存到归档表。整个操作受同一事务约束。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="工作表" tabindex="0">
+<table class="sql-result"><caption>工作表</caption>
+<thead><tr><th scope="col">id</th><th scope="col">state</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>done</code></td></tr>
+<tr><td><code>2</code></td><td><code>open</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="要归档的编号" tabindex="0">
+<table class="sql-result"><caption>要归档的编号</caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_live_items(id int PRIMARY KEY,state text);
+CREATE TEMP TABLE pg_archive_items (LIKE pg_live_items INCLUDING ALL);
+INSERT INTO pg_live_items VALUES (1,&#x27;done&#x27;),(2,&#x27;open&#x27;);
+
+WITH moved AS (
+  DELETE FROM pg_live_items AS w USING (VALUES (1)) AS selected(id)
+  WHERE w.id = selected.id RETURNING w.id,w.state
+)
+INSERT INTO pg_archive_items SELECT id,state FROM moved
+RETURNING id,state;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH moved AS (
+  DELETE FROM pg_live_items AS w USING (VALUES (1)) AS selected(id)
+  WHERE w.id = selected.id RETURNING w.id,w.state
+)
+INSERT INTO pg_archive_items SELECT id,state FROM moved
+RETURNING id,state;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">state</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>done</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">归档成功后，工作表只剩 id=2。可写 CTE 的其他读取应通过 RETURNING 传递变化。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/queries-with.html#QUERIES-WITH-MODIFYING">PostgreSQL 官方文档</a></p>
+</section>
+<section id="update-from" class="point" data-dialects="postgresql">
+<h2>UPDATE FROM · 让每个目标只联到一行</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>从来源取值时应约束每个目标键只匹配一条来源。本例先汇总一批加价，再回写并返回新价。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="更新前" tabindex="0">
+<table class="sql-result"><caption>更新前</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>20</code></td></tr>
+<tr><td><code>2</code></td><td><code>30</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="调价明细" tabindex="0">
+<table class="sql-result"><caption>调价明细</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">delta</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td></tr>
+<tr><td><code>1</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_price_edit(sku int PRIMARY KEY,price int);
+INSERT INTO pg_price_edit VALUES (1,20),(2,30);
+
+UPDATE pg_price_edit AS p SET price = p.price + changes.delta
+FROM (SELECT sku,SUM(delta)::int AS delta
+      FROM (VALUES (1,1),(1,2)) AS v(sku,delta) GROUP BY sku) AS changes
+WHERE p.sku = changes.sku
+RETURNING p.sku,p.price;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>UPDATE pg_price_edit AS p SET price = p.price + changes.delta
+FROM (SELECT sku,SUM(delta)::int AS delta
+      FROM (VALUES (1,1),(1,2)) AS v(sku,delta) GROUP BY sku) AS changes
+WHERE p.sku = changes.sku
+RETURNING p.sku,p.price;</code></span></caption>
+<thead><tr><th scope="col">sku</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>23</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-update.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="copy-stdin" class="point" data-dialects="postgresql">
+<h2>COPY FROM STDIN · 导入 CSV、表头与 NULL</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>使用 psql 执行整段。第一个 CSV 行是表头。NA 映射为 SQL NULL，反斜杠点结束客户端输入。服务器文件路径和客户端文件路径由不同用户解释。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="CSV 文件内容" tabindex="0">
+<table class="sql-result"><caption>CSV 文件内容</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Ana</code></td></tr>
+<tr><td><code>2</code></td><td><code>NA</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>psql 客户端 · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_copy_names(id int,label text);
+COPY pg_copy_names (id,label) FROM STDIN WITH (FORMAT csv, HEADER true, NULL &#x27;NA&#x27;);
+id,label
+1,Ana
+2,NA
+\.
+
+SELECT id,label FROM pg_copy_names ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,label FROM pg_copy_names ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Ana</code></td></tr>
+<tr><td><code>2</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-copy.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="copy-errors" class="point" data-dialects="postgresql">
+<h2>COPY ON_ERROR · 按错误策略跳过或置空</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">PostgreSQL 19+</span></p>
+<p>用 psql 执行。PostgreSQL 19 的 SET_NULL 将失败的字段置为 NULL。选择 IGNORE 则跳过出错行，可配合 REJECT_LIMIT 限制跳过数量。约束仍按表定义检查。此选项处理字段类型转换错误。IGNORE 从 17 起可用。18 起可将 REJECT_LIMIT 与 IGNORE 合用。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="原始载入数据" tabindex="0">
+<table class="sql-result"><caption>原始载入数据</caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>bad</code></td></tr>
+<tr><td><code>2</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>psql 客户端 · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_copy_conversion(id int,qty int);
+COPY pg_copy_conversion FROM STDIN WITH (FORMAT csv, ON_ERROR SET_NULL);
+1,bad
+2,5
+\.
+
+SELECT id,qty FROM pg_copy_conversion ORDER BY id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,qty FROM pg_copy_conversion ORDER BY id;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>2</code></td><td><code>5</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-copy.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="copy-to" class="point" data-dialects="postgresql">
+<h2>COPY TO STDOUT · 导出选列和顺序</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>COPY 子查询可显式控制导出列和顺序。使用 STDOUT 避免把路径交给服务器。psql 的反斜杠 copy 可在客户端读写本地文件。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入" tabindex="0">
+<table class="sql-result"><caption>输入</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>Bo</code></td></tr>
+<tr><td><code>1</code></td><td><code>Ana</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>psql 客户端 · PostgreSQL</figcaption><pre><code>COPY (SELECT id,label FROM (VALUES (2,&#x27;Bo&#x27;),(1,&#x27;Ana&#x27;)) AS v(id,label) ORDER BY id)
+TO STDOUT WITH (FORMAT csv, HEADER true);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>COPY (SELECT id,label FROM (VALUES (2,&#x27;Bo&#x27;),(1,&#x27;Ana&#x27;)) AS v(id,label) ORDER BY id)
+TO STDOUT WITH (FORMAT csv, HEADER true);</code></span></caption>
+<thead><tr><th scope="col">CSV行</th></tr></thead>
+<tbody>
+<tr><td><code>id,label</code></td></tr>
+<tr><td><code>1,Ana</code></td></tr>
+<tr><td><code>2,Bo</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-copy.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="copy-client" class="point" data-dialects="postgresql">
+<h2>psql \copy · 由客户端提交 CSV</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>此例在 psql 的脚本模式运行，客户端从标准输入读一行 CSV，再交给 COPY 装载。使用本地 CSV 文件时可把 stdin 改为本地路径，服务器不需要访问该路径。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="客户端 CSV" tabindex="0">
+<table class="sql-result"><caption>客户端 CSV</caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Ana</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>psql 客户端 · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_client_copy(id int,label text);
+\copy pg_client_copy FROM stdin WITH (FORMAT csv)
+1,Ana
+\.
+
+SELECT id,label FROM pg_client_copy;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id,label FROM pg_client_copy;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>Ana</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/app-psql.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="partial-conflict" class="point" data-dialects="postgresql">
+<h2>ON CONFLICT · 推断部分唯一索引</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>冲突目标含索引谓词。待写入的行满足 active，命中部分唯一索引后按键更新。停用行不在这个索引内，仍可共享同一邮箱。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="现有账号" tabindex="0">
+<table class="sql-result"><caption>现有账号</caption>
+<thead><tr><th scope="col">email</th><th scope="col">active</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>a@example.test</code></td><td><code>true</code></td><td><code>Old</code></td></tr>
+<tr><td><code>a@example.test</code></td><td><code>false</code></td><td><code>Archive</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE pg_partial_conflict(email text,active boolean,name text);
+CREATE UNIQUE INDEX pg_partial_live ON pg_partial_conflict(email) WHERE active;
+INSERT INTO pg_partial_conflict VALUES (&#x27;a@example.test&#x27;,true,&#x27;Old&#x27;),(&#x27;a@example.test&#x27;,false,&#x27;Archive&#x27;);
+
+INSERT INTO pg_partial_conflict VALUES (&#x27;a@example.test&#x27;,true,&#x27;Ana&#x27;)
+ON CONFLICT (email) WHERE active DO UPDATE SET name=EXCLUDED.name
+RETURNING email,name;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO pg_partial_conflict VALUES (&#x27;a@example.test&#x27;,true,&#x27;Ana&#x27;)
+ON CONFLICT (email) WHERE active DO UPDATE SET name=EXCLUDED.name
+RETURNING email,name;</code></span></caption>
+<thead><tr><th scope="col">email</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td><code>a@example.test</code></td><td><code>Ana</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-insert.html">PostgreSQL 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#merge">MERGE INTO · 按主键同步来源数据</a></li>
+<li><a href="#merge-action">MERGE · 停用来源已缺失的记录</a></li>
+<li><a href="#upsert">ON CONFLICT · 只接受更晚的事件</a></li>
+<li><a href="#returning">RETURNING OLD / NEW · 取同一次写入的旧值和新值</a></li>
+<li><a href="#do-select">ON CONFLICT DO SELECT · 查找或创建</a></li>
+<li><a href="#merge-delete">MERGE 按条件删除或跳过行</a></li>
+<li><a href="#merge-source-keys">MERGE · 用 GROUP BY 整理重复来源</a></li>
+<li><a href="#named-conflict">ON CONFLICT ON CONSTRAINT · 指定命名约束</a></li>
+<li><a href="#overriding">OVERRIDING 保留旧编号或重新编号</a></li>
+<li><a href="#delete-using">DELETE USING 与可写 CTE · 移动后归档</a></li>
+<li><a href="#update-from">UPDATE FROM · 让每个目标只联到一行</a></li>
+<li><a href="#copy-stdin">COPY FROM STDIN · 导入 CSV、表头与 NULL</a></li>
+<li><a href="#copy-errors">COPY ON_ERROR · 按错误策略跳过或置空</a></li>
+<li><a href="#copy-to">COPY TO STDOUT · 导出选列和顺序</a></li>
+<li><a href="#copy-client">psql \copy · 由客户端提交 CSV</a></li>
+<li><a href="#partial-conflict">ON CONFLICT 用部分唯一索引识别冲突</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="32-modern-sql.html">← 现代 SQL 与工程实践</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="34-postgresql-query.html">原生查询、数组与 JSONB →</a></nav>
+</main>
+</body>
+</html>

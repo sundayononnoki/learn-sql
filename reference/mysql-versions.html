@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MySQL 版本与兼容速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<h1>MySQL 版本与兼容速查</h1>
+<p class="lead">2026 年 11 月 21 日核对。查当前版本、练几条新版语法，并把旧写法迁移到可继续维护的接口。</p>
+<p class="setup-note">例子在独立的 <code>learn_sql_lab</code> 中运行。已在 8.4.13、9.7.4 和 26.10.0 实测 212 段可批量运行的原有示例。新增示例以各代码块所标版本为准。</p>
+<div class="layout" data-dialects="mysql">
+<article class="content" aria-label="版本差异">
+<section class="point" id="releases" data-dialects="mysql"><h2>当前正式版本</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<div class="sql-grid-viewport" role="region" aria-label="Oracle 当前公布的可下载版本" tabindex="0">
+<table class="sql-result"><caption>Oracle 当前公布的可下载版本</caption>
+<thead><tr><th scope="col">分支</th><th scope="col">版本</th><th scope="col">用途</th></tr></thead>
+<tbody>
+<tr><td><code>Innovation</code></td><td><code>26.10.0</code></td><td><code>最新功能与行为变化</code></td></tr>
+<tr><td><code>LTS</code></td><td><code>9.7.4</code></td><td><code>当前最新长期支持线，也是本笔记优先推荐的练习版本</code></td></tr>
+<tr><td><code>LTS</code></td><td><code>8.4.13</code></td><td><code>仍受支持的 8.4 兼容线</code></td></tr>
+</tbody>
+</table></div>
+<p><code>26.10.0</code> 使用日历版本号，对应 2026 年 10 月发布。9.7 是最后一条沿用旧序号的产品线。截至 2026 年 11 月 21 日，<code>26.10.0.1</code> 在发布说明中仍标为尚未发布。</p>
+<p>如果实际升级现有实例，官方原地升级路径从 8.4.x 经 9.7.x LTS 进入 26.10 的发布线。先核对源和目标及备份计划。安装一个独立练习实例可直接选所需版本。</p>
+<p class="sources"><a href="https://blogs.oracle.com/mysql/mysql-october-2026-ga-releases-now-available">Oracle 正式发布公告</a> · <a href="https://dev.mysql.com/downloads/mysql/">Community Server 下载</a> · <a href="https://dev.mysql.com/doc/relnotes/mysql/26.10/en/">26.10 发布列表</a> · <a href="https://dev.mysql.com/doc/refman/26.10/en/mysql-releases.html">版本号规则</a> · <a href="https://dev.mysql.com/doc/refman/26.10/en/upgrade-paths.html">升级路径</a></p>
+</section>
+<section id="version-query" class="point" data-dialects="mysql"><h2>核对三段版本和精确版本</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p><code>mysql --version</code> 显示客户端工具版本。连接后执行 <code>VERSION()</code> 才能确认服务端版本。2026 年 10 月这三条发布线加入 <code>VERSION_WITH_UPDATE()</code>，第四段用于区分同一补丁版本的额外更新。</p>
+<figure><figcaption>SQL · 8.4.13 / 9.7.4 / 26.10.0</figcaption><pre><code>SELECT VERSION() AS server_version, VERSION_WITH_UPDATE() AS exact_version,
+       @@GLOBAL.version_with_update AS exact_variable;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="执行前 · 已连接的练习实例" tabindex="0">
+<table class="sql-result"><caption>执行前 · 已连接的练习实例</caption>
+<thead><tr><th scope="col">版本线</th></tr></thead>
+<tbody>
+<tr><td><code>8.4 LTS</code></td></tr>
+<tr><td><code>9.7 LTS</code></td></tr>
+<tr><td><code>26.10 Innovation</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT VERSION() AS server_version, VERSION_WITH_UPDATE() AS exact_version, @@GLOBAL.version_with_update AS exact_variable;</code></span></caption>
+<thead><tr><th scope="col">环境</th><th scope="col">server_version</th><th scope="col">exact_version</th><th scope="col">exact_variable</th></tr></thead>
+<tbody>
+<tr><td><code>8.4.13</code></td><td><code>8.4.13</code></td><td><code>8.4.13.0</code></td><td><code>8.4.13.0</code></td></tr>
+<tr><td><code>9.7.4</code></td><td><code>9.7.4</code></td><td><code>9.7.4.0</code></td><td><code>9.7.4.0</code></td></tr>
+<tr><td><code>26.10.0</code></td><td><code>26.10.0</code></td><td><code>26.10.0.0</code></td><td><code>26.10.0.0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>第四段为 0 时表示该补丁的初始版本。较早的补丁仅用 VERSION()；也可用 <code>SHOW GLOBAL VARIABLES WHERE Variable_name = &#39;version_with_update&#39;;</code> 检查变量是否存在。</p>
+<p class="sources"><a href="https://dev.mysql.com/doc/relnotes/mysql/8.4/en/news-8-4-13.html">8.4.13 发布说明</a> · <a href="https://dev.mysql.com/doc/relnotes/mysql/9.7/en/news-9-7-4.html">9.7.4 发布说明</a> · <a href="https://dev.mysql.com/doc/relnotes/mysql/26.10/en/news-26-10-0.html">26.10.0 发布说明</a></p>
+</section>
+<section id="inline-fk" class="point" data-dialects="mysql"><h2>列内 REFERENCES 的行为变化</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>MySQL 8.4 对列定义内的 <code>REFERENCES</code> 不建立外键。MySQL 9.0 起会建立并强制执行。同一份旧 DDL 升级后重建时，结果可能不同。要兼容 8.4 与新版，用<a href="21-tables.html#p2">表级 FOREIGN KEY</a>写法。</p>
+<figure><figcaption>SQL · MySQL 8.4 / 9.7 / 26.10</figcaption><pre><code>CREATE TABLE IF NOT EXISTS notes_inline_orders (
+  order_id INT PRIMARY KEY,
+  customer_id INT REFERENCES customers(customer_id)
+) ENGINE=InnoDB;
+
+SELECT COUNT(*) AS fk_count
+FROM information_schema.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME = &#x27;notes_inline_orders&#x27;
+  AND REFERENCED_TABLE_NAME = &#x27;customers&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="执行前 · 已存在的父表" tabindex="0">
+<table class="sql-result"><caption>执行前 · 已存在的父表</caption>
+<thead><tr><th scope="col">table_name</th><th scope="col">primary_key</th></tr></thead>
+<tbody>
+<tr><td><code>customers</code></td><td><code>customer_id</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS fk_count FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = &#x27;notes_inline_orders&#x27; AND REFERENCED_TABLE_NAME = &#x27;customers&#x27;;</code></span></caption>
+<thead><tr><th scope="col">环境</th><th scope="col">fk_count</th></tr></thead>
+<tbody>
+<tr><td><code>8.4.13</code></td><td class="sql-number"><code>0</code></td></tr>
+<tr><td><code>9.7.4</code></td><td class="sql-number"><code>1</code></td></tr>
+<tr><td><code>26.10.0</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>运行前确认同名子表尚不存在。重复练习时在建表和查询中同步更换表名。8.4 显示 0，9.7 和 26.10 显示 1。后两者插入不存在的 customer_id 会报 1452。</p>
+<p class="sources"><a href="https://dev.mysql.com/doc/relnotes/mysql/9.7/en/news-9-0-0.html">MySQL 9.0 发布说明</a> · <a href="https://dev.mysql.com/doc/refman/26.10/en/create-table-foreign-keys.html">MySQL 外键规则</a></p>
+</section>
+<section id="vector" class="point" data-dialects="mysql"><h2>VECTOR 类型及维度函数</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>从 MySQL 9.0 起可用 <code>VECTOR(n)</code> 保存最多 n 个单精度浮点元素。字符串转换成向量后，可读取维度或转回文本。</p>
+<figure><figcaption>SQL · MySQL 9.0+（含 9.7 / 26.10）</figcaption><pre><code>CREATE TEMPORARY TABLE notes_vectors (id INT PRIMARY KEY, features VECTOR(3));
+INSERT INTO notes_vectors VALUES (1, STRING_TO_VECTOR(&#x27;[1, 2, 3]&#x27;));
+
+SELECT id, VECTOR_DIM(features) AS dimensions,
+       VECTOR_TO_STRING(features) AS as_text
+FROM notes_vectors;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="执行前 · 待存入的向量" tabindex="0">
+<table class="sql-result"><caption>执行前 · 待存入的向量</caption>
+<thead><tr><th scope="col">id</th><th scope="col">input</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>[1, 2, 3]</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT id, VECTOR_DIM(features) AS dimensions, VECTOR_TO_STRING(features) AS as_text FROM notes_vectors;</code></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">dimensions</th><th scope="col">as_text</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>3</code></td><td><code>[1.00000e+00,2.00000e+00,3.00000e+00]</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>这里验证 Community Edition 的存储与转换。26.10 的 <code>DISTANCE()</code> 在 OCI 的 MySQL HeatWave 和 MySQL AI 中提供。</p>
+<p class="sources"><a href="https://dev.mysql.com/doc/refman/26.10/en/vector.html">MySQL VECTOR 类型</a> · <a href="https://dev.mysql.com/doc/refman/26.10/en/vector-functions.html">MySQL 向量函数</a></p>
+</section>
+<section id="json-duality" class="point" data-dialects="mysql"><h2>JSON 关系二元视图与字段级标记</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>MySQL 9.4 起可把关系表作为 JSON 文档读取。根对象的 <code>_id</code> 对应主键。适合需要 JSON 表示、底层仍用关系表维护数据的场景。</p>
+<figure><figcaption>SQL · MySQL 9.4+（含 9.7 / 26.10）</figcaption><pre><code>CREATE OR REPLACE JSON RELATIONAL DUALITY VIEW notes_customer_doc AS
+SELECT JSON_DUALITY_OBJECT(&#x27;_id&#x27;: customer_id, &#x27;name&#x27;: name, &#x27;city&#x27;: city)
+FROM customers;
+
+SELECT data-&gt;&gt;&#x27;$._id&#x27; AS customer_id, data-&gt;&gt;&#x27;$.name&#x27; AS name, data-&gt;&gt;&#x27;$.city&#x27; AS city
+FROM notes_customer_doc WHERE data-&gt;&gt;&#x27;$._id&#x27; = &#x27;1&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="customers · 原始行" tabindex="0">
+<table class="sql-result"><caption>customers · 原始行</caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">name</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Ana</code></td><td><code>北京</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT data-&gt;&gt;&#x27;$._id&#x27; AS customer_id, data-&gt;&gt;&#x27;$.name&#x27; AS name, data-&gt;&gt;&#x27;$.city&#x27; AS city FROM notes_customer_doc WHERE data-&gt;&gt;&#x27;$._id&#x27; = &#x27;1&#x27;;</code></span></caption>
+<thead><tr><th scope="col">customer_id</th><th scope="col">name</th><th scope="col">city</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>Ana</code></td><td><code>北京</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>这里用 SELECT 读取文档，输出的三个字段来自底表。视图重建可替换同名练习对象。</p>
+<figure><figcaption>SQL · MySQL 26.10</figcaption><pre><code>CREATE OR REPLACE JSON RELATIONAL DUALITY VIEW notes_customer_doc_2610 AS
+SELECT JSON_DUALITY_OBJECT(
+  WITH (CHECK)
+  &#x27;_id&#x27;: customer_id,
+  &#x27;name&#x27;: name WITH (UPDATE),
+  &#x27;city&#x27;: city WITH (NO CHECK, NO UPDATE)
+) FROM customers;
+
+SELECT JSON_KEY_NAME, ALLOW_CHECK, ALLOW_UPDATE
+FROM information_schema.JSON_DUALITY_VIEW_COLUMNS
+WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = &#x27;notes_customer_doc_2610&#x27;
+ORDER BY JSON_KEY_NAME;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待设置的字段" tabindex="0">
+<table class="sql-result"><caption>待设置的字段</caption>
+<thead><tr><th scope="col">JSON 键</th><th scope="col">来源列</th></tr></thead>
+<tbody>
+<tr><td><code>_id</code></td><td><code>customer_id</code></td></tr>
+<tr><td><code>name</code></td><td><code>name</code></td></tr>
+<tr><td><code>city</code></td><td><code>city</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT JSON_KEY_NAME, ALLOW_CHECK, ALLOW_UPDATE FROM information_schema.JSON_DUALITY_VIEW_COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = &#x27;notes_customer_doc_2610&#x27; ORDER BY JSON_KEY_NAME;</code></span></caption>
+<thead><tr><th scope="col">JSON_KEY_NAME</th><th scope="col">ALLOW_CHECK</th><th scope="col">ALLOW_UPDATE</th></tr></thead>
+<tbody>
+<tr><td><code>_id</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>0</code></td></tr>
+<tr><td><code>city</code></td><td class="sql-number"><code>0</code></td><td class="sql-number"><code>0</code></td></tr>
+<tr><td><code>name</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>CHECK 控制字段是否纳入 ETAG，列可覆盖表设置。NO UPDATE 标记字段不可经视图修改。此处核对配置元数据。9.4–9.6 的视图写入限 Enterprise Edition。9.7 起 Community Edition 也能写入，实际操作仍要满足注解与权限。<a href="https://dev.mysql.com/doc/relnotes/mysql/9.7/en/news-9-7-0.html">9.7.0 发布说明</a>。</p>
+<p class="sources"><a href="https://dev.mysql.com/doc/relnotes/mysql/9.7/en/news-9-4-0.html">MySQL 9.4 发布说明</a> · <a href="https://dev.mysql.com/doc/refman/26.10/en/create-json-duality-view.html">MySQL 二元视图定义</a> · <a href="https://dev.mysql.com/doc/refman/26.10/en/information-schema-json-duality-view-columns-table.html">MySQL 二元视图列元数据</a></p>
+</section>
+<section id="plans" class="point" data-dialects="mysql"><h2>用执行计划检查分区裁剪</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>MySQL 26.10 的 TREE、支持的 EXPLAIN ANALYZE 与 JSON v2 执行计划可显示入选分区。这里两个编号分居两个分区，WHERE 条件将计划中的读取范围缩到 <code>p_later</code>。</p>
+<figure><figcaption>SQL · MySQL 26.10</figcaption><pre><code>CREATE TABLE IF NOT EXISTS notes_plan_events (
+  event_id INT PRIMARY KEY
+) ENGINE=InnoDB
+PARTITION BY RANGE (event_id) (
+  PARTITION p_early VALUES LESS THAN (100),
+  PARTITION p_later VALUES LESS THAN MAXVALUE
+);
+INSERT INTO notes_plan_events VALUES (1), (101);
+
+EXPLAIN FORMAT=TREE
+SELECT event_id FROM notes_plan_events WHERE event_id &gt;= 100;
+
+SET @saved_explain_format = @@SESSION.explain_json_format_version;
+SET SESSION explain_json_format_version = 2;
+EXPLAIN ANALYZE FORMAT=JSON INTO @notes_plan
+SELECT event_id FROM notes_plan_events WHERE event_id &gt;= 100;
+SELECT JSON_UNQUOTE(JSON_EXTRACT(@notes_plan, &#x27;$.json_schema_version&#x27;)) AS plan_schema,
+       JSON_EXTRACT(@notes_plan, &#x27;$**.partitions&#x27;) AS selected_partitions;
+SET SESSION explain_json_format_version = @saved_explain_format;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="计划要分析的两行" tabindex="0">
+<table class="sql-result"><caption>计划要分析的两行</caption>
+<thead><tr><th scope="col">event_id</th><th scope="col">partition</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>p_early</code></td></tr>
+<tr><td class="sql-number"><code>101</code></td><td><code>p_later</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXPLAIN FORMAT=TREE SELECT event_id FROM notes_plan_events WHERE event_id &gt;= 100;</code></span></caption>
+<thead><tr><th scope="col">EXPLAIN</th></tr></thead>
+<tbody>
+<tr><td><code>-&gt; Filter: (notes_plan_events.event_id &gt;= 100)  (cost=0.35 rows=1)
+    -&gt; Covering index scan on notes_plan_events using PRIMARY in partitions (p_later)  (cost=0.35 rows=1)
+</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT JSON_UNQUOTE(JSON_EXTRACT(@notes_plan, &#x27;$.json_schema_version&#x27;)) AS plan_schema, JSON_EXTRACT(@notes_plan, &#x27;$**.partitions&#x27;) AS selected_partitions;</code></span></caption>
+<thead><tr><th scope="col">plan_schema</th><th scope="col">selected_partitions</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2.1</code></td><td><code>[[&quot;p_later&quot;]]</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>首次在空的专用表上运行。支持的 InnoDB 与 NDB 基表可在 TREE 或 JSON 中显示计划选中的分区范围。耗时和成本会随数据与环境变化。8.4 练习可用 EXPLAIN FORMAT=TRADITIONAL 的 partitions 列。</p>
+<p class="sources"><a href="https://dev.mysql.com/doc/relnotes/mysql/26.10/en/news-26-10-0.html#mysql-26-10-0-optimizer">26.10.0 优化器变更</a> · <a href="https://dev.mysql.com/doc/refman/26.10/en/explain.html">MySQL EXPLAIN</a></p>
+</section>
+<section id="ops" class="point" data-dialects="mysql"><h2>检查认证插件与可选组件</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p><code>caching_sha2_password</code> 是当前主流账号认证方式。26.10 将 WebAuthn 插件和 Health Monitor 提供给 Community Edition，并提供服务端 MySQL REST Service 组件。26.7 起 Community Edition 可使用 Thread Pool 插件。部署前要核对组件是否已加载、所在平台及所需权限。</p>
+<figure><figcaption>SQL · MySQL 26.10 Community</figcaption><pre><code>SELECT PLUGIN_NAME, PLUGIN_STATUS
+FROM information_schema.PLUGINS
+WHERE PLUGIN_NAME IN (&#x27;caching_sha2_password&#x27;, &#x27;authentication_webauthn&#x27;)
+ORDER BY PLUGIN_NAME;
+
+SELECT component_urn
+FROM mysql.component
+WHERE component_urn IN (&#x27;file://component_health_monitor&#x27;,
+                        &#x27;file://component_mysql_rest_service&#x27;)
+ORDER BY component_urn;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="执行前 · 练习实例" tabindex="0">
+<table class="sql-result"><caption>执行前 · 练习实例</caption>
+<thead><tr><th scope="col">edition</th><th scope="col">额外组件</th></tr></thead>
+<tbody>
+<tr><td><code>Community</code></td><td><code>尚未加载</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT PLUGIN_NAME, PLUGIN_STATUS FROM information_schema.PLUGINS WHERE PLUGIN_NAME IN (&#x27;caching_sha2_password&#x27;, &#x27;authentication_webauthn&#x27;) ORDER BY PLUGIN_NAME;</code></span></caption>
+<thead><tr><th scope="col">PLUGIN_NAME</th><th scope="col">PLUGIN_STATUS</th></tr></thead>
+<tbody>
+<tr><td><code>caching_sha2_password</code></td><td><code>ACTIVE</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT component_urn FROM mysql.component WHERE component_urn IN (&#x27;file://component_health_monitor&#x27;, &#x27;file://component_mysql_rest_service&#x27;) ORDER BY component_urn;</code></span></caption>
+<thead><tr><th scope="col">component_urn</th></tr></thead>
+<tbody>
+<tr><td class="sql-no-rows" colspan="1">0 行</td></tr>
+</tbody>
+</table></div>
+</div>
+<p>以上只读检查。第二条需要读取 mysql.component 的权限，空结果表示这些组件尚未注册。Health Monitor 在 Linux 上支持完整指标，macOS 支持部分指标，Windows 在这版暂不支持。</p>
+<p class="sources"><a href="https://dev.mysql.com/doc/relnotes/mysql/26.10/en/news-26-7-0.html">26.7.0 发行变更</a> · <a href="https://dev.mysql.com/doc/relnotes/mysql/26.10/en/news-26-10-0.html">26.10.0 发行变更</a> · <a href="https://dev.mysql.com/doc/refman/26.10/en/health-monitor-component.html">Health Monitor</a></p>
+</section>
+<section id="legacy" class="point" data-dialects="mysql"><h2>过时内容与替代写法</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>「已弃用」表示当前版本仍可能支持，后续版本可能移除。「已移除」表示对应版本里不能再依赖该功能。原书中的老写法在对应章节保留了醒目标记。</p>
+<div class="sql-grid-viewport" role="region" aria-label="旧写法与迁移入口" tabindex="0">
+<table class="sql-result"><caption>旧写法与迁移入口</caption>
+<thead><tr><th scope="col">旧内容</th><th scope="col">现状</th><th scope="col">当前用法</th></tr></thead>
+<tbody>
+<tr><td><code>MySQL Administrator / Query Browser</code></td><td><code>过时 · 工具已停止维护</code></td><td><code>终端 mysql。Workbench 有版本兼容边界</code></td></tr>
+<tr><td><code>[[:&lt;:]] / [[:&gt;:]] 正则词边界</code></td><td><code>过时 · ICU 不支持</code></td><td><code>用 ICU 的 \b。SQL 字符串按模式转义</code></td></tr>
+<tr><td><code>BINARY 作为 REGEXP 输入</code></td><td><code>过时 · 新版拒绝二进制正则参数</code></td><td><code>按需求选择 REGEXP_LIKE 的 c 或 i</code></td></tr>
+<tr><td><code>utf8mb3 / 旧 utf8 别名</code></td><td><code>过时 · 已弃用</code></td><td><code>新库和连接显式使用 utf8mb4</code></td></tr>
+<tr><td><code>非唯一或部分父键作为外键目标</code></td><td><code>过时 · 已弃用，8.4 起默认拒绝新建</code></td><td><code>引用父表的 PRIMARY KEY 或完整 UNIQUE 键</code></td></tr>
+<tr><td><code>mysql_native_password 服务端插件</code></td><td><code>过时 · 8.4 默认禁用，9.0 起移除</code></td><td><code>caching_sha2_password</code></td></tr>
+<tr><td><code>PASSWORD() / 用 GRANT 创建账号</code></td><td><code>过时 · MySQL 8.0 已移除</code></td><td><code>CREATE USER、ALTER USER 后单独 GRANT</code></td></tr>
+<tr><td><code>mysqlhotcopy</code></td><td><code>过时 · 5.7 发布线已移除</code></td><td><code>mysqldump 或受支持的物理备份工具</code></td></tr>
+<tr><td><code>INSERT DELAYED</code></td><td><code>过时 · 延后写入的功能已取消</code></td><td><code>用普通 INSERT。26.10 仍识别 DELAYED，并转换成普通 INSERT，发出警告 3005</code></td></tr>
+<tr><td><code>UPSERT 更新子句内的 VALUES(列)</code></td><td><code>过时 · 已弃用，26.10 仍可解析</code></td><td><code>用行别名或来源列名。普通 INSERT VALUES 照常用</code></td></tr>
+<tr><td><code>INFORMATION_SCHEMA.PROCESSLIST</code></td><td><code>过时 · 已弃用</code></td><td><code>performance_schema.processlist。SHOW 命令的 I_S 实现也已弃用</code></td></tr>
+</tbody>
+</table></div>
+<p><a href="02-mysql-overview.html#p4">客户端工具</a> · <a href="09-regexp.html">正则</a> · <a href="21-tables.html#p2">外键</a> · <a href="27-character-sets.html">字符集</a> · <a href="28-access-control.html">认证</a> · <a href="29-maintenance.html#p2">备份</a> · <a href="30-performance.html">运维</a> · <a href="32-modern-sql.html#p7">UPSERT</a></p>
+</section>
+<p>其他数据库的 <code>MERGE INTO</code> 与 MySQL UPSERT 的对照见<a href="32-modern-sql.html#merge">现代 SQL 与工程实践</a>。</p>
+</article>
+<nav class="jump" aria-label="本页主题"><strong>本页速查</strong><ol><li><a href="#releases">查看当前可用的 MySQL 版本</a></li><li><a href="#version-query">核对三段版本和精确版本</a></li><li><a href="#inline-fk">检查列内 REFERENCES 是否建立外键</a></li><li><a href="#vector">保存向量并读取其维度</a></li><li><a href="#json-duality">按 JSON 结构映射和写回关系数据</a></li><li><a href="#plans">用执行计划检查分区裁剪</a></li><li><a href="#ops">检查认证插件与可选组件</a></li><li><a href="#legacy">过时内容与替代写法</a></li></ol></nav>
+</div>
+<nav class="pager" aria-label="章节目录"><a href="../v1.html">← 章节目录</a></nav>
+<p data-dialects="postgresql sqlserver">此页记录 MySQL 的版本。切到 MySQL 可查看，或返回<a href="../v1.html">章节目录</a>。</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>全文本搜索 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 18 章 · 原书第 119–130 页</p>
+<h1>全文本搜索</h1>
+<p class="lead" data-dialects="mysql">全文检索按分词和相关性找文档。用 MATCH 对应 FULLTEXT 索引，用 AGAINST 选择搜索模式。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-fulltext"><h2>建立全文索引</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>InnoDB 和 MyISAM 可用 FULLTEXT。索引可在建表时指定，也可用 ALTER TABLE 补建。以下选择 CHAR、VARCHAR 或 TEXT 等受支持的文本列。</p>
+<p class="version-note"><strong>过时 · 仅 MyISAM 支持的历史描述</strong> InnoDB 从 MySQL 5.6 起也支持 <code>FULLTEXT</code>。自然语言模式里的 50% 阈值仍是 MyISAM 的规则。<a href="https://dev.mysql.com/doc/refman/8.4/en/innodb-introduction.html">InnoDB 手册</a>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SHOW INDEX FROM docs WHERE Index_type = &#x27;FULLTEXT&#x27;;
+CREATE TABLE ch18_search (
+  id INT PRIMARY KEY, title VARCHAR(80), body TEXT
+) ENGINE=InnoDB;
+ALTER TABLE ch18_search ADD FULLTEXT INDEX ft_title_body (title, body);
+SHOW INDEX FROM ch18_search WHERE Index_type = &#x27;FULLTEXT&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　<code>docs</code> 已有覆盖 title、body 的全文索引。<code>ch18_search</code> 尚未创建。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SHOW INDEX FROM docs WHERE Index_type = &#x27;FULLTEXT&#x27;;</code></span></caption>
+<thead><tr><th scope="col">Table</th><th scope="col">Non_unique</th><th scope="col">Key_name</th><th scope="col">Seq_in_index</th><th scope="col">Column_name</th><th scope="col">Collation</th><th scope="col">Cardinality</th><th scope="col">Sub_part</th><th scope="col">Packed</th><th scope="col">Null</th><th scope="col">Index_type</th><th scope="col">Comment</th><th scope="col">Index_comment</th><th scope="col">Visible</th><th scope="col">Expression</th></tr></thead>
+<tbody>
+<tr><td><code>docs</code></td><td class="sql-number"><code>1</code></td><td><code>ft_docs_title_body</code></td><td class="sql-number"><code>1</code></td><td><code>title</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>5</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td><code>FULLTEXT</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td><code>YES</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>docs</code></td><td class="sql-number"><code>1</code></td><td><code>ft_docs_title_body</code></td><td class="sql-number"><code>2</code></td><td><code>body</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>5</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td><code>FULLTEXT</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td><code>YES</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SHOW INDEX FROM ch18_search WHERE Index_type = &#x27;FULLTEXT&#x27;;</code></span></caption>
+<thead><tr><th scope="col">Table</th><th scope="col">Non_unique</th><th scope="col">Key_name</th><th scope="col">Seq_in_index</th><th scope="col">Column_name</th><th scope="col">Collation</th><th scope="col">Cardinality</th><th scope="col">Sub_part</th><th scope="col">Packed</th><th scope="col">Null</th><th scope="col">Index_type</th><th scope="col">Comment</th><th scope="col">Index_comment</th><th scope="col">Visible</th><th scope="col">Expression</th></tr></thead>
+<tbody>
+<tr><td><code>ch18_search</code></td><td class="sql-number"><code>1</code></td><td><code>ft_title_body</code></td><td class="sql-number"><code>1</code></td><td><code>title</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>0</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>YES</code></td><td><code>FULLTEXT</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td><code>YES</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>ch18_search</code></td><td class="sql-number"><code>1</code></td><td><code>ft_title_body</code></td><td class="sql-number"><code>2</code></td><td><code>body</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>0</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-null"><code>NULL</code></td><td><code>YES</code></td><td><code>FULLTEXT</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td class="sql-empty-string"><code aria-label="空字符串">''</code></td><td><code>YES</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　ALTER 后 <code>ft_title_body</code> 覆盖 title、body，SHOW INDEX 对这一个索引显示两行。</p>
+<p class="outcome">两张表各有一个覆盖 title 和 body 的全文索引。SHOW INDEX 按索引列显示两行。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-fulltext"><h2>对照分词检索与子串匹配</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>LIKE 能匹配词的局部。全文索引适合找词和按相关性排序。写入时维护全文索引，大规模装载时可在专用表比较先加载再建索引。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT doc_id FROM docs WHERE body LIKE &#x27;%base%&#x27; OR title LIKE &#x27;%base%&#x27; ORDER BY doc_id;
+SELECT doc_id FROM docs WHERE MATCH(title, body) AGAINST(&#x27;base&#x27;);</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="docs · 练习数据" tabindex="0">
+<table class="sql-result"><caption>docs · 练习数据</caption>
+<thead><tr><th scope="col">doc_id</th><th scope="col">title</th><th scope="col">body</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Introduction</code></td><td><code>Database queries and relational tables</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Workshop</code></td><td><code>Practice joins and database queries</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Paper Notebook</code></td><td><code>Stationery supplies for handwriting</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Database Design</code></td><td><code>Relational schemas and primary keys</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>Join Recipe</code></td><td><code>Practice joins with order examples</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT doc_id FROM docs WHERE body LIKE &#x27;%base%&#x27; OR title LIKE &#x27;%base%&#x27; ORDER BY doc_id;</code></span></caption>
+<thead><tr><th scope="col">doc_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT doc_id FROM docs WHERE MATCH(title, body) AGAINST(&#x27;base&#x27;);</code></span></caption>
+<thead><tr><th scope="col">doc_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-no-rows" colspan="1">0 行</td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　文档 1、2、4 都含完整词 <code>database</code>，其中有子串 <code>base</code>。</p><p><strong>执行后</strong>　LIKE 命中 <code>[1,2,4]</code>。全文检索 base 返回 <code>0 行</code>。</p>
+<p class="outcome">第一条命中 1、2、4。后一条无匹配，base 不是 database 的完整词条。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-fulltext"><h2>自然语言搜索及相关度</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>MATCH 的列清单应匹配全文索引。AGAINST 返回相关度，放入 WHERE 可筛匹配项，放入 SELECT 可显示分值。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT doc_id, title,
+       MATCH(title, body) AGAINST(&#x27;database&#x27;) AS score
+FROM docs WHERE MATCH(title, body) AGAINST(&#x27;database&#x27;)
+ORDER BY score DESC, doc_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="docs · 练习数据" tabindex="0">
+<table class="sql-result"><caption>docs · 练习数据</caption>
+<thead><tr><th scope="col">doc_id</th><th scope="col">title</th><th scope="col">body</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Introduction</code></td><td><code>Database queries and relational tables</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Workshop</code></td><td><code>Practice joins and database queries</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Paper Notebook</code></td><td><code>Stationery supplies for handwriting</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Database Design</code></td><td><code>Relational schemas and primary keys</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>Join Recipe</code></td><td><code>Practice joins with order examples</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT doc_id, title, MATCH(title, body) AGAINST(&#x27;database&#x27;) AS score FROM docs WHERE MATCH(title, body) AGAINST(&#x27;database&#x27;) ORDER BY score DESC, doc_id;</code></span></caption>
+<thead><tr><th scope="col">doc_id</th><th scope="col">title</th><th scope="col">score</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Introduction</code></td><td class="sql-number"><code>0.0492168664932251</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Workshop</code></td><td class="sql-number"><code>0.0492168664932251</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Database Design</code></td><td class="sql-number"><code>0.0492168664932251</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　词 <code>database</code> 出现在三条文档中，语料共五条。</p><p><strong>执行后</strong>　命中 <code>1 SQL Introduction</code>、<code>2 SQL Workshop</code>、<code>4 Database Design</code>。此练习库的分数各约为 <code>0.0492</code>。</p>
+<p class="outcome">命中集合为 1、2、4，分值和排序受语料及设置影响。此处词 database 不会因为命中超过一半的文档被过滤，原书的 50% 阈值针对 MyISAM 自然语言模式。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-fulltext"><h2>查询扩展进行两轮搜索</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>先找与输入相关的文档，再用高相关文档中的词找更多行。语料小时扩展可能带来意外命中。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT doc_id FROM docs WHERE MATCH(title, body) AGAINST(&#x27;queries&#x27;) ORDER BY doc_id;
+SELECT doc_id FROM docs
+WHERE MATCH(title, body) AGAINST(&#x27;queries&#x27; WITH QUERY EXPANSION)
+ORDER BY doc_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="docs · 练习数据" tabindex="0">
+<table class="sql-result"><caption>docs · 练习数据</caption>
+<thead><tr><th scope="col">doc_id</th><th scope="col">title</th><th scope="col">body</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Introduction</code></td><td><code>Database queries and relational tables</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Workshop</code></td><td><code>Practice joins and database queries</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Paper Notebook</code></td><td><code>Stationery supplies for handwriting</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Database Design</code></td><td><code>Relational schemas and primary keys</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>Join Recipe</code></td><td><code>Practice joins with order examples</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT doc_id FROM docs WHERE MATCH(title, body) AGAINST(&#x27;queries&#x27;) ORDER BY doc_id;</code></span></caption>
+<thead><tr><th scope="col">doc_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT doc_id FROM docs WHERE MATCH(title, body) AGAINST(&#x27;queries&#x27; WITH QUERY EXPANSION) ORDER BY doc_id;</code></span></caption>
+<thead><tr><th scope="col">doc_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　完整词 <code>queries</code> 出现在文档 1、2。其他文档有与它们相关的词。</p><p><strong>执行后</strong>　基础搜索为 <code>[1,2]</code>，查询扩展为 <code>[1,2,4,5]</code>。</p>
+<p class="outcome">在默认练习库，基础查得 1、2，扩展查得 1、2、4、5。</p>
+</details>
+</div></section>
+<section id="p5" class="point" data-dialects="mysql" data-alternate-anchor="dial-fulltext"><h2>布尔搜索表达必须、排除、前缀和短语</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p><code>+词</code> 必须出现，<code>-词</code> 排除匹配，后缀 <code>*</code> 扩展词前缀，双引号引出短语。集合和分数需要分别核对，显式 ORDER BY 决定展示顺序。InnoDB 的布尔搜索也需要相应的全文索引。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT doc_id FROM docs
+WHERE MATCH(title, body) AGAINST(&#x27;+database -design&#x27; IN BOOLEAN MODE)
+ORDER BY doc_id;
+SELECT doc_id FROM docs
+WHERE MATCH(title, body) AGAINST(&#x27;+&quot;database queries&quot; +relat*&#x27; IN BOOLEAN MODE)
+ORDER BY doc_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="docs · 练习数据" tabindex="0">
+<table class="sql-result"><caption>docs · 练习数据</caption>
+<thead><tr><th scope="col">doc_id</th><th scope="col">title</th><th scope="col">body</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Introduction</code></td><td><code>Database queries and relational tables</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Workshop</code></td><td><code>Practice joins and database queries</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Paper Notebook</code></td><td><code>Stationery supplies for handwriting</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Database Design</code></td><td><code>Relational schemas and primary keys</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>Join Recipe</code></td><td><code>Practice joins with order examples</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT doc_id FROM docs WHERE MATCH(title, body) AGAINST(&#x27;+database -design&#x27; IN BOOLEAN MODE) ORDER BY doc_id;</code></span></caption>
+<thead><tr><th scope="col">doc_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT doc_id FROM docs WHERE MATCH(title, body) AGAINST(&#x27;+&quot;database queries&quot; +relat*&#x27; IN BOOLEAN MODE) ORDER BY doc_id;</code></span></caption>
+<thead><tr><th scope="col">doc_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　文档 4 含 database 与 design。文档 1 的正文含短语 <code>database queries</code> 和单词 <code>relational</code>。</p><p><strong>执行后</strong>　必须 database 且排除 design 得 <code>[1,2]</code>。短语加前缀条件得 <code>[1]</code>。</p>
+<p class="outcome">第一条返回 1、2。第二条只有 1。</p>
+</details>
+</div></section>
+<section id="p6" class="point" data-dialects="mysql" data-alternate-anchor="dial-fulltext"><h2>布尔检索的权重、可选词与邻近</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>无前缀的词可选，<code>&gt;</code> 与 <code>&lt;</code> 调整相关性权重，<code>~</code> 降低贡献，括号为表达式分组。InnoDB 用 <code>@距离</code> 表达词之间的邻近约束。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT doc_id,
+       MATCH(title, body) AGAINST(&#x27;database queries&#x27; IN BOOLEAN MODE) AS optional_score,
+       MATCH(title, body) AGAINST(&#x27;database ~queries&#x27; IN BOOLEAN MODE) AS penalty
+FROM docs WHERE doc_id IN (1,4) ORDER BY doc_id;
+SELECT doc_id FROM docs WHERE MATCH(title, body)
+  AGAINST(&#x27;+&quot;database tables&quot; @5&#x27; IN BOOLEAN MODE);
+SELECT doc_id FROM docs WHERE MATCH(title, body)
+  AGAINST(&#x27;+database +(&gt;queries &lt;design)&#x27; IN BOOLEAN MODE) ORDER BY doc_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="docs · 练习数据" tabindex="0">
+<table class="sql-result"><caption>docs · 练习数据</caption>
+<thead><tr><th scope="col">doc_id</th><th scope="col">title</th><th scope="col">body</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Introduction</code></td><td><code>Database queries and relational tables</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Workshop</code></td><td><code>Practice joins and database queries</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Paper Notebook</code></td><td><code>Stationery supplies for handwriting</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Database Design</code></td><td><code>Relational schemas and primary keys</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>Join Recipe</code></td><td><code>Practice joins with order examples</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT doc_id, MATCH(title, body) AGAINST(&#x27;database queries&#x27; IN BOOLEAN MODE) AS optional_score, MATCH(title, body) AGAINST(&#x27;database ~queries&#x27; IN BOOLEAN MODE) AS penalty FROM docs WHERE doc_id IN (1,4) ORDER BY doc_id;</code></span></caption>
+<thead><tr><th scope="col">doc_id</th><th scope="col">optional_score</th><th scope="col">penalty</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td class="sql-number"><code>0.20757311582565308</code></td><td class="sql-number"><code>-0.7924268841743469</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>0.0492168664932251</code></td><td class="sql-number"><code>0.0492168664932251</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT doc_id FROM docs WHERE MATCH(title, body) AGAINST(&#x27;+&quot;database tables&quot; @5&#x27; IN BOOLEAN MODE);</code></span></caption>
+<thead><tr><th scope="col">doc_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT doc_id FROM docs WHERE MATCH(title, body) AGAINST(&#x27;+database +(&gt;queries &lt;design)&#x27; IN BOOLEAN MODE) ORDER BY doc_id;</code></span></caption>
+<thead><tr><th scope="col">doc_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　文档 1 含 queries，文档 4 缺该词。文档 1 的 database 与 tables 相距较近。</p><p><strong>执行后</strong>　文档 1 分数约从 <code>0.208</code> 变 <code>-0.792</code>，文档 4 分数不变。邻近查询得 <code>[1]</code>，权重分组查询得 <code>[1,2,4]</code>。</p>
+<p class="outcome">第一条中，文档 1 的 penalty 更低，文档 4 不变。第二条只有 1，第三条包含 1、2、4。</p>
+</details>
+</div></section>
+<section id="p7" class="point" data-dialects="mysql" data-alternate-anchor="dial-fulltext"><h2>停用词、长度与中文分词</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>默认 InnoDB 分词器跳过停用词和过短的词。中文练习可用 ngram 按连续字符切分。为匹配目标预先选择合适的分词方式。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT @@innodb_ft_min_token_size, @@ngram_token_size,
+       MATCH(title, body) AGAINST(&#x27;an&#x27;) AS short_score,
+       MATCH(title, body) AGAINST(&#x27;the&#x27;) AS stopword_score
+FROM docs WHERE doc_id = 1;
+CREATE TABLE ch18_cn (
+  id INT PRIMARY KEY, body TEXT, FULLTEXT KEY ft_body (body) WITH PARSER ngram
+) ENGINE=InnoDB;
+INSERT INTO ch18_cn VALUES (1, &#x27;订单管理&#x27;), (2, &#x27;笔记整理&#x27;);
+SELECT id FROM ch18_cn
+WHERE MATCH(body) AGAINST(&#x27;订单&#x27; IN BOOLEAN MODE);</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　默认词长 3、ngram 大小 2。中文样例为 <code>1:订单管理</code> 与 <code>2:笔记整理</code>。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT @@innodb_ft_min_token_size, @@ngram_token_size, MATCH(title, body) AGAINST(&#x27;an&#x27;) AS short_score, MATCH(title, body) AGAINST(&#x27;the&#x27;) AS stopword_score FROM docs WHERE doc_id = 1;</code></span></caption>
+<thead><tr><th scope="col">@@innodb_ft_min_token_size</th><th scope="col">@@ngram_token_size</th><th scope="col">short_score</th><th scope="col">stopword_score</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>0</code></td><td class="sql-number"><code>0</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT id FROM ch18_cn WHERE MATCH(body) AGAINST(&#x27;订单&#x27; IN BOOLEAN MODE);</code></span></caption>
+<thead><tr><th scope="col">id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　<code>an</code>、<code>the</code> 两个分值为 <code>0</code>。中文关键字 <code>订单</code> 命中 <code>[1]</code>。</p>
+<p class="outcome">默认词长与 ngram 大小为 3、2，两个搜索分值为 0。最短词长设置不适用于 ngram，默认 ngram 大小为 2 时只命中 1。</p>
+</details>
+</div></section>
+<section id="dial-fulltext" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>全文索引与词项查询</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>全文检索按词项和语言规则查找。PostgreSQL 可用 tsvector 和 GIN 表达式索引。SQL Server 要有全文检索组件，先建立目录与索引并等填充完成，再查询。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="docs · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>docs · 执行前练习数据</caption>
+<thead><tr><th scope="col">doc_id</th><th scope="col">title</th><th scope="col">body</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Introduction</code></td><td><code>Database queries and relational tables</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Workshop</code></td><td><code>Practice joins and database queries</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Paper Notebook</code></td><td><code>Stationery supplies for handwriting</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Database Design</code></td><td><code>Relational schemas and primary keys</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>Join Recipe</code></td><td><code>Practice joins with order examples</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE INDEX IF NOT EXISTS notes_docs_fts ON docs USING gin
+  (to_tsvector(&#x27;english&#x27;, title || &#x27; &#x27; || body));
+SELECT doc_id FROM docs
+WHERE to_tsvector(&#x27;english&#x27;, title || &#x27; &#x27; || body)
+      @@ websearch_to_tsquery(&#x27;english&#x27;,&#x27;database -design&#x27;)
+ORDER BY doc_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT doc_id FROM docs WHERE to_tsvector(&#x27;english&#x27;, title || &#x27; &#x27; || body) @@ websearch_to_tsquery(&#x27;english&#x27;,&#x27;database -design&#x27;) ORDER BY doc_id;</code></span></caption>
+<thead><tr><th scope="col">doc_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE FULLTEXT CATALOG notes_fulltext;
+CREATE FULLTEXT INDEX ON dbo.docs (title LANGUAGE 1033, body LANGUAGE 1033)
+  KEY INDEX pk_notes_docs ON notes_fulltext WITH CHANGE_TRACKING AUTO;
+
+-- 首次运行时，在索引填充完成后单独执行下方 SELECT。
+SELECT doc_id FROM dbo.docs
+WHERE CONTAINS((title, body), &#x27;&quot;database&quot; AND NOT &quot;design&quot;&#x27;) ORDER BY doc_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>-- 首次运行时，在索引填充完成后单独执行下方 SELECT。 SELECT doc_id FROM dbo.docs WHERE CONTAINS((title, body), &#x27;&quot;database&quot; AND NOT &quot;design&quot;&#x27;) ORDER BY doc_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">doc_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/textsearch.html">PostgreSQL 全文检索</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-index-transact-sql">SQL Server CREATE FULLTEXT INDEX</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/queries/contains-transact-sql">SQL Server CONTAINS</a></p>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>找出同时包含 database 与 queries 的文章。</p><details><summary>查看答案</summary><figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT doc_id FROM docs
+WHERE MATCH(title, body) AGAINST(&#x27;+database +queries&#x27; IN BOOLEAN MODE)
+ORDER BY doc_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="docs · 相关行" tabindex="0">
+<table class="sql-result"><caption>docs · 相关行</caption>
+<thead><tr><th scope="col">doc_id</th><th scope="col">title</th><th scope="col">body</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Introduction</code></td><td><code>Database queries and relational tables</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Workshop</code></td><td><code>Practice joins and database queries</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Database Design</code></td><td><code>Relational schemas and primary keys</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT doc_id FROM docs WHERE MATCH(title, body) AGAINST(&#x27;+database +queries&#x27; IN BOOLEAN MODE) ORDER BY doc_id;</code></span></caption>
+<thead><tr><th scope="col">doc_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　文档 1、2 都含 database 和 queries。4 只有前者。</p><p><strong>执行后</strong>　两词都必须出现的结果为 <code>[1,2]</code>。</p>
+<p class="outcome">返回 1、2。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/fulltext-search.html">全文检索</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/fulltext-boolean.html">布尔模式</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/fulltext-search-ngram.html">ngram 分词</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="mysql"><a href="#p1">建立全文索引</a></li><li data-dialects="mysql"><a href="#p2">对照分词检索与子串匹配</a></li><li data-dialects="mysql"><a href="#p3">按自然语言找词并查看相关性</a></li><li data-dialects="mysql"><a href="#p4">查询扩展进行两轮搜索</a></li><li data-dialects="mysql"><a href="#p5">布尔搜索表达必须、排除、前缀和短语</a></li><li data-dialects="mysql"><a href="#p6">布尔检索的权重、可选词与邻近</a></li><li data-dialects="mysql"><a href="#p7">通过分词规则控制全文匹配</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-fulltext">用全文索引查询指定词项</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="17-set-operations.html">← 组合查询</a><a href="../v1.html">章节目录</a><a rel="next" href="19-insert.html">插入数据 →</a></nav>
+</main>
+</body></html>

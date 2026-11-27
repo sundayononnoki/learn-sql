@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>42 · PostgreSQL · 字符串、正则、时间和运算符 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 42 章 · 原生语法</p>
+<h1>PostgreSQL · 字符串、正则、时间和运算符</h1>
+<p class="lead">从匹配与捕获文本，到显示字节和处理时间边界。所有输入均在各卡片中给出，代码可单独运行。</p>
+<div class="layout"><article class="content">
+<section id="like-similar" class="point" data-dialects="postgresql">
+<h2>ILIKE 与 SIMILAR TO</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>ILIKE 按正在使用的区域设置忽略大小写。SIMILAR TO 匹配整串，支持 LIKE 的 % 和 _，也支持 (A|B) 这样的分支。点在 SIMILAR TO 的模式中是普通字符。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="文本和模式" tabindex="0">
+<table class="sql-result"><caption>文本和模式</caption>
+<thead><tr><th scope="col">文本</th><th scope="col">模式</th></tr></thead>
+<tbody>
+<tr><td><code>Sql Basics</code></td><td><code>sql%</code></td></tr>
+<tr><td><code>A12</code></td><td><code>(A|B)[0-9]+</code></td></tr>
+<tr><td><code>XA12</code></td><td><code>(A|B)[0-9]+</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; LIKE &#x27;sql%&#x27; AS like_case,
+       &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; ILIKE &#x27;sql%&#x27; AS ilike_case,
+       &#x27;A12&#x27; SIMILAR TO &#x27;(A|B)[0-9]+&#x27; AS entire_match,
+       &#x27;XA12&#x27; SIMILAR TO &#x27;(A|B)[0-9]+&#x27; AS extra_prefix;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; LIKE &#x27;sql%&#x27; AS like_case,
+       &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; ILIKE &#x27;sql%&#x27; AS ilike_case,
+       &#x27;A12&#x27; SIMILAR TO &#x27;(A|B)[0-9]+&#x27; AS entire_match,
+       &#x27;XA12&#x27; SIMILAR TO &#x27;(A|B)[0-9]+&#x27; AS extra_prefix;</code></span></caption>
+<thead><tr><th scope="col">like_case</th><th scope="col">ilike_case</th><th scope="col">entire_match</th><th scope="col">extra_prefix</th></tr></thead>
+<tbody>
+<tr><td><code>false</code></td><td><code>true</code></td><td><code>true</code></td><td><code>false</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">如果只想匹配文本片段，可用百分号扩展 SIMILAR TO 的模式，或使用下一例的 POSIX 运算符。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-matching.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="posix-operators" class="point" data-dialects="postgresql">
+<h2>~、~*、!~ 与 !~*</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>~ 区分大小写，~* 忽略大小写。带 ! 的变体对匹配结果取反。POSIX 正则可在字符串中寻找子串，^ 和 $ 把匹配限制在起点和终点。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="被检查的文本" tabindex="0">
+<table class="sql-result"><caption>被检查的文本</caption>
+<thead><tr><th scope="col">文本</th><th scope="col">模式</th></tr></thead>
+<tbody>
+<tr><td><code>Sql Basics</code></td><td><code>^sql</code></td></tr>
+<tr><td><code>xSQLy</code></td><td><code>SQL 或 ^SQL$</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; ~ &#x27;^sql&#x27; AS sensitive,
+       &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; ~* &#x27;^sql&#x27; AS insensitive,
+       &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; !~ &#x27;^sql&#x27; AS negated_sensitive,
+       &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; !~* &#x27;^sql&#x27; AS negated_insensitive,
+       &#x27;xSQLy&#x27; ~ &#x27;SQL&#x27; AS contains_sql,
+       &#x27;xSQLy&#x27; ~ &#x27;^SQL$&#x27; AS whole_sql;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; ~ &#x27;^sql&#x27; AS sensitive,
+       &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; ~* &#x27;^sql&#x27; AS insensitive,
+       &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; !~ &#x27;^sql&#x27; AS negated_sensitive,
+       &#x27;Sql Basics&#x27; COLLATE &quot;C&quot; !~* &#x27;^sql&#x27; AS negated_insensitive,
+       &#x27;xSQLy&#x27; ~ &#x27;SQL&#x27; AS contains_sql,
+       &#x27;xSQLy&#x27; ~ &#x27;^SQL$&#x27; AS whole_sql;</code></span></caption>
+<thead><tr><th scope="col">sensitive</th><th scope="col">insensitive</th><th scope="col">negated_sensitive</th><th scope="col">negated_insensitive</th><th scope="col">contains_sql</th><th scope="col">whole_sql</th></tr></thead>
+<tbody>
+<tr><td><code>false</code></td><td><code>true</code></td><td><code>true</code></td><td><code>false</code></td><td><code>true</code></td><td><code>false</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-matching.html#FUNCTIONS-POSIX-REGEXP">PostgreSQL 官方文档</a></p>
+</section>
+<section id="regexp-position" class="point" data-dialects="postgresql">
+<h2>regexp_like、regexp_count、regexp_instr 与 regexp_substr</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">这四个函数自 PostgreSQL 15 起可用。</span></p>
+<p>用 regexp_like 判断是否找到，regexp_count 计数，regexp_instr 返回指定匹配的位置（从 1 开始，找不到返回 0），regexp_substr 返回该段文字（找不到返回 NULL）。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="文本与模式" tabindex="0">
+<table class="sql-result"><caption>文本与模式</caption>
+<thead><tr><th scope="col">文本</th><th scope="col">模式</th><th scope="col">起点</th><th scope="col">匹配序号</th></tr></thead>
+<tbody>
+<tr><td><code>AB-12 CD-34</code></td><td><code>[0-9]+</code></td><td><code>1</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT regexp_like(&#x27;AB-12 CD-34&#x27;, &#x27;[0-9]+&#x27;) AS has_digits,
+       regexp_count(&#x27;AB-12 CD-34&#x27;, &#x27;[0-9]+&#x27;) AS match_count,
+       regexp_instr(&#x27;AB-12 CD-34&#x27;, &#x27;[0-9]+&#x27;, 1, 2) AS second_position,
+       regexp_substr(&#x27;AB-12 CD-34&#x27;, &#x27;[0-9]+&#x27;, 1, 2) AS second_match,
+       regexp_instr(&#x27;AB-12 CD-34&#x27;, &#x27;ZZ&#x27;) AS absent_position,
+       regexp_substr(&#x27;AB-12 CD-34&#x27;, &#x27;ZZ&#x27;) AS absent_match;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT regexp_like(&#x27;AB-12 CD-34&#x27;, &#x27;[0-9]+&#x27;) AS has_digits,
+       regexp_count(&#x27;AB-12 CD-34&#x27;, &#x27;[0-9]+&#x27;) AS match_count,
+       regexp_instr(&#x27;AB-12 CD-34&#x27;, &#x27;[0-9]+&#x27;, 1, 2) AS second_position,
+       regexp_substr(&#x27;AB-12 CD-34&#x27;, &#x27;[0-9]+&#x27;, 1, 2) AS second_match,
+       regexp_instr(&#x27;AB-12 CD-34&#x27;, &#x27;ZZ&#x27;) AS absent_position,
+       regexp_substr(&#x27;AB-12 CD-34&#x27;, &#x27;ZZ&#x27;) AS absent_match;</code></span></caption>
+<thead><tr><th scope="col">has_digits</th><th scope="col">match_count</th><th scope="col">second_position</th><th scope="col">second_match</th><th scope="col">absent_position</th><th scope="col">absent_match</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>2</code></td><td><code>10</code></td><td><code>34</code></td><td><code>0</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-matching.html#FUNCTIONS-POSIX-REGEXP">PostgreSQL 官方文档</a></p>
+</section>
+<section id="regexp-captures" class="point" data-dialects="postgresql">
+<h2>regexp_match 与 regexp_matches 返回捕获组</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">regexp_match 自 PostgreSQL 10 起可用；WITH ORDINALITY 自 9.4 起可用。</span></p>
+<p>regexp_match 返回首次匹配的捕获组数组。regexp_matches 带 g 返回每一次匹配，结果每次一行。匹配不存在时，前者给 NULL，后者给零行。例中 WITH ORDINALITY 保留匹配序号。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待拆的标签" tabindex="0">
+<table class="sql-result"><caption>待拆的标签</caption>
+<thead><tr><th scope="col">文本</th><th scope="col">捕获模式</th></tr></thead>
+<tbody>
+<tr><td><code>book:12 pen:3</code></td><td><code>([a-z]+):([0-9]+)</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH src(value, pattern) AS (VALUES (&#x27;book:12 pen:3&#x27;,&#x27;([a-z]+):([0-9]+)&#x27;))
+SELECT n AS match_no, parts[1] AS label, parts[2]::int AS qty,
+       (regexp_match(value, pattern))[1] AS first_label
+FROM src
+CROSS JOIN LATERAL regexp_matches(value, pattern, &#x27;g&#x27;)
+  WITH ORDINALITY AS matches(parts,n)
+ORDER BY n;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH src(value, pattern) AS (VALUES (&#x27;book:12 pen:3&#x27;,&#x27;([a-z]+):([0-9]+)&#x27;))
+SELECT n AS match_no, parts[1] AS label, parts[2]::int AS qty,
+       (regexp_match(value, pattern))[1] AS first_label
+FROM src
+CROSS JOIN LATERAL regexp_matches(value, pattern, &#x27;g&#x27;)
+  WITH ORDINALITY AS matches(parts,n)
+ORDER BY n;</code></span></caption>
+<thead><tr><th scope="col">match_no</th><th scope="col">label</th><th scope="col">qty</th><th scope="col">first_label</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>book</code></td><td><code>12</code></td><td><code>book</code></td></tr>
+<tr><td><code>2</code></td><td><code>pen</code></td><td><code>3</code></td><td><code>book</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">regexp_match 与 regexp_matches 在没有捕获括号时会返回整个命中串。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-matching.html#FUNCTIONS-POSIX-REGEXP">PostgreSQL 官方文档</a></p>
+</section>
+<section id="regexp-replace" class="point" data-dialects="postgresql">
+<h2>regexp_replace 的首次、全部和第 N 次替换</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">带起点和匹配序号的 regexp_replace 重载自 PostgreSQL 15 起可用。</span></p>
+<p>默认只替换第一次，g 将全部替换。带起点和第 N 次参数的变体可选择其中一次。替换串里的反向引用能复用匹配的捕获组。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待替换的文本" tabindex="0">
+<table class="sql-result"><caption>待替换的文本</caption>
+<thead><tr><th scope="col">文本</th><th scope="col">模式</th><th scope="col">替换值</th></tr></thead>
+<tbody>
+<tr><td><code>A12 B34 C56</code></td><td><code>[0-9]+</code></td><td><code>X</code></td></tr>
+<tr><td><code>AB-123</code></td><td><code>([A-Z]+)-([0-9]+)</code></td><td><code>反向引用 2:1</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT regexp_replace(&#x27;A12 B34 C56&#x27;, &#x27;[0-9]+&#x27;, &#x27;X&#x27;) AS first_only,
+       regexp_replace(&#x27;A12 B34 C56&#x27;, &#x27;[0-9]+&#x27;, &#x27;X&#x27;, &#x27;g&#x27;) AS all_matches,
+       regexp_replace(&#x27;A12 B34 C56&#x27;, &#x27;[0-9]+&#x27;, &#x27;X&#x27;, 1, 2) AS second_only,
+       regexp_replace(&#x27;AB-123&#x27;, &#x27;([A-Z]+)-([0-9]+)&#x27;, $rx$\2:\1$rx$) AS reordered;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT regexp_replace(&#x27;A12 B34 C56&#x27;, &#x27;[0-9]+&#x27;, &#x27;X&#x27;) AS first_only,
+       regexp_replace(&#x27;A12 B34 C56&#x27;, &#x27;[0-9]+&#x27;, &#x27;X&#x27;, &#x27;g&#x27;) AS all_matches,
+       regexp_replace(&#x27;A12 B34 C56&#x27;, &#x27;[0-9]+&#x27;, &#x27;X&#x27;, 1, 2) AS second_only,
+       regexp_replace(&#x27;AB-123&#x27;, &#x27;([A-Z]+)-([0-9]+)&#x27;, $rx$\2:\1$rx$) AS reordered;</code></span></caption>
+<thead><tr><th scope="col">first_only</th><th scope="col">all_matches</th><th scope="col">second_only</th><th scope="col">reordered</th></tr></thead>
+<tbody>
+<tr><td><code>AX B34 C56</code></td><td><code>AX BX CX</code></td><td><code>A12 BX C56</code></td><td><code>123:AB</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">美元引号让替换文本中的反斜杠按字面传给正则函数。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-matching.html#FUNCTIONS-POSIX-REGEXP">PostgreSQL 官方文档</a></p>
+</section>
+<section id="regexp-split" class="point" data-dialects="postgresql">
+<h2>regexp_split_to_array 与 regexp_split_to_table</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">表函数的 WITH ORDINALITY 自 PostgreSQL 9.4 起可用。</span></p>
+<p>相同分隔模式可把结果收进数组或展开成多行。这里用字符集 [;,] 同时按分号和逗号切分，表形式给每个词附上序号。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待分隔文本" tabindex="0">
+<table class="sql-result"><caption>待分隔文本</caption>
+<thead><tr><th scope="col">文本</th><th scope="col">分隔模式</th></tr></thead>
+<tbody>
+<tr><td><code>SQL;db,SQL</code></td><td><code>[;,]</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT n AS position, token,
+       regexp_split_to_array(&#x27;SQL;db,SQL&#x27;, &#x27;[;,]&#x27;)::text AS all_tokens
+FROM regexp_split_to_table(&#x27;SQL;db,SQL&#x27;, &#x27;[;,]&#x27;)
+     WITH ORDINALITY AS t(token,n)
+ORDER BY n;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT n AS position, token,
+       regexp_split_to_array(&#x27;SQL;db,SQL&#x27;, &#x27;[;,]&#x27;)::text AS all_tokens
+FROM regexp_split_to_table(&#x27;SQL;db,SQL&#x27;, &#x27;[;,]&#x27;)
+     WITH ORDINALITY AS t(token,n)
+ORDER BY n;</code></span></caption>
+<thead><tr><th scope="col">position</th><th scope="col">token</th><th scope="col">all_tokens</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>SQL</code></td><td><code>{SQL,db,SQL}</code></td></tr>
+<tr><td><code>2</code></td><td><code>db</code></td><td><code>{SQL,db,SQL}</code></td></tr>
+<tr><td><code>3</code></td><td><code>SQL</code></td><td><code>{SQL,db,SQL}</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-matching.html#FUNCTIONS-POSIX-REGEXP">PostgreSQL 官方文档</a></p>
+</section>
+<section id="format-quote" class="point" data-dialects="postgresql">
+<h2>format、quote_ident、quote_literal 与 quote_nullable</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>动态 SQL 的标识符与数据值需要不同的引用规则。format 的 %I 引用标识符，%L 引用 SQL 字面量。quote_nullable(NULL) 返回字符串 NULL，quote_literal(NULL) 返回 SQL NULL。%s 只是插入文本。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待引用的值" tabindex="0">
+<table class="sql-result"><caption>待引用的值</caption>
+<thead><tr><th scope="col">含空格的列名</th><th scope="col">含单引号的数据</th><th scope="col">另一输入</th></tr></thead>
+<tbody>
+<tr><td><code>display name</code></td><td><code>O&#x27;Reilly</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT format(&#x27;%I = %L&#x27;, &#x27;display name&#x27;, &#x27;O&#x27;&#x27;Reilly&#x27;) AS predicate_text,
+       quote_ident(&#x27;display name&#x27;) AS quoted_name,
+       quote_literal(&#x27;O&#x27;&#x27;Reilly&#x27;) AS quoted_value,
+       quote_nullable(NULL::text) AS null_as_text,
+       quote_literal(NULL::text) IS NULL AS actual_sql_null;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT format(&#x27;%I = %L&#x27;, &#x27;display name&#x27;, &#x27;O&#x27;&#x27;Reilly&#x27;) AS predicate_text,
+       quote_ident(&#x27;display name&#x27;) AS quoted_name,
+       quote_literal(&#x27;O&#x27;&#x27;Reilly&#x27;) AS quoted_value,
+       quote_nullable(NULL::text) AS null_as_text,
+       quote_literal(NULL::text) IS NULL AS actual_sql_null;</code></span></caption>
+<thead><tr><th scope="col">predicate_text</th><th scope="col">quoted_name</th><th scope="col">quoted_value</th><th scope="col">null_as_text</th><th scope="col">actual_sql_null</th></tr></thead>
+<tbody>
+<tr><td><code>&quot;display name&quot; = &#x27;O&#x27;&#x27;Reilly&#x27;</code></td><td><code>&quot;display name&quot;</code></td><td><code>&#x27;O&#x27;&#x27;Reilly&#x27;</code></td><td><code>NULL</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">运行动态语句时，普通数据值也可用参数传递。这条 SELECT 只构造文本。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-string.html#FUNCTIONS-STRING-FORMAT">PostgreSQL 官方文档</a></p>
+</section>
+<section id="string-operators" class="point" data-dialects="postgresql">
+<h2>字符串运算符和 NULL 拼接</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">^@ 和 starts_with 自 PostgreSQL 11 起可用。</span></p>
+<p>|| 拼接时会传播 NULL。concat 会忽略 NULL，concat_ws 忽略分隔符之后的 NULL。^@ 与 starts_with 检查是否有固定前缀。普通文本的 substring 可以按字符的起点和长度截取。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="字符串输入" tabindex="0">
+<table class="sql-result"><caption>字符串输入</caption>
+<thead><tr><th scope="col">前缀测试</th><th scope="col">要拼接的值</th><th scope="col">截取输入</th></tr></thead>
+<tbody>
+<tr><td><code>SQL Basic → SQL</code></td><td><code>SQL、NULL、book</code></td><td><code>ABCDE 的第 2 至 4 字符</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT &#x27;SQL&#x27; || NULL::text AS strict_concat,
+       concat(&#x27;SQL&#x27;, NULL, &#x27;book&#x27;) AS skip_null,
+       concat_ws(&#x27; / &#x27;, &#x27;SQL&#x27;, NULL, &#x27;book&#x27;) AS separated,
+       &#x27;SQL Basic&#x27; ^@ &#x27;SQL&#x27; AS prefix_operator,
+       starts_with(&#x27;SQL Basic&#x27;, &#x27;SQL&#x27;) AS prefix_function,
+       substring(&#x27;ABCDE&#x27; FROM 2 FOR 3) AS slice;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;SQL&#x27; || NULL::text AS strict_concat,
+       concat(&#x27;SQL&#x27;, NULL, &#x27;book&#x27;) AS skip_null,
+       concat_ws(&#x27; / &#x27;, &#x27;SQL&#x27;, NULL, &#x27;book&#x27;) AS separated,
+       &#x27;SQL Basic&#x27; ^@ &#x27;SQL&#x27; AS prefix_operator,
+       starts_with(&#x27;SQL Basic&#x27;, &#x27;SQL&#x27;) AS prefix_function,
+       substring(&#x27;ABCDE&#x27; FROM 2 FOR 3) AS slice;</code></span></caption>
+<thead><tr><th scope="col">strict_concat</th><th scope="col">skip_null</th><th scope="col">separated</th><th scope="col">prefix_operator</th><th scope="col">prefix_function</th><th scope="col">slice</th></tr></thead>
+<tbody>
+<tr><td class="sql-null"><code>NULL</code></td><td><code>SQLbook</code></td><td><code>SQL / book</code></td><td><code>true</code></td><td><code>true</code></td><td><code>BCD</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-string.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="char-byte-encoding" class="point" data-dialects="postgresql">
+<h2>字符长度、字节长度与 UTF-8 转换</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>char_length 数字符，octet_length 数字符串在服务器编码中的字节。convert_to 按指定编码生成 bytea。convert_from 将字节转回数据库文本，encode 把二进制显示为十六进制。示例使用 UTF8 数据库和客户端编码。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待编码文本" tabindex="0">
+<table class="sql-result"><caption>待编码文本</caption>
+<thead><tr><th scope="col">文本</th><th scope="col">目标编码</th></tr></thead>
+<tbody>
+<tr><td><code>汉🙂</code></td><td><code>UTF8</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT char_length(&#x27;汉🙂&#x27;) AS characters,
+       octet_length(convert_to(&#x27;汉🙂&#x27;,&#x27;UTF8&#x27;)) AS utf8_bytes,
+       encode(convert_to(&#x27;汉🙂&#x27;,&#x27;UTF8&#x27;),&#x27;hex&#x27;) AS utf8_hex,
+       convert_from(decode(&#x27;e6b189f09f9982&#x27;,&#x27;hex&#x27;),&#x27;UTF8&#x27;) AS restored;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT char_length(&#x27;汉🙂&#x27;) AS characters,
+       octet_length(convert_to(&#x27;汉🙂&#x27;,&#x27;UTF8&#x27;)) AS utf8_bytes,
+       encode(convert_to(&#x27;汉🙂&#x27;,&#x27;UTF8&#x27;),&#x27;hex&#x27;) AS utf8_hex,
+       convert_from(decode(&#x27;e6b189f09f9982&#x27;,&#x27;hex&#x27;),&#x27;UTF8&#x27;) AS restored;</code></span></caption>
+<thead><tr><th scope="col">characters</th><th scope="col">utf8_bytes</th><th scope="col">utf8_hex</th><th scope="col">restored</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>7</code></td><td><code>e6b189f09f9982</code></td><td><code>汉🙂</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">确认服务器和客户端均使用 UTF-8，以支持示例中的汉字和 emoji。字符数与界面上的字形数也可能不同。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-binarystring.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="unicode-collation" class="point" data-dialects="postgresql">
+<h2>Unicode 规范化与排序规则</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">NORMALIZE 与 IS NORMALIZED 自 PostgreSQL 13 起可用，要求服务器编码 UTF8。</span></p>
+<p>同一个可见字符可以由多个码点表示。NORMALIZE 转为所选 Unicode 规范化形式，IS NORMALIZED 检查输入形式。COLLATE 指定用于比较的排序规则，此处用 C 对照字节序。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="对照输入" tabindex="0">
+<table class="sql-result"><caption>对照输入</caption>
+<thead><tr><th scope="col">组合形式</th><th scope="col">分解形式</th><th scope="col">另两项字符</th></tr></thead>
+<tbody>
+<tr><td><code>U+00E9</code></td><td><code>U+0065 U+0301</code></td><td><code>Z 和 a</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT (U&amp;&#x27;e\0301&#x27; COLLATE &quot;C&quot; = U&amp;&#x27;\00E9&#x27;) AS same_bytes,
+       (normalize(U&amp;&#x27;e\0301&#x27;, NFC) COLLATE &quot;C&quot; = U&amp;&#x27;\00E9&#x27;) AS same_after_nfc,
+       (U&amp;&#x27;e\0301&#x27; IS NFC NORMALIZED) AS input_already_nfc,
+       (&#x27;Z&#x27; COLLATE &quot;C&quot; &lt; &#x27;a&#x27;) AS c_orders_capital_first;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT (U&amp;&#x27;e\0301&#x27; COLLATE &quot;C&quot; = U&amp;&#x27;\00E9&#x27;) AS same_bytes,
+       (normalize(U&amp;&#x27;e\0301&#x27;, NFC) COLLATE &quot;C&quot; = U&amp;&#x27;\00E9&#x27;) AS same_after_nfc,
+       (U&amp;&#x27;e\0301&#x27; IS NFC NORMALIZED) AS input_already_nfc,
+       (&#x27;Z&#x27; COLLATE &quot;C&quot; &lt; &#x27;a&#x27;) AS c_orders_capital_first;</code></span></caption>
+<thead><tr><th scope="col">same_bytes</th><th scope="col">same_after_nfc</th><th scope="col">input_already_nfc</th><th scope="col">c_orders_capital_first</th></tr></thead>
+<tbody>
+<tr><td><code>false</code></td><td><code>true</code></td><td><code>false</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">语言排序规则与大小写等价由提供程序和对应规则决定。C 的结果只用于明确可复现的对照。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-string.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="round-time" class="point" data-dialects="postgresql">
+<h2>date_trunc 与 date_bin</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">date_trunc 的时区参数自 PostgreSQL 12 起可用；date_bin 自 14 起可用。</span></p>
+<p>date_trunc 截到预定义的时间单位。三参数重载可按指定时区截 timestamptz。date_bin 对齐到以起点为原点的固定宽度桶，桶长不能含月或更大的日历单位。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="需要对齐的时间" tabindex="0">
+<table class="sql-result"><caption>需要对齐的时间</caption>
+<thead><tr><th scope="col">原时间</th><th scope="col">桶宽</th><th scope="col">桶原点</th><th scope="col">截断时区</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-01 09:37:22+00</code></td><td><code>15 minutes</code></td><td><code>2000-01-01 00:05:00+00</code></td><td><code>Asia/Tokyo</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH src(ts) AS (VALUES (TIMESTAMPTZ &#x27;2025-02-01 09:37:22+00&#x27;))
+SELECT to_char(date_trunc(&#x27;day&#x27;,ts,&#x27;Asia/Tokyo&#x27;) AT TIME ZONE &#x27;UTC&#x27;,
+               &#x27;YYYY-MM-DD HH24:MI:SS&#x27;) AS tokyo_day_start_utc,
+       to_char(date_bin(INTERVAL &#x27;15 minutes&#x27;, ts,
+                 TIMESTAMPTZ &#x27;2000-01-01 00:05:00+00&#x27;) AT TIME ZONE &#x27;UTC&#x27;,
+               &#x27;YYYY-MM-DD HH24:MI:SS&#x27;) AS bin_start_utc
+FROM src;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH src(ts) AS (VALUES (TIMESTAMPTZ &#x27;2025-02-01 09:37:22+00&#x27;))
+SELECT to_char(date_trunc(&#x27;day&#x27;,ts,&#x27;Asia/Tokyo&#x27;) AT TIME ZONE &#x27;UTC&#x27;,
+               &#x27;YYYY-MM-DD HH24:MI:SS&#x27;) AS tokyo_day_start_utc,
+       to_char(date_bin(INTERVAL &#x27;15 minutes&#x27;, ts,
+                 TIMESTAMPTZ &#x27;2000-01-01 00:05:00+00&#x27;) AT TIME ZONE &#x27;UTC&#x27;,
+               &#x27;YYYY-MM-DD HH24:MI:SS&#x27;) AS bin_start_utc
+FROM src;</code></span></caption>
+<thead><tr><th scope="col">tokyo_day_start_utc</th><th scope="col">bin_start_utc</th></tr></thead>
+<tbody>
+<tr><td><code>2025-01-31 15:00:00</code></td><td><code>2025-02-01 09:35:00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-datetime.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="date-parts-age" class="point" data-dialects="postgresql">
+<h2>EXTRACT、date_part、age 与日历差</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">EXTRACT 自 PostgreSQL 14 起返回 numeric。</span></p>
+<p>EXTRACT 和 date_part 都能提取日期部分，返回类型分别是 numeric 和 double precision。ISO 星期一为 1。age 给出含年、月、日的符号差值。date 相减直接得到相隔天数。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="两个日期" tabindex="0">
+<table class="sql-result"><caption>两个日期</caption>
+<thead><tr><th scope="col">起日</th><th scope="col">止日</th></tr></thead>
+<tbody>
+<tr><td><code>2025-01-01</code></td><td><code>2025-03-02</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT EXTRACT(isodow FROM DATE &#x27;2025-03-02&#x27;) AS iso_weekday,
+       date_part(&#x27;year&#x27;, TIMESTAMP &#x27;2025-03-02 00:00:00&#x27;) AS year,
+       EXTRACT(month FROM age(DATE &#x27;2025-03-02&#x27;, DATE &#x27;2025-01-01&#x27;)) AS age_months,
+       EXTRACT(day FROM age(DATE &#x27;2025-03-02&#x27;, DATE &#x27;2025-01-01&#x27;)) AS age_days,
+       DATE &#x27;2025-03-02&#x27; - DATE &#x27;2025-01-01&#x27; AS elapsed_days;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT EXTRACT(isodow FROM DATE &#x27;2025-03-02&#x27;) AS iso_weekday,
+       date_part(&#x27;year&#x27;, TIMESTAMP &#x27;2025-03-02 00:00:00&#x27;) AS year,
+       EXTRACT(month FROM age(DATE &#x27;2025-03-02&#x27;, DATE &#x27;2025-01-01&#x27;)) AS age_months,
+       EXTRACT(day FROM age(DATE &#x27;2025-03-02&#x27;, DATE &#x27;2025-01-01&#x27;)) AS age_days,
+       DATE &#x27;2025-03-02&#x27; - DATE &#x27;2025-01-01&#x27; AS elapsed_days;</code></span></caption>
+<thead><tr><th scope="col">iso_weekday</th><th scope="col">year</th><th scope="col">age_months</th><th scope="col">age_days</th><th scope="col">elapsed_days</th></tr></thead>
+<tbody>
+<tr><td><code>7</code></td><td><code>2025</code></td><td><code>2</code></td><td><code>1</code></td><td><code>60</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-datetime.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="clock-scope" class="point" data-dialects="postgresql">
+<h2>事务时间、语句时间与墙钟时间</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">显式 MATERIALIZED CTE 自 PostgreSQL 12 起可用。</span></p>
+<p>transaction_timestamp()、now() 和 CURRENT_TIMESTAMP 固定在当前事务开始。statement_timestamp() 固定在当前语句开始。clock_timestamp() 读取实际时钟，同一语句内也可能变化。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="时间来源与观测范围" tabindex="0">
+<table class="sql-result"><caption>时间来源与观测范围</caption>
+<thead><tr><th scope="col">调用</th><th scope="col">此例检查</th></tr></thead>
+<tbody>
+<tr><td><code>now() / CURRENT_TIMESTAMP</code></td><td><code>同一事务开始时间</code></td></tr>
+<tr><td><code>statement_timestamp()</code></td><td><code>同一语句两次调用</code></td></tr>
+<tr><td><code>clock_timestamp()</code></td><td><code>等待 50 毫秒前后</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH sampled AS MATERIALIZED (SELECT clock_timestamp() AS at_start),
+waited AS MATERIALIZED (
+  SELECT at_start, pg_sleep(0.05) FROM sampled
+)
+SELECT transaction_timestamp() = CURRENT_TIMESTAMP AS txn_same,
+       now() = CURRENT_TIMESTAMP AS now_same,
+       statement_timestamp() = statement_timestamp() AS statement_same,
+       clock_timestamp() &gt; at_start AS wall_clock_advanced
+FROM waited;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH sampled AS MATERIALIZED (SELECT clock_timestamp() AS at_start),
+waited AS MATERIALIZED (
+  SELECT at_start, pg_sleep(0.05) FROM sampled
+)
+SELECT transaction_timestamp() = CURRENT_TIMESTAMP AS txn_same,
+       now() = CURRENT_TIMESTAMP AS now_same,
+       statement_timestamp() = statement_timestamp() AS statement_same,
+       clock_timestamp() &gt; at_start AS wall_clock_advanced
+FROM waited;</code></span></caption>
+<thead><tr><th scope="col">txn_same</th><th scope="col">now_same</th><th scope="col">statement_same</th><th scope="col">wall_clock_advanced</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>true</code></td><td><code>true</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">墙钟结果是正常系统时钟下的预期值。系统时钟若被向后校时，最后一列可能不同。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT">PostgreSQL 官方文档</a></p>
+</section>
+<section id="daylight-boundary" class="point" data-dialects="postgresql">
+<h2>时区切换与夏令时边界</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>固定偏移量可明确定位时刻。AT TIME ZONE 将时刻显示为指定时区的钟面时间。夏令时切换时，两个本地时间的读数差可以不同于实际经过的时间。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="纽约进入夏令时前后的两个时刻" tabindex="0">
+<table class="sql-result"><caption>纽约进入夏令时前后的两个时刻</caption>
+<thead><tr><th scope="col">较早 UTC 时刻</th><th scope="col">较晚 UTC 时刻</th><th scope="col">展示时区</th></tr></thead>
+<tbody>
+<tr><td><code>2025-03-09 06:30:00+00</code></td><td><code>2025-03-09 07:30:00+00</code></td><td><code>America/New_York</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH src(a,b) AS (VALUES (TIMESTAMPTZ &#x27;2025-03-09 06:30:00+00&#x27;,
+                           TIMESTAMPTZ &#x27;2025-03-09 07:30:00+00&#x27;))
+SELECT to_char(a AT TIME ZONE &#x27;America/New_York&#x27;,&#x27;HH24:MI&#x27;) AS first_local,
+       to_char(b AT TIME ZONE &#x27;America/New_York&#x27;,&#x27;HH24:MI&#x27;) AS second_local,
+       (EXTRACT(epoch FROM (b - a)) / 60)::int AS elapsed_minutes
+FROM src;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH src(a,b) AS (VALUES (TIMESTAMPTZ &#x27;2025-03-09 06:30:00+00&#x27;,
+                           TIMESTAMPTZ &#x27;2025-03-09 07:30:00+00&#x27;))
+SELECT to_char(a AT TIME ZONE &#x27;America/New_York&#x27;,&#x27;HH24:MI&#x27;) AS first_local,
+       to_char(b AT TIME ZONE &#x27;America/New_York&#x27;,&#x27;HH24:MI&#x27;) AS second_local,
+       (EXTRACT(epoch FROM (b - a)) / 60)::int AS elapsed_minutes
+FROM src;</code></span></caption>
+<thead><tr><th scope="col">first_local</th><th scope="col">second_local</th><th scope="col">elapsed_minutes</th></tr></thead>
+<tbody>
+<tr><td><code>01:30</code></td><td><code>03:30</code></td><td><code>60</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-datetime.html#FUNCTIONS-DATETIME-ZONECONVERT">PostgreSQL 官方文档</a></p>
+</section>
+<section id="calendar-day-zone" class="point" data-dialects="postgresql">
+<h2>date_add 与 date_subtract 采用指定时区的日历</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">date_add 与 date_subtract 自 PostgreSQL 16 起可用。</span></p>
+<p>以纽约的夏令时切换为例。按日历加一天保持本地正午，实际只过 23 小时。若加固定 24 小时，本地时间变成下午 1 点。date_subtract 使用同一时区规则往回算。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="纽约切换前的本地时间" tabindex="0">
+<table class="sql-result"><caption>纽约切换前的本地时间</caption>
+<thead><tr><th scope="col">起始时刻</th><th scope="col">日历及固定时长</th><th scope="col">时区</th></tr></thead>
+<tbody>
+<tr><td><code>2025-03-08 12:00:00-05</code></td><td><code>1 day / 24 hours</code></td><td><code>America/New_York</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH src(ts) AS (VALUES (TIMESTAMPTZ &#x27;2025-03-08 12:00:00-05&#x27;)),
+steps AS (
+  SELECT ts, date_add(ts, INTERVAL &#x27;1 day&#x27;,&#x27;America/New_York&#x27;) AS next_day
+  FROM src
+)
+SELECT to_char(next_day AT TIME ZONE &#x27;America/New_York&#x27;,&#x27;HH24:MI&#x27;) AS calendar_day,
+       to_char((ts + INTERVAL &#x27;24 hours&#x27;) AT TIME ZONE &#x27;America/New_York&#x27;,
+               &#x27;HH24:MI&#x27;) AS fixed_hours,
+       (EXTRACT(epoch FROM next_day - ts) / 3600)::int AS elapsed_hours,
+       date_subtract(next_day, INTERVAL &#x27;1 day&#x27;,&#x27;America/New_York&#x27;) = ts AS roundtrip
+FROM steps;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH src(ts) AS (VALUES (TIMESTAMPTZ &#x27;2025-03-08 12:00:00-05&#x27;)),
+steps AS (
+  SELECT ts, date_add(ts, INTERVAL &#x27;1 day&#x27;,&#x27;America/New_York&#x27;) AS next_day
+  FROM src
+)
+SELECT to_char(next_day AT TIME ZONE &#x27;America/New_York&#x27;,&#x27;HH24:MI&#x27;) AS calendar_day,
+       to_char((ts + INTERVAL &#x27;24 hours&#x27;) AT TIME ZONE &#x27;America/New_York&#x27;,
+               &#x27;HH24:MI&#x27;) AS fixed_hours,
+       (EXTRACT(epoch FROM next_day - ts) / 3600)::int AS elapsed_hours,
+       date_subtract(next_day, INTERVAL &#x27;1 day&#x27;,&#x27;America/New_York&#x27;) = ts AS roundtrip
+FROM steps;</code></span></caption>
+<thead><tr><th scope="col">calendar_day</th><th scope="col">fixed_hours</th><th scope="col">elapsed_hours</th><th scope="col">roundtrip</th></tr></thead>
+<tbody>
+<tr><td><code>12:00</code></td><td><code>13:00</code></td><td><code>23</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-datetime.html">PostgreSQL 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#like-similar">ILIKE 忽略大小写，SIMILAR TO 按模式匹配</a></li>
+<li><a href="#posix-operators">用正则运算符检查匹配与否</a></li>
+<li><a href="#regexp-position">用正则判断匹配、计数、定位和取值</a></li>
+<li><a href="#regexp-captures">regexp_match 与 regexp_matches 返回捕获组</a></li>
+<li><a href="#regexp-replace">regexp_replace 的首次、全部和第 N 次替换</a></li>
+<li><a href="#regexp-split">按正则把文本拆成数组或行</a></li>
+<li><a href="#format-quote">格式化文本并引用标识符或字面量</a></li>
+<li><a href="#string-operators">字符串运算符和 NULL 拼接</a></li>
+<li><a href="#char-byte-encoding">字符长度、字节长度与 UTF-8 转换</a></li>
+<li><a href="#unicode-collation">Unicode 规范化与排序规则</a></li>
+<li><a href="#round-time">将时间对齐到日历或固定间隔</a></li>
+<li><a href="#date-parts-age">EXTRACT、date_part、age 与日历差</a></li>
+<li><a href="#clock-scope">事务时间、语句时间与墙钟时间</a></li>
+<li><a href="#daylight-boundary">时区切换与夏令时边界</a></li>
+<li><a href="#calendar-day-zone">date_add 与 date_subtract 采用指定时区的日历</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="41-postgresql-types.html">← 内置类型与类型行为</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="43-postgresql-documents.html">数组、JSONB、SQL/JSON、XML 与全文 →</a></nav>
+</main>
+</body>
+</html>

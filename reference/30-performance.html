@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>改善性能 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 30 章 · 原书第 209–211 页</p>
+<h1>改善性能</h1>
+<p class="lead" data-dialects="mysql">从复现慢语句开始，用执行计划、真实运行数据和正确性核对逐步定位原因。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-plans"><h2>定位慢操作</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>看当前会话与服务器指标，避免凭单次延迟猜原因。PROCESSLIST 可看活动线程，可见范围受权限影响。慢日志与 Performance Schema 可帮助高频查询按总耗时排序。</p>
+<p class="version-note"><strong>过时 · 已弃用</strong> <code>INFORMATION_SCHEMA.PROCESSLIST</code> 和依赖该表的 <code>SHOW PROCESSLIST</code> 实现已弃用。<code>SHOW PROCESSLIST</code> 语句仍可用。也可直接查 <code>performance_schema.processlist</code>。<a href="https://dev.mysql.com/doc/refman/26.10/en/show-processlist.html">MySQL PROCESSLIST 说明</a>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SHOW FULL PROCESSLIST;
+SHOW SESSION STATUS LIKE &#x27;Questions&#x27;;
+SHOW GLOBAL VARIABLES LIKE &#x27;innodb_buffer_pool_size&#x27;;
+SHOW GLOBAL STATUS LIKE &#x27;Threads_running&#x27;;
+SELECT DIGEST_TEXT, COUNT_STAR, ROUND(SUM_TIMER_WAIT / 1000000000000, 6) AS total_seconds
+FROM performance_schema.events_statements_summary_by_digest
+WHERE SCHEMA_NAME = &#x27;learn_sql_lab&#x27;
+ORDER BY SUM_TIMER_WAIT DESC LIMIT 5;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　已有 MySQL 会话、InnoDB 缓冲池和可用的状态计数。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SHOW FULL PROCESSLIST;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Id</th><th scope="col">User</th><th scope="col">db</th><th scope="col">Command</th><th scope="col">Info</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>17</code></td><td><code>root</code></td><td><code>learn_sql_lab</code></td><td><code>Query</code></td><td><code>SHOW FULL PROCESSLIST</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SHOW SESSION STATUS LIKE &#x27;Questions&#x27;;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Variable_name</th><th scope="col">Value</th></tr></thead>
+<tbody>
+<tr><td><code>Questions</code></td><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SHOW GLOBAL VARIABLES LIKE &#x27;innodb_buffer_pool_size&#x27;;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Variable_name</th><th scope="col">Value</th></tr></thead>
+<tbody>
+<tr><td><code>innodb_buffer_pool_size</code></td><td class="sql-number"><code>134217728</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SHOW GLOBAL STATUS LIKE &#x27;Threads_running&#x27;;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">Variable_name</th><th scope="col">Value</th></tr></thead>
+<tbody>
+<tr><td><code>Threads_running</code></td><td class="sql-number"><code>2</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DIGEST_TEXT, COUNT_STAR, ROUND(SUM_TIMER_WAIT / 1000000000000, 6) AS total_seconds FROM performance_schema.events_statements_summary_by_digest WHERE SCHEMA_NAME = &#x27;learn_sql_lab&#x27; ORDER BY SUM_TIMER_WAIT DESC LIMIT 5;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">DIGEST_TEXT</th><th scope="col">COUNT_STAR</th><th scope="col">total_seconds</th></tr></thead>
+<tbody>
+<tr><td><code>SELECT NAME FROM PRODUCTS WHERE PRODUCT_ID = ?</code></td><td class="sql-number"><code>4</code></td><td class="sql-number"><code>0.000200</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　得进程列表、Questions、缓冲池字节数、活动线程数。已采集的语句摘要还显示调用次数和累计秒数。</p>
+<p class="outcome">第一条显示当前会话及有权看到的线程。服务器变量给出缓冲池字节数，状态给出非休眠线程数。摘要表有采集数据时列出同类语句的次数和累计耗时（秒）。先区分单次慢、调用太多和等待锁。</p>
+</details>
+</div>
+<p>在开启 Performance Schema 的练习实例里，可先确认自己的连接出现在推荐的进程表中。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT COUNT(*) AS visible_current_connection
+FROM performance_schema.processlist
+WHERE ID = CONNECTION_ID();</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　当前客户端已连接服务器。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*) AS visible_current_connection FROM performance_schema.processlist WHERE ID = CONNECTION_ID();</code></span></caption>
+<thead><tr><th scope="col">visible_current_connection</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+</tbody>
+</table></div></div>
+</section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-plans"><h2>只终止自己发起的长查询</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>KILL QUERY 结束指定连接中的当前查询，该连接仍可接受下一条语句。只在练习实例对自己的测试会话操作。</p>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code data-kind="sql-manual">-- A：先记录第一条的数字，再运行睡眠查询。
+SELECT CONNECTION_ID();
+SELECT SLEEP(30);</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　连接 A 已登录，尚无演示长查询。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT CONNECTION_ID();</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">表达式</th><th scope="col">返回值</th></tr></thead>
+<tbody>
+<tr><td><code>CONNECTION_ID()</code></td><td><code>123</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT SLEEP(30);</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">表达式</th><th scope="col">返回值</th></tr></thead>
+<tbody>
+<tr><td><code>SLEEP(30)</code></td><td><code>0（自然结束时）</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　第一条返回 A 的连接编号。第二条开始睡眠。若不中止，约 30 秒后返回 <code>0</code>。</p>
+</details>
+</div>
+<figure><figcaption>样例</figcaption><pre><code data-kind="text">-- B：将 123 换成刚记录的 A 连接编号。
+KILL QUERY 123;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　连接 B 已登录，连接 A 正执行演示睡眠，已记录 A 的编号。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>KILL QUERY 123;</code><span class="sql-caption-context">连接 A 的结果</span></span></caption>
+<thead><tr><th scope="col">SLEEP(30)</th><th scope="col">连接 A</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>连接仍然可用</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　在睡眠期间中止后，A 的本次 SLEEP 返回 <code>1</code>，原连接仍可执行下一条 SQL。</p>
+<p class="outcome">在 30 秒内成功中止时，A 的单独 SLEEP 调用返回 1，随后仍可执行 SELECT 1。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-plans"><h2>比较计划与实际执行</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>EXPLAIN 展示访问顺序、访问方法、可能使用的键、所选键及预计行数。EXPLAIN ANALYZE 会真正执行示例查询，带回每步耗时、行数和循环数。默认给出 TREE，MySQL 9.0 起也可将 JSON v2 结果保存至变量。<a href="mysql-versions.html#plans">查看 26.10 的分区裁剪示例</a>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">EXPLAIN FORMAT=TRADITIONAL SELECT name FROM products WHERE product_id = 1;
+EXPLAIN ANALYZE SELECT name FROM products WHERE price &gt;= 20;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>EXPLAIN FORMAT=TRADITIONAL SELECT name FROM products WHERE product_id = 1;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">select_type</th><th scope="col">table</th><th scope="col">partitions</th><th scope="col">type</th><th scope="col">possible_keys</th><th scope="col">key</th><th scope="col">key_len</th><th scope="col">ref</th><th scope="col">rows</th><th scope="col">filtered</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SIMPLE</code></td><td><code>products</code></td><td class="sql-null"><code>NULL</code></td><td><code>const</code></td><td><code>PRIMARY</code></td><td><code>PRIMARY</code></td><td class="sql-number"><code>4</code></td><td><code>const</code></td><td class="sql-number"><code>1</code></td><td class="sql-number"><code>100.00</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>EXPLAIN ANALYZE SELECT name FROM products WHERE price &gt;= 20;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">EXPLAIN</th></tr></thead>
+<tbody>
+<tr><td><code>-&gt; Filter: (products.price &gt;= 20.00)  (cost=0.75 rows=1.67) (actual time=0.00867..0.0113 rows=3 loops=1)
+    -&gt; Table scan on products  (cost=0.75 rows=5) (actual time=0.00437..0.0065 rows=5 loops=1)
+</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　商品表主键为 product_id，初始 price 无索引。五件里三件价格至少为 20。</p><p><strong>执行后</strong>　等值查询计划选 <code>PRIMARY / const</code>。EXPLAIN ANALYZE 展示扫描 5 行、过滤后发出 3 行。</p>
+<p class="outcome">第一条预期用 PRIMARY 定位唯一行。第二条预计扫描并由过滤器输出三行，具体计时随实例变化。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-index-keyset"><h2>复合索引、列顺序与可搜索条件</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>复合索引优先利用左侧连续前缀，例如索引 (category, price) 先按类别，再按价格缩小范围。直接比较索引列可保留更多范围访问机会。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch30_products LIKE products;
+INSERT INTO ch30_products SELECT * FROM products;
+CREATE INDEX ch30_cat_price ON ch30_products (category, price);
+EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products WHERE category = &#x27;book&#x27; AND price &gt;= 25;
+EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products WHERE price &gt;= 25;
+SELECT product_id FROM ch30_products WHERE category = &#x27;book&#x27; AND price &gt;= 25 ORDER BY product_id;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products WHERE category = &#x27;book&#x27; AND price &gt;= 25;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">select_type</th><th scope="col">table</th><th scope="col">partitions</th><th scope="col">type</th><th scope="col">possible_keys</th><th scope="col">key</th><th scope="col">key_len</th><th scope="col">ref</th><th scope="col">rows</th><th scope="col">filtered</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SIMPLE</code></td><td><code>ch30_products</code></td><td class="sql-null"><code>NULL</code></td><td><code>range</code></td><td><code>ch30_cat_price</code></td><td><code>ch30_cat_price</code></td><td class="sql-number"><code>126</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>100.00</code></td><td><code>Using where; Using index</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products WHERE price &gt;= 25;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">select_type</th><th scope="col">table</th><th scope="col">partitions</th><th scope="col">type</th><th scope="col">possible_keys</th><th scope="col">key</th><th scope="col">key_len</th><th scope="col">ref</th><th scope="col">rows</th><th scope="col">filtered</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SIMPLE</code></td><td><code>ch30_products</code></td><td class="sql-null"><code>NULL</code></td><td><code>index</code></td><td><code>ch30_cat_price</code></td><td><code>ch30_cat_price</code></td><td class="sql-number"><code>126</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>5</code></td><td class="sql-number"><code>33.33</code></td><td><code>Using where; Using index</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT product_id FROM ch30_products WHERE category = &#x27;book&#x27; AND price &gt;= 25 ORDER BY product_id;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　源表有五件商品，当前连接尚无临时副本或其复合索引。</p><p><strong>执行后</strong>　建索引后，样例计划对类别和价格走 <code>range</code>，仅按价格可能走全索引扫描。实际查询返回 <code>[2,5]</code>。</p>
+<p class="outcome">查询结果为 2、5。第一条计划可用复合键，第二条缺前导列时常改成扫描或选择其他访问方式。样例表很小，计划由成本决定。本章索引只建在当前会话的临时表，按页顺序在同一连接执行。索引多了会占空间并增加写入成本。</p>
+</details>
+</div></section>
+<section id="p5" class="point" data-dialects="mysql" data-alternate-anchor="dial-plans"><h2>对照前缀搜索与时间范围</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>查看计划时要确认使用的是范围访问，完整扫描索引与按索引定位起点的开销不同。比较两条 LIKE 或两条日期写法时先验证命中集。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE INDEX ch30_name ON ch30_products (name);
+EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products WHERE name LIKE &#x27;SQL%&#x27;;
+EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products WHERE name LIKE &#x27;%SQL%&#x27;;
+SELECT product_id FROM ch30_products WHERE name LIKE &#x27;SQL%&#x27; ORDER BY product_id;
+SELECT product_id FROM ch30_products WHERE name LIKE &#x27;%SQL%&#x27; ORDER BY product_id;
+CREATE INDEX ch30_listed ON ch30_products (listed_on);
+EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products
+WHERE YEAR(listed_on) = 2025 AND MONTH(listed_on) = 2;
+EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products
+WHERE listed_on &gt;= &#x27;2025-02-01&#x27; AND listed_on &lt; &#x27;2025-03-01&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products WHERE name LIKE &#x27;SQL%&#x27;;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">select_type</th><th scope="col">table</th><th scope="col">partitions</th><th scope="col">type</th><th scope="col">possible_keys</th><th scope="col">key</th><th scope="col">key_len</th><th scope="col">ref</th><th scope="col">rows</th><th scope="col">filtered</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SIMPLE</code></td><td><code>ch30_products</code></td><td class="sql-null"><code>NULL</code></td><td><code>range</code></td><td><code>ch30_name</code></td><td><code>ch30_name</code></td><td class="sql-number"><code>242</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>3</code></td><td class="sql-number"><code>100.00</code></td><td><code>Using where; Using index</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products WHERE name LIKE &#x27;%SQL%&#x27;;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">select_type</th><th scope="col">table</th><th scope="col">partitions</th><th scope="col">type</th><th scope="col">possible_keys</th><th scope="col">key</th><th scope="col">key_len</th><th scope="col">ref</th><th scope="col">rows</th><th scope="col">filtered</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SIMPLE</code></td><td><code>ch30_products</code></td><td class="sql-null"><code>NULL</code></td><td><code>index</code></td><td class="sql-null"><code>NULL</code></td><td><code>ch30_name</code></td><td class="sql-number"><code>242</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>5</code></td><td class="sql-number"><code>20.00</code></td><td><code>Using where; Using index</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 3" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">3 · </span><code>SELECT product_id FROM ch30_products WHERE name LIKE &#x27;SQL%&#x27; ORDER BY product_id;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details"><summary>显示其余 3 个结果表</summary>
+<div class="sql-grid-viewport" role="region" aria-label="结果 4" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">4 · </span><code>SELECT product_id FROM ch30_products WHERE name LIKE &#x27;%SQL%&#x27; ORDER BY product_id;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">product_id</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 5" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">5 · </span><code>EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products WHERE YEAR(listed_on) = 2025 AND MONTH(listed_on) = 2;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">select_type</th><th scope="col">table</th><th scope="col">partitions</th><th scope="col">type</th><th scope="col">possible_keys</th><th scope="col">key</th><th scope="col">key_len</th><th scope="col">ref</th><th scope="col">rows</th><th scope="col">filtered</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SIMPLE</code></td><td><code>ch30_products</code></td><td class="sql-null"><code>NULL</code></td><td><code>index</code></td><td class="sql-null"><code>NULL</code></td><td><code>ch30_listed</code></td><td class="sql-number"><code>3</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>5</code></td><td class="sql-number"><code>100.00</code></td><td><code>Using where; Using index</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 6" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">6 · </span><code>EXPLAIN FORMAT=TRADITIONAL SELECT product_id FROM ch30_products WHERE listed_on &gt;= &#x27;2025-02-01&#x27; AND listed_on &lt; &#x27;2025-03-01&#x27;;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">id</th><th scope="col">select_type</th><th scope="col">table</th><th scope="col">partitions</th><th scope="col">type</th><th scope="col">possible_keys</th><th scope="col">key</th><th scope="col">key_len</th><th scope="col">ref</th><th scope="col">rows</th><th scope="col">filtered</th><th scope="col">Extra</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SIMPLE</code></td><td><code>ch30_products</code></td><td class="sql-null"><code>NULL</code></td><td><code>range</code></td><td><code>ch30_listed</code></td><td><code>ch30_listed</code></td><td class="sql-number"><code>3</code></td><td class="sql-null"><code>NULL</code></td><td class="sql-number"><code>2</code></td><td class="sql-number"><code>100.00</code></td><td><code>Using where; Using index</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　三个商品名以 SQL 开头，商品 2、3 在二月上架。</p><p><strong>执行后</strong>　两种 LIKE 都返回 <code>[1,2,5]</code>，固定前缀计划可走范围。两种日期条件筛选同一月份。样例中 YEAR/MONTH 的计划是 <code>type=index</code>，半开区间为 <code>type=range</code>。</p>
+<p class="outcome">两种模式在本数据上均命中 1、2、5，但固定前缀可做索引范围访问，前置 % 往往需扫描。FULLTEXT 按词或指定分词查找，适合<a href="18-fulltext.html">第 18 章</a>的检索需求。末两条条件均命中 2、3，半开区间可直接利用日期索引范围。</p>
+</details>
+</div></section>
+<section id="p6" class="point" data-dialects="mysql" data-alternate-anchor="dial-index-keyset"><h2>减少回传、重复查询与深分页</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>只取所需列和行，用批量查询或联结减少重复访问。大偏移分页可改用上页最后一个稳定的排序键。数据变化时应按业务决定一致性要求。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT product_id, name FROM products ORDER BY product_id LIMIT 2 OFFSET 2;
+SELECT product_id, name FROM products WHERE product_id &gt; 2 ORDER BY product_id LIMIT 2;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT product_id, name FROM products ORDER BY product_id LIMIT 2 OFFSET 2;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT product_id, name FROM products WHERE product_id &gt; 2 ORDER BY product_id LIMIT 2;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　升序编号为 1–5，上页最后的编号是 2。</p><p><strong>执行后</strong>　跳过两行或从 2 之后查，都得到 <code>3 | Notebook</code>、<code>4 | Pen</code>。</p>
+<p class="outcome">在原始数据中，两条都得到 3、4。第二条可从主键 2 之后继续走。</p>
+</details>
+</div></section>
+<section id="p7" class="point" data-dialects="mysql" data-alternate-anchor="dial-plans"><h2>比较改写与批量写入</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>优化前先核对输出，语句更短未必执行更快。用<a href="17-set-operations.html">第 17 章</a>的 OR 和 UNION 对照，可验证两条都得编号 1–5。联结与子查询的同题对照见<a href="14-subqueries.html">第 14 章</a>和<a href="15-joins.html">第 15 章</a>。</p>
+<p class="version-note"><strong>过时 · 功能已取消</strong> <code>INSERT DELAYED</code> 已失去延后写入的语义。26.10 仍识别关键字，转换为普通 <code>INSERT</code> 并发出警告 3005。<a href="https://dev.mysql.com/doc/refman/26.10/en/insert-delayed.html">MySQL DELAYED 说明</a>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE TEMPORARY TABLE ch30_import (id INT PRIMARY KEY, amount DECIMAL(8,2)) ENGINE=InnoDB;
+START TRANSACTION;
+INSERT INTO ch30_import VALUES (1, 0.10), (2, 0.20);
+COMMIT;
+SELECT COUNT(*), SUM(amount) FROM ch30_import;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　导入临时表为空，输入金额为 0.10 与 0.20。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT COUNT(*), SUM(amount) FROM ch30_import;</code></span></caption>
+<thead><tr><th scope="col">COUNT(*)</th><th scope="col">SUM(amount)</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>0.30</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　提交后为 <code>2 行</code>，DECIMAL 合计 <code>0.30</code>。</p>
+<p class="outcome">导入 2 行，精确合计 0.30。大批量导入可分批提交。</p>
+</details>
+</div></section>
+<section id="dial-plans" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>执行计划与实际耗时</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>先查访问路径和预计行数，再看实际执行。PostgreSQL EXPLAIN ANALYZE 会运行 SQL。SQL Server 可从 SSMS 打开实际执行计划，IO 和 TIME 统计在 SSMS 的 Messages 页签。两种数据库的计划、时间和页读取数都随数据量与环境变化。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 执行前练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>EXPLAIN (ANALYZE, BUFFERS)
+SELECT product_id,name FROM products WHERE product_id=1;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXPLAIN (ANALYZE, BUFFERS) SELECT product_id,name FROM products WHERE product_id=1;</code></span></caption>
+<thead><tr><th scope="col">QUERY PLAN</th></tr></thead>
+<tbody>
+<tr><td><code>Seq Scan on products  (cost=0.00..1.06 rows=1 width=12) (actual time=0.017..0.027 rows=1.00 loops=1)</code></td></tr>
+<tr><td><code>  Filter: (product_id = 1)</code></td></tr>
+<tr><td><code>  Rows Removed by Filter: 4</code></td></tr>
+<tr><td><code>  Buffers: shared hit=1</code></td></tr>
+<tr><td><code>Planning:</code></td></tr>
+<tr><td><code>  Buffers: shared hit=17</code></td></tr>
+<tr><td><code>Planning Time: 0.041 ms</code></td></tr>
+<tr><td><code>Execution Time: 0.072 ms</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SET STATISTICS IO ON;
+SET STATISTICS TIME ON;
+SELECT product_id,name FROM products WHERE product_id=1;
+SET STATISTICS IO OFF;
+SET STATISTICS TIME OFF;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id,name FROM products WHERE product_id=1;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-explain.html">PostgreSQL EXPLAIN</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-io-transact-sql">SQL Server STATISTICS IO</a></p>
+</section>
+<section id="dial-index-keyset" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p4">
+<h2>复合索引、前缀与继续翻页</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>复合索引列顺序影响可用的搜索前缀。下一页从上一页的最后一个唯一排序键继续查。本例上一页的末键是 1，每页最多取两行。索引辅助类别和价格筛选，优化器再决定如何满足排序。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 执行前练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 执行前练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th><th scope="col">listed_on</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td><td><code>2025-02-01</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td><td><code>2025-03-01</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td><td><code>2025-03-01</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE INDEX notes_product_category_price ON products(category,price);
+SELECT product_id,price FROM products WHERE category=&#x27;book&#x27; AND price&gt;=25 AND product_id&gt;1 ORDER BY product_id LIMIT 2;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id,price FROM products WHERE category=&#x27;book&#x27; AND price&gt;=25 AND product_id&gt;1 ORDER BY product_id LIMIT 2;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE INDEX notes_product_category_price ON products(category,price);
+SELECT TOP (2) product_id,price FROM products WHERE category=&#x27;book&#x27; AND price&gt;=25 AND product_id&gt;1 ORDER BY product_id;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT TOP (2) product_id,price FROM products WHERE category=&#x27;book&#x27; AND price&gt;=25 AND product_id&gt;1 ORDER BY product_id;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>EXPLAIN ANALYZE 返回的 rows 和 loops 有什么用？</p><details><summary>查看答案</summary><p>计划里的估计与实际行数差很大时，可检查统计、条件和数据偏斜。loops 多说明这个算子被反复调用，应结合联结顺序及每轮耗时阅读。</p></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/optimization.html">优化</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/explain.html">EXPLAIN</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/multiple-column-indexes.html">多列索引</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/performance-schema.html">Performance Schema</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="mysql"><a href="#p1">定位慢操作</a></li><li data-dialects="mysql"><a href="#p2">只终止自己发起的长查询</a></li><li data-dialects="mysql"><a href="#p3">对照预估行数和实际执行结果</a></li><li data-dialects="mysql"><a href="#p4">复合索引、列顺序与可搜索条件</a></li><li data-dialects="mysql"><a href="#p5">用前缀或时间范围保留索引机会</a></li><li data-dialects="mysql"><a href="#p6">减少回传、重复查询与深分页</a></li><li data-dialects="mysql"><a href="#p7">比较改写查询和批量写入的代价</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-plans">执行计划与实际耗时</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-index-keyset">复合索引、前缀与继续翻页</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="29-maintenance.html">← 数据库维护</a><a href="../v1.html">章节目录</a><a rel="next" href="31-appendices.html">附录速查 →</a></nav>
+</main>
+</body></html>

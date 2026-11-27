@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="zh-CN" data-native-dialect="postgresql">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>41 · PostgreSQL · 内置类型与类型行为 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 41 章 · 原生语法</p>
+<h1>PostgreSQL · 内置类型与类型行为</h1>
+<p class="lead">用独立小例子选择列类型，观察取值范围、默认转换和索引行为。除注明版本门槛的写法外，示例以 PostgreSQL 19 的语法为基线。</p>
+<div class="layout"><article class="content">
+<section id="numeric-money" class="point" data-dialects="postgresql">
+<h2>精确小数、浮点特殊值与 money</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">numeric 的 Infinity 自 PostgreSQL 14 起可用。</span></p>
+<p>numeric 保留十进制精度，real 和 double precision 是近似值。PostgreSQL 排序把 NaN 放在普通数字之后，并视两个 NaN 相等。未约束精度的 numeric 可用正负 Infinity。money 的显示和小数位由 lc_monetary 决定，金额通常以 numeric 和独立的币种列存储。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待转换的值" tabindex="0">
+<table class="sql-result"><caption>待转换的值</caption>
+<thead><tr><th scope="col">原始数值</th><th scope="col">目标类型</th></tr></thead>
+<tbody>
+<tr><td><code>12.345</code></td><td><code>numeric(8,2)</code></td></tr>
+<tr><td><code>NaN</code></td><td><code>double precision</code></td></tr>
+<tr><td><code>-Infinity</code></td><td><code>numeric</code></td></tr>
+<tr><td><code>125</code></td><td><code>money</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT 12.345::numeric(8,2) AS rounded,
+       &#x27;NaN&#x27;::double precision &gt; 999::double precision AS nan_sorts_last,
+       &#x27;NaN&#x27;::double precision = &#x27;NaN&#x27;::double precision AS nan_equals_nan,
+       &#x27;-Infinity&#x27;::numeric &lt; 0 AS below_zero,
+       (125::numeric::money)::numeric(8,2) AS money_roundtrip;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT 12.345::numeric(8,2) AS rounded,
+       &#x27;NaN&#x27;::double precision &gt; 999::double precision AS nan_sorts_last,
+       &#x27;NaN&#x27;::double precision = &#x27;NaN&#x27;::double precision AS nan_equals_nan,
+       &#x27;-Infinity&#x27;::numeric &lt; 0 AS below_zero,
+       (125::numeric::money)::numeric(8,2) AS money_roundtrip;</code></span></caption>
+<thead><tr><th scope="col">rounded</th><th scope="col">nan_sorts_last</th><th scope="col">nan_equals_nan</th><th scope="col">below_zero</th><th scope="col">money_roundtrip</th></tr></thead>
+<tbody>
+<tr><td><code>12.35</code></td><td><code>true</code></td><td><code>true</code></td><td><code>true</code></td><td><code>125.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">小整数类型为 smallint、integer、bigint。浮点输入可写 Infinity、-Infinity、NaN。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/datatype-numeric.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="serial-identity" class="point" data-dialects="postgresql">
+<h2>serial 与 GENERATED AS IDENTITY</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">identity 自 PostgreSQL 10 起可用。</span></p>
+<p>serial 是创建 integer 列、序列及 nextval 默认值的简写。identity 是 SQL 标准列属性，同样通过隐式序列生成值。GENERATED ALWAYS 通常拒绝手写值，BY DEFAULT 可以用显式值覆盖。若要保证唯一，还需 PRIMARY KEY 或 UNIQUE。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="新建临时表的两列" tabindex="0">
+<table class="sql-result"><caption>新建临时表的两列</caption>
+<thead><tr><th scope="col">列</th><th scope="col">定义</th><th scope="col">初始状态</th></tr></thead>
+<tbody>
+<tr><td><code>legacy_id</code></td><td><code>serial</code></td><td><code>空表</code></td></tr>
+<tr><td><code>modern_id</code></td><td><code>bigint GENERATED ALWAYS AS IDENTITY</code></td><td><code>空表</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE ch41_ids (
+  legacy_id serial, modern_id bigint GENERATED ALWAYS AS IDENTITY
+);
+
+INSERT INTO ch41_ids DEFAULT VALUES
+RETURNING legacy_id, modern_id,
+          pg_typeof(legacy_id)::text AS legacy_type,
+          pg_typeof(modern_id)::text AS identity_type;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>INSERT INTO ch41_ids DEFAULT VALUES
+RETURNING legacy_id, modern_id,
+          pg_typeof(legacy_id)::text AS legacy_type,
+          pg_typeof(modern_id)::text AS identity_type;</code></span></caption>
+<thead><tr><th scope="col">legacy_id</th><th scope="col">modern_id</th><th scope="col">legacy_type</th><th scope="col">identity_type</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td><td><code>1</code></td><td><code>integer</code></td><td><code>bigint</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">两个序列分别分配编号。连续编号可能出现空档。重新开始此例可打开新连接。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/ddl-identity-columns.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="uuid" class="point" data-dialects="postgresql">
+<h2>uuid、随机 UUID 与按时间排序的 UUID</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">gen_random_uuid() 自 PostgreSQL 13 起属于核心；uuidv7() 和 uuid_extract_version() 自 18 起可用。</span></p>
+<p>uuid 是 128 位标识类型。gen_random_uuid() 生成随机 UUID v4，uuidv7() 生成带时间成分的 UUID v7。比较示例只展示类型和版本，具体 UUID 每次生成都可能改变。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="UUID 来源" tabindex="0">
+<table class="sql-result"><caption>UUID 来源</caption>
+<thead><tr><th scope="col">来源</th><th scope="col">输入</th></tr></thead>
+<tbody>
+<tr><td><code>UUID 字面量</code></td><td><code>019535d9-3df7-79fb-b466-fa907fa17f9e</code></td></tr>
+<tr><td><code>生成函数</code></td><td><code>gen_random_uuid() 与 uuidv7()</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT pg_typeof(uuidv7())::text AS generated_type,
+       uuid_extract_version(gen_random_uuid()) AS random_version,
+       uuid_extract_version(uuidv7()) AS time_version,
+       uuid_extract_version(&#x27;019535d9-3df7-79fb-b466-fa907fa17f9e&#x27;::uuid) AS literal_version;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT pg_typeof(uuidv7())::text AS generated_type,
+       uuid_extract_version(gen_random_uuid()) AS random_version,
+       uuid_extract_version(uuidv7()) AS time_version,
+       uuid_extract_version(&#x27;019535d9-3df7-79fb-b466-fa907fa17f9e&#x27;::uuid) AS literal_version;</code></span></caption>
+<thead><tr><th scope="col">generated_type</th><th scope="col">random_version</th><th scope="col">time_version</th><th scope="col">literal_version</th></tr></thead>
+<tbody>
+<tr><td><code>uuid</code></td><td><code>4</code></td><td><code>7</code></td><td><code>7</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-uuid.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="binary-bits" class="point" data-dialects="postgresql">
+<h2>bytea 保存字节，bit 保存位串</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>bytea 存原始字节。decode 和 encode 在二进制与可打印文本之间转换。bit(n) 是固定长度的位串，bit varying 允许不同长度。两边为等长位串时，&amp; 按位求与。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="字节与位串" tabindex="0">
+<table class="sql-result"><caption>字节与位串</caption>
+<thead><tr><th scope="col">十六进制字节</th><th scope="col">左位串</th><th scope="col">右位串</th></tr></thead>
+<tbody>
+<tr><td><code>00ff</code></td><td><code>1010</code></td><td><code>1100</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT octet_length(decode(&#x27;00ff&#x27;,&#x27;hex&#x27;)) AS byte_count,
+       encode(decode(&#x27;00ff&#x27;,&#x27;hex&#x27;),&#x27;hex&#x27;) AS printable_hex,
+       (B&#x27;1010&#x27; &amp; B&#x27;1100&#x27;)::text AS bit_and,
+       bit_length(B&#x27;1010&#x27;::bit varying) AS bit_count;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT octet_length(decode(&#x27;00ff&#x27;,&#x27;hex&#x27;)) AS byte_count,
+       encode(decode(&#x27;00ff&#x27;,&#x27;hex&#x27;),&#x27;hex&#x27;) AS printable_hex,
+       (B&#x27;1010&#x27; &amp; B&#x27;1100&#x27;)::text AS bit_and,
+       bit_length(B&#x27;1010&#x27;::bit varying) AS bit_count;</code></span></caption>
+<thead><tr><th scope="col">byte_count</th><th scope="col">printable_hex</th><th scope="col">bit_and</th><th scope="col">bit_count</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>00ff</code></td><td><code>1000</code></td><td><code>4</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">字节字符串与位串都有自己的函数和操作符。按位运算的 1000 是文本显示的二进制位串。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-binarystring.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="timestamp-tz" class="point" data-dialects="postgresql">
+<h2>timestamp、timestamptz 与 AT TIME ZONE</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>timestamp 保存钟面日期和时间。timestamptz 代表一个时刻，显示时采用会话时区，输入的原始时区名称不会保留。无时区值 AT TIME ZONE 指定如何解释它，有时区值 AT TIME ZONE 则产生目标区的无时区钟面时间。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="同一时刻的两个表示" tabindex="0">
+<table class="sql-result"><caption>同一时刻的两个表示</caption>
+<thead><tr><th scope="col">东京本地时间</th><th scope="col">偏移表示</th><th scope="col">展示时区</th></tr></thead>
+<tbody>
+<tr><td><code>2025-02-01 09:00:00</code></td><td><code>2025-02-01 09:00:00+09</code></td><td><code>UTC</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT (TIMESTAMP &#x27;2025-02-01 09:00:00&#x27; AT TIME ZONE &#x27;Asia/Tokyo&#x27;)
+            = TIMESTAMPTZ &#x27;2025-02-01 09:00:00+09&#x27; AS same_instant,
+       to_char(TIMESTAMPTZ &#x27;2025-02-01 09:00:00+09&#x27; AT TIME ZONE &#x27;UTC&#x27;,
+               &#x27;YYYY-MM-DD HH24:MI:SS&#x27;) AS utc_clock;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT (TIMESTAMP &#x27;2025-02-01 09:00:00&#x27; AT TIME ZONE &#x27;Asia/Tokyo&#x27;)
+            = TIMESTAMPTZ &#x27;2025-02-01 09:00:00+09&#x27; AS same_instant,
+       to_char(TIMESTAMPTZ &#x27;2025-02-01 09:00:00+09&#x27; AT TIME ZONE &#x27;UTC&#x27;,
+               &#x27;YYYY-MM-DD HH24:MI:SS&#x27;) AS utc_clock;</code></span></caption>
+<thead><tr><th scope="col">same_instant</th><th scope="col">utc_clock</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>2025-02-01 00:00:00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-datetime.html#FUNCTIONS-DATETIME-ZONECONVERT">PostgreSQL 官方文档</a></p>
+</section>
+<section id="interval-infinite" class="point" data-dialects="postgresql">
+<h2>interval、日历月份与无限日期</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>interval 分别保存月份、天和微秒，所以一个月是日历增量。date 和 timestamp 系列可表示正负 infinity，isfinite 可以检测是否有限。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="日期与期间" tabindex="0">
+<table class="sql-result"><caption>日期与期间</caption>
+<thead><tr><th scope="col">起点</th><th scope="col">期间</th><th scope="col">另一个日期</th></tr></thead>
+<tbody>
+<tr><td><code>2024-01-31</code></td><td><code>1 month</code></td><td><code>infinity</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT to_char(DATE &#x27;2024-01-31&#x27; + INTERVAL &#x27;1 month&#x27;, &#x27;YYYY-MM-DD&#x27;) AS next_month,
+       isfinite(DATE &#x27;infinity&#x27;) AS finite_end,
+       DATE &#x27;infinity&#x27; &gt; DATE &#x27;9999-12-31&#x27; AS beyond_9999;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT to_char(DATE &#x27;2024-01-31&#x27; + INTERVAL &#x27;1 month&#x27;, &#x27;YYYY-MM-DD&#x27;) AS next_month,
+       isfinite(DATE &#x27;infinity&#x27;) AS finite_end,
+       DATE &#x27;infinity&#x27; &gt; DATE &#x27;9999-12-31&#x27; AS beyond_9999;</code></span></caption>
+<thead><tr><th scope="col">next_month</th><th scope="col">finite_end</th><th scope="col">beyond_9999</th></tr></thead>
+<tbody>
+<tr><td><code>2024-02-29</code></td><td><code>false</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/datatype-datetime.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="array-dimensions" class="point" data-dialects="postgresql">
+<h2>数组维度、下标与空数组</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">cardinality() 自 PostgreSQL 9.4 起可用。</span></p>
+<p>ARRAY 构造数组，二维数组的子数组须同形。普通构造从 1 编号，带显式边界的数组可以采用其他下限，读取时可先查 array_lower。array_length 返回某个维度的长度，cardinality 返回所有维度中的元素总数。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="待查询数组" tabindex="0">
+<table class="sql-result"><caption>待查询数组</caption>
+<thead><tr><th scope="col">二维数组</th><th scope="col">查询下标</th><th scope="col">空数组</th></tr></thead>
+<tbody>
+<tr><td><code>{{10,20},{30,40}}</code></td><td><code>[2][1]</code></td><td><code>{}::int[]</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH src(a) AS (VALUES (ARRAY[[10,20],[30,40]]))
+SELECT array_dims(a) AS bounds, a[2][1] AS at_2_1, cardinality(a) AS item_count,
+       array_length(ARRAY[]::int[], 1) AS empty_length,
+       cardinality(ARRAY[]::int[]) AS empty_count,
+       array_lower(&#x27;[0:1]={7,8}&#x27;::int[], 1) AS custom_lower
+FROM src;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH src(a) AS (VALUES (ARRAY[[10,20],[30,40]]))
+SELECT array_dims(a) AS bounds, a[2][1] AS at_2_1, cardinality(a) AS item_count,
+       array_length(ARRAY[]::int[], 1) AS empty_length,
+       cardinality(ARRAY[]::int[]) AS empty_count,
+       array_lower(&#x27;[0:1]={7,8}&#x27;::int[], 1) AS custom_lower
+FROM src;</code></span></caption>
+<thead><tr><th scope="col">bounds</th><th scope="col">at_2_1</th><th scope="col">item_count</th><th scope="col">empty_length</th><th scope="col">empty_count</th><th scope="col">custom_lower</th></tr></thead>
+<tbody>
+<tr><td><code>[1:2][1:2]</code></td><td><code>30</code></td><td><code>4</code></td><td class="sql-null"><code>NULL</code></td><td><code>0</code></td><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/arrays.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="composite-row" class="point" data-dialects="postgresql">
+<h2>ROW 构造行，组合类型命名字段</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>ROW 生成行值。转换成有名称的组合类型后可用 (值).字段 访问内部字段。CREATE TABLE 也会为每张表建立对应行类型。自定义组合字段在这里按位置与 ROW 参数配对。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="组合值" tabindex="0">
+<table class="sql-result"><caption>组合值</caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th><th scope="col">声明的类型</th></tr></thead>
+<tbody>
+<tr><td><code>P1</code></td><td><code>2</code></td><td><code>ch41_line</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TYPE pg_temp.ch41_line AS (sku text, qty integer);
+
+WITH src(line) AS (VALUES (ROW(&#x27;P1&#x27;, 2)::pg_temp.ch41_line))
+SELECT (line).sku AS sku, (line).qty AS qty
+FROM src;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>WITH src(line) AS (VALUES (ROW(&#x27;P1&#x27;, 2)::pg_temp.ch41_line))
+SELECT (line).sku AS sku, (line).qty AS qty
+FROM src;</code></span></caption>
+<thead><tr><th scope="col">sku</th><th scope="col">qty</th></tr></thead>
+<tbody>
+<tr><td><code>P1</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/rowtypes.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="enum-domain" class="point" data-dialects="postgresql">
+<h2>ENUM 固定成员，DOMAIN 复用约束</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>ENUM 的顺序由标签声明顺序决定，同一枚举类型可直接比较。DOMAIN 从已有类型派生，可复用约束和默认值。此处数量 2 通过检查。给这个 DOMAIN 转入 0 会违反 CHECK。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="自定义类型与示例输入" tabindex="0">
+<table class="sql-result"><caption>自定义类型与示例输入</caption>
+<thead><tr><th scope="col">状态顺序</th><th scope="col">数量</th></tr></thead>
+<tbody>
+<tr><td><code>new → paid → sent</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TYPE pg_temp.ch41_status AS ENUM (&#x27;new&#x27;, &#x27;paid&#x27;, &#x27;sent&#x27;);
+CREATE DOMAIN pg_temp.ch41_positive_qty AS integer CHECK (VALUE &gt; 0);
+
+SELECT &#x27;new&#x27;::pg_temp.ch41_status &lt; &#x27;paid&#x27;::pg_temp.ch41_status AS new_precedes_paid,
+       2::pg_temp.ch41_positive_qty AS accepted_qty;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT &#x27;new&#x27;::pg_temp.ch41_status &lt; &#x27;paid&#x27;::pg_temp.ch41_status AS new_precedes_paid,
+       2::pg_temp.ch41_positive_qty AS accepted_qty;</code></span></caption>
+<thead><tr><th scope="col">new_precedes_paid</th><th scope="col">accepted_qty</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">同一个 DOMAIN 可用于多列。缺失值是否允许应在有关列上明确写 NOT NULL。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/sql-createdomain.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="ranges-multiple" class="point" data-dialects="postgresql">
+<h2>range 与 multirange 表示边界和多段范围</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">range 自 PostgreSQL 9.2 起可用，multirange 自 14 起可用。</span></p>
+<p>左括号 [ 包含下界，右括号 ) 排除上界。离散整数区间可能在储存时变为等价的标准边界形式。multirange 把多个互不相邻且不重叠的连续段表示为一个值。@&gt; 检查包含，&amp;&amp; 检查重叠。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="整型边界与待测点" tabindex="0">
+<table class="sql-result"><caption>整型边界与待测点</caption>
+<thead><tr><th scope="col">单个区间</th><th scope="col">多区间</th><th scope="col">待测点</th></tr></thead>
+<tbody>
+<tr><td><code>[1,3]</code></td><td><code>{[1,4),[8,10)}</code></td><td><code>3、4、9</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT int4range(1, 3, &#x27;[]&#x27;)::text AS canonical_range,
+       int4range(1, 4) @&gt; 3 AS contains_3,
+       &#x27;{[1,4),[8,10)}&#x27;::int4multirange @&gt; 4 AS contains_gap,
+       &#x27;{[1,4),[8,10)}&#x27;::int4multirange @&gt; 9 AS contains_9,
+       daterange(DATE &#x27;2025-02-01&#x27;, DATE &#x27;2025-03-01&#x27;) &amp;&amp; daterange(
+         DATE &#x27;2025-02-15&#x27;, DATE &#x27;2025-02-20&#x27;) AS dates_overlap;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT int4range(1, 3, &#x27;[]&#x27;)::text AS canonical_range,
+       int4range(1, 4) @&gt; 3 AS contains_3,
+       &#x27;{[1,4),[8,10)}&#x27;::int4multirange @&gt; 4 AS contains_gap,
+       &#x27;{[1,4),[8,10)}&#x27;::int4multirange @&gt; 9 AS contains_9,
+       daterange(DATE &#x27;2025-02-01&#x27;, DATE &#x27;2025-03-01&#x27;) &amp;&amp; daterange(
+         DATE &#x27;2025-02-15&#x27;, DATE &#x27;2025-02-20&#x27;) AS dates_overlap;</code></span></caption>
+<thead><tr><th scope="col">canonical_range</th><th scope="col">contains_3</th><th scope="col">contains_gap</th><th scope="col">contains_9</th><th scope="col">dates_overlap</th></tr></thead>
+<tbody>
+<tr><td><code>[1,4)</code></td><td><code>true</code></td><td><code>false</code></td><td><code>true</code></td><td><code>true</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/rangetypes.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="network-address" class="point" data-dialects="postgresql">
+<h2>inet、cidr 与 macaddr 保存地址</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">macaddr8 自 PostgreSQL 10 起可用。</span></p>
+<p>inet 可包含主机地址和可选掩码，cidr 表示网络且要求掩码之外无置位。操作符 &lt;&lt; 表示严格包含于。macaddr 接受六字节硬件地址，macaddr8 用于八字节。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="主机与网络" tabindex="0">
+<table class="sql-result"><caption>主机与网络</caption>
+<thead><tr><th scope="col">主机</th><th scope="col">网段</th><th scope="col">MAC 输入</th></tr></thead>
+<tbody>
+<tr><td><code>192.0.2.37</code></td><td><code>192.0.2.0/24</code></td><td><code>08-00-2B-01-02-03</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT inet &#x27;192.0.2.37&#x27; &lt;&lt; cidr &#x27;192.0.2.0/24&#x27; AS in_subnet,
+       network(inet &#x27;192.0.2.37/24&#x27;)::text AS normalized_net,
+       masklen(cidr &#x27;192.0.2.0/24&#x27;) AS mask_bits,
+       macaddr &#x27;08-00-2B-01-02-03&#x27;::text AS normalized_mac;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT inet &#x27;192.0.2.37&#x27; &lt;&lt; cidr &#x27;192.0.2.0/24&#x27; AS in_subnet,
+       network(inet &#x27;192.0.2.37/24&#x27;)::text AS normalized_net,
+       masklen(cidr &#x27;192.0.2.0/24&#x27;) AS mask_bits,
+       macaddr &#x27;08-00-2B-01-02-03&#x27;::text AS normalized_mac;</code></span></caption>
+<thead><tr><th scope="col">in_subnet</th><th scope="col">normalized_net</th><th scope="col">mask_bits</th><th scope="col">normalized_mac</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>192.0.2.0/24</code></td><td><code>24</code></td><td><code>08:00:2b:01:02:03</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/datatype-net-types.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="geometry-xy" class="point" data-dialects="postgresql">
+<h2>point、box、circle 与平面距离</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>内置几何类型基于二维平面。&lt;-&gt; 求两点距离，&lt;@ 检查点是否在矩形内。几何类型还包括 line、lseg、path、polygon 和 circle。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="平面坐标" tabindex="0">
+<table class="sql-result"><caption>平面坐标</caption>
+<thead><tr><th scope="col">起点</th><th scope="col">终点</th><th scope="col">矩形角点</th><th scope="col">圆半径</th></tr></thead>
+<tbody>
+<tr><td><code>(0,0)</code></td><td><code>(3,4)</code></td><td><code>(2,2) 与 (0,0)</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT point(0,0) &lt;-&gt; point(3,4) AS distance_xy,
+       point(1,1) &lt;@ box(point(2,2), point(0,0)) AS in_box,
+       radius(circle(point(0,0), 2)) AS radius;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT point(0,0) &lt;-&gt; point(3,4) AS distance_xy,
+       point(1,1) &lt;@ box(point(2,2), point(0,0)) AS in_box,
+       radius(circle(point(0,0), 2)) AS radius;</code></span></caption>
+<thead><tr><th scope="col">distance_xy</th><th scope="col">in_box</th><th scope="col">radius</th></tr></thead>
+<tbody>
+<tr><td><code>5</code></td><td><code>true</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">经纬度的球面距离和坐标系转换可查 PostGIS 扩展。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/functions-geometry.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="xml-json" class="point" data-dialects="postgresql">
+<h2>XML、JSON 与 JSONB</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">json 自 PostgreSQL 9.2 起可用，jsonb 自 9.4 起可用。XML 处理要求服务端构建带 libxml。</span></p>
+<p>xml 类型可保存文档或片段。XMLPARSE DOCUMENT 读取文档，XMLSERIALIZE 将其转回文本。json 保存输入的文本形式，jsonb 把结构转换为二进制表示并支持包含查询与索引。重复对象键在 jsonb 中只保存最后一个值。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="输入文档" tabindex="0">
+<table class="sql-result"><caption>输入文档</caption>
+<thead><tr><th scope="col">XML</th><th scope="col">JSON</th></tr></thead>
+<tbody>
+<tr><td><code>&lt;item/&gt;</code></td><td><code>{&quot;qty&quot;:1,&quot;qty&quot;:2}</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT XMLSERIALIZE(DOCUMENT XMLPARSE(DOCUMENT &#x27;&lt;item/&gt;&#x27;) AS text) AS xml_text,
+       &#x27;{&quot;qty&quot;:1,&quot;qty&quot;:2}&#x27;::json::text AS json_text,
+       (&#x27;{&quot;qty&quot;:1,&quot;qty&quot;:2}&#x27;::jsonb -&gt;&gt; &#x27;qty&#x27;)::integer AS jsonb_qty;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT XMLSERIALIZE(DOCUMENT XMLPARSE(DOCUMENT &#x27;&lt;item/&gt;&#x27;) AS text) AS xml_text,
+       &#x27;{&quot;qty&quot;:1,&quot;qty&quot;:2}&#x27;::json::text AS json_text,
+       (&#x27;{&quot;qty&quot;:1,&quot;qty&quot;:2}&#x27;::jsonb -&gt;&gt; &#x27;qty&#x27;)::integer AS jsonb_qty;</code></span></caption>
+<thead><tr><th scope="col">xml_text</th><th scope="col">json_text</th><th scope="col">jsonb_qty</th></tr></thead>
+<tbody>
+<tr><td><code>&lt;item/&gt;</code></td><td><code>{&quot;qty&quot;:1,&quot;qty&quot;:2}</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/datatype.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="oid-regclass-lsn" class="point" data-dialects="postgresql">
+<h2>oid、regclass、regtype 与 pg_lsn</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">pg_lsn 与 to_regclass 自 PostgreSQL 9.4 起可用。</span></p>
+<p>oid 表示系统对象的标识。regclass 解析关系名，regtype 解析类型名，to_regclass 找不到对象时给 NULL。pg_lsn 表示 WAL 记录位置，两者相减表示相隔字节数。对象标识可随实例而异，练习只验证名称解析。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="系统对象及 WAL 位置" tabindex="0">
+<table class="sql-result"><caption>系统对象及 WAL 位置</caption>
+<thead><tr><th scope="col">关系名</th><th scope="col">类型名</th><th scope="col">较高 LSN</th><th scope="col">较低 LSN</th></tr></thead>
+<tbody>
+<tr><td><code>pg_catalog.pg_class</code></td><td><code>integer</code></td><td><code>0/20</code></td><td><code>0/10</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT pg_typeof(&#x27;pg_catalog.pg_class&#x27;::regclass::oid)::text AS object_id_type,
+       &#x27;pg_catalog.pg_class&#x27;::regclass = to_regclass(&#x27;pg_catalog.pg_class&#x27;) AS same_relation,
+       pg_typeof(&#x27;integer&#x27;::regtype)::text AS type_lookup_type,
+       &#x27;0/20&#x27;::pg_lsn - &#x27;0/10&#x27;::pg_lsn AS bytes_apart;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT pg_typeof(&#x27;pg_catalog.pg_class&#x27;::regclass::oid)::text AS object_id_type,
+       &#x27;pg_catalog.pg_class&#x27;::regclass = to_regclass(&#x27;pg_catalog.pg_class&#x27;) AS same_relation,
+       pg_typeof(&#x27;integer&#x27;::regtype)::text AS type_lookup_type,
+       &#x27;0/20&#x27;::pg_lsn - &#x27;0/10&#x27;::pg_lsn AS bytes_apart;</code></span></caption>
+<thead><tr><th scope="col">object_id_type</th><th scope="col">same_relation</th><th scope="col">type_lookup_type</th><th scope="col">bytes_apart</th></tr></thead>
+<tbody>
+<tr><td><code>oid</code></td><td><code>true</code></td><td><code>regtype</code></td><td><code>16</code></td></tr>
+</tbody>
+</table></div>
+</div>
+
+<p class="sources"><a href="https://www.postgresql.org/docs/19/datatype-oid.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="pseudo-signatures" class="point" data-dialects="postgresql">
+<h2>伪类型用于函数签名</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-version">anycompatible 类型族自 PostgreSQL 14 起可用。</span></p>
+<p>anyelement、anyarray 和 anycompatible 让例程接收一族类型。record 表示具有结果行结构的值，void 表示例程无返回值，trigger 是触发器函数返回类型。这些伪类型用于系统或例程签名，普通表列应声明具体的数据类型。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="从 pg_type 查找的类型名" tabindex="0">
+<table class="sql-result"><caption>从 pg_type 查找的类型名</caption>
+<thead><tr><th scope="col">函数参数</th><th scope="col">行和控制返回值</th></tr></thead>
+<tbody>
+<tr><td><code>anyarray、anycompatible、anyelement</code></td><td><code>record、trigger、void</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT typname::text AS type_name, typtype::text AS type_kind
+FROM pg_catalog.pg_type
+WHERE typname IN (&#x27;anyarray&#x27;,&#x27;anycompatible&#x27;,&#x27;anyelement&#x27;,&#x27;record&#x27;,&#x27;trigger&#x27;,&#x27;void&#x27;)
+ORDER BY typname::text COLLATE &quot;C&quot;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT typname::text AS type_name, typtype::text AS type_kind
+FROM pg_catalog.pg_type
+WHERE typname IN (&#x27;anyarray&#x27;,&#x27;anycompatible&#x27;,&#x27;anyelement&#x27;,&#x27;record&#x27;,&#x27;trigger&#x27;,&#x27;void&#x27;)
+ORDER BY typname::text COLLATE &quot;C&quot;;</code></span></caption>
+<thead><tr><th scope="col">type_name</th><th scope="col">type_kind</th></tr></thead>
+<tbody>
+<tr><td><code>anyarray</code></td><td><code>p</code></td></tr>
+<tr><td><code>anycompatible</code></td><td><code>p</code></td></tr>
+<tr><td><code>anyelement</code></td><td><code>p</code></td></tr>
+<tr><td><code>record</code></td><td><code>p</code></td></tr>
+<tr><td><code>trigger</code></td><td><code>p</code></td></tr>
+<tr><td><code>void</code></td><td><code>p</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">pg_type.typtype 的 p 代表伪类型。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/datatype-pseudo.html">PostgreSQL 官方文档</a></p>
+</section>
+<section id="index-casts" class="point" data-dialects="postgresql">
+<h2>隐式转换与索引匹配</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>id 为 integer 时，比较 id = &#x27;2&#x27; 会把未标注类型的字面量推断为整数。把列写成 id::text 则改变了索引键表达式，普通整数索引无法对这个文本条件做等值定位。生产查询宜让参数匹配列类型。确需查转换后的值时可考虑表达式索引。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="临时表与对照条件" tabindex="0">
+<table class="sql-result"><caption>临时表与对照条件</caption>
+<thead><tr><th scope="col">索引</th><th scope="col">数据</th><th scope="col">条件</th></tr></thead>
+<tbody>
+<tr><td><code>PRIMARY KEY (id)</code></td><td><code>编号 1–1000</code></td><td><code>id = &#x27;2&#x27;；id::text = &#x27;2&#x27;</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE ch41_keys (id integer PRIMARY KEY, payload text);
+INSERT INTO ch41_keys SELECT n, &#x27;row-&#x27; || n FROM generate_series(1,1000) AS g(n);
+ANALYZE ch41_keys;
+
+EXPLAIN (COSTS OFF)
+SELECT payload FROM ch41_keys WHERE id = &#x27;2&#x27;
+UNION ALL
+SELECT payload FROM ch41_keys WHERE id::text = &#x27;2&#x27;;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>EXPLAIN (COSTS OFF)
+SELECT payload FROM ch41_keys WHERE id = &#x27;2&#x27;
+UNION ALL
+SELECT payload FROM ch41_keys WHERE id::text = &#x27;2&#x27;;</code></span></caption>
+<thead><tr><th scope="col">QUERY PLAN</th></tr></thead>
+<tbody>
+<tr><td><code>Append</code></td></tr>
+<tr><td><code>  -&gt;  Index Scan using ch41_keys_pkey on ch41_keys</code></td></tr>
+<tr><td><code>        Index Cond: (id = 2)</code></td></tr>
+<tr><td><code>  -&gt;  Seq Scan on ch41_keys ch41_keys_1</code></td></tr>
+<tr><td><code>        Filter: ((id)::text = &#x27;2&#x27;::text)</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p class="outcome">这是样例计划。实际计划取决于统计数据、成本设置和 PostgreSQL 版本。关注 Index Cond 与 Filter 的差异。</p>
+<p class="sources"><a href="https://www.postgresql.org/docs/19/indexes-expressional.html">PostgreSQL 官方文档</a></p>
+</section>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol>
+<li><a href="#numeric-money">比较精确金额和浮点特殊值</a></li>
+<li><a href="#serial-identity">用 serial 或 IDENTITY 自动编号</a></li>
+<li><a href="#uuid">uuid、随机 UUID 与按时间排序的 UUID</a></li>
+<li><a href="#binary-bits">bytea 保存字节，bit 保存位串</a></li>
+<li><a href="#timestamp-tz">选择时间类型并转换显示时区</a></li>
+<li><a href="#interval-infinite">interval、日历月份与无限日期</a></li>
+<li><a href="#array-dimensions">数组维度、下标与空数组</a></li>
+<li><a href="#composite-row">ROW 构造行，组合类型命名字段</a></li>
+<li><a href="#enum-domain">ENUM 固定成员，DOMAIN 复用约束</a></li>
+<li><a href="#ranges-multiple">range 与 multirange 表示边界和多段范围</a></li>
+<li><a href="#network-address">inet、cidr 与 macaddr 保存地址</a></li>
+<li><a href="#geometry-xy">point、box、circle 与平面距离</a></li>
+<li><a href="#xml-json">存储 XML 或 JSON 并提取值</a></li>
+<li><a href="#oid-regclass-lsn">识别数据库对象、类型和日志位置</a></li>
+<li><a href="#pseudo-signatures">伪类型用于函数签名</a></li>
+<li><a href="#index-casts">隐式转换与索引匹配</a></li>
+</ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="40-postgresql-analytics.html">← 聚合、窗口与集合函数</a><a href="../v1.html#postgresql-chapters">原生语法目录</a><a rel="next" href="42-postgresql-functions.html">字符串、正则、时间和运算符 →</a></nav>
+</main>
+</body>
+</html>

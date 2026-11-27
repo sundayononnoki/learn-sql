@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>安全管理 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../lessons/0001-first-query.html">五分钟上手</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">第 28 章 · 原书第 197–204 页</p>
+<h1>安全管理</h1>
+<p class="lead" data-dialects="mysql">访问控制用「用户 @ 主机」识别账号，再按对象授予最小权限。管理员示例在隔离实例执行，账号名须尚未使用。</p>
+<p class="setup-note" data-dialects="mysql">导入<a href="../lessons/0001-first-query.html#setup">练习数据</a>后，在当前 MySQL 会话执行 <code>USE learn_sql_lab;</code>。同页示例按顺序运行，临时表可开新连接重做，新建普通对象可换名重做。</p>
+<div class="dialect-setup"><p class="setup-note" data-dialects="postgresql">先<a href="../lessons/0001-first-query.html#setup-postgresql">导入 PostgreSQL 练习数据</a>。新会话执行 <code>SET search_path TO sql_notes_lab;</code>。</p><p class="setup-note" data-dialects="sqlserver">先<a href="../lessons/0001-first-query.html#setup-sqlserver">导入 SQL Server 练习数据</a>。新查询窗口连接 <code>SQLNotesLab</code>。</p></div>
+<div class="layout"><article class="content" aria-label="知识点">
+<section id="p1" class="point" data-dialects="mysql" data-alternate-anchor="dial-acl"><h2>谁建立了连接，服务器以谁的权限执行</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>已连接时用 USER 查看连接身份，用 CURRENT_USER 查询服务器匹配的授权账户。可查看当前授权，不需要读取系统账号表。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">SELECT USER() AS login_identity, CURRENT_USER() AS privilege_account;
+SHOW GRANTS;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　已用一个账号连接，服务器已选择匹配的授权账号。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT USER() AS login_identity, CURRENT_USER() AS privilege_account;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">login_identity</th><th scope="col">privilege_account</th></tr></thead>
+<tbody>
+<tr><td><code>root@localhost</code></td><td><code>root@localhost</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　USER 与 CURRENT_USER 返回各自身份，SHOW GRANTS 列出当前有效账户的授权定义。</p>
+<p class="outcome">两列通常相同但可因主机匹配等而不同。SHOW GRANTS 显示授权语句。</p>
+</details>
+</div></section>
+<section id="p2" class="point" data-dialects="mysql" data-alternate-anchor="dial-acl"><h2>创建账号与主机范围</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>CREATE USER 建账号，再单独授权。省略主机部分会默认用 %，应显式收紧连接来源。RANDOM PASSWORD 让服务器生成口令，妥善保管返回值。这里限制 localhost 并锁定账号，先演练授权状态。</p>
+<p class="version-note"><strong>过时 · 已弃用</strong> 账号主机部分的 <code>%</code> 和 <code>_</code> 通配符已弃用。新账号显式写允许的主机、IP 或 IPv4 网段。<a href="https://dev.mysql.com/doc/refman/26.10/en/account-names.html">账号名称规则</a>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE USER &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27;
+  IDENTIFIED BY RANDOM PASSWORD ACCOUNT LOCK;
+SHOW CREATE USER &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="账号状态" tabindex="0">
+<table class="sql-result"><caption>账号状态</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">账号</th><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>ch28_reporter@localhost</code></td><td><code>不存在</code></td></tr>
+<tr><td><code>执行后</code></td><td><code>ch28_reporter@localhost</code></td><td><code>锁定</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　隔离实例中尚无 <code>ch28_reporter@localhost</code>。</p><p><strong>执行后</strong>　建成锁定账号，返回一次随机口令。定义显示 <code>ACCOUNT LOCK</code>。</p>
+<p class="outcome">建成存在但锁定的练习账户。CREATE USER 返回生成的口令。查看他人的定义或授权需相应系统库权限。SHOW CREATE USER 可能显示认证散列，和随机口令一样应保密。</p>
+</details>
+</div></section>
+<section id="p3" class="point" data-dialects="mysql" data-alternate-anchor="dial-acl"><h2>GRANT、REVOKE 与权限作用域</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>常见范围从全实例 <code>*.*</code>、库 <code>库名.*</code> 到单表 <code>库名.表名</code>、表列或例程。此处只授予读取商品两列的权限。授予其他人权限由 GRANT OPTION 控制。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">GRANT SELECT (name, price) ON learn_sql_lab.products TO &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27;;
+SHOW GRANTS FOR &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27;;
+SHOW PRIVILEGES;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="授权变化" tabindex="0">
+<table class="sql-result"><caption>授权变化</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">对象</th><th scope="col">SELECT 列</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>learn_sql_lab.products</code></td><td><code>无</code></td></tr>
+<tr><td><code>GRANT 后</code></td><td><code>learn_sql_lab.products</code></td><td><code>name、price</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　锁定的报表账号还没有商品读取权限。</p><p><strong>执行后</strong>　授权中新增 <code>SELECT (name, price)</code>。SHOW PRIVILEGES 显示支持的权限项。</p>
+<p class="outcome">看到列级 SELECT，SHOW PRIVILEGES 可查 SELECT、INSERT、UPDATE、EXECUTE 等权限含义。</p>
+</details>
+</div>
+<p>如要实测，在 REVOKE 前临时解锁账号。账号管理员用以下语句开始演练。</p>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code data-kind="sql-manual">ALTER USER &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27; ACCOUNT UNLOCK;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="账号状态" tabindex="0">
+<table class="sql-result"><caption>账号状态</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">账号</th><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>ch28_reporter@localhost</code></td><td><code>锁定</code></td></tr>
+<tr><td><code>执行后</code></td><td><code>ch28_reporter@localhost</code></td><td><code>解锁</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　报表账号已有两列权限，但账户仍锁定。</p><p><strong>执行后</strong>　管理员临时解锁。两列授权保持不变。</p>
+</details>
+</div>
+<figure><figcaption>系统终端</figcaption><pre><code data-kind="bash">mysql -u ch28_reporter -p</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　报表账号已解锁，终端尚未连接。应使用与管理员相同的实例及 socket 路径。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>mysql -u ch28_reporter -p</code></span></caption>
+<thead><tr><th scope="col">账号</th><th scope="col">登录后</th></tr></thead>
+<tbody>
+<tr><td><code>ch28_reporter@localhost</code></td><td><code>mysql&gt;</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　输入生成的随机口令后，以报表账号进入 <code>mysql&gt;</code>。</p>
+</details>
+</div>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code data-kind="sql-manual">-- 在 reporter 的连接逐条运行，结束后退出这个连接。
+SELECT name, price FROM learn_sql_lab.products ORDER BY name LIMIT 1;
+SELECT category FROM learn_sql_lab.products;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　报表账号只被允许读取 name、price。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT name, price FROM learn_sql_lab.products ORDER BY name LIMIT 1;</code></span></caption>
+<thead><tr><th scope="col">name</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td><code>Notebook</code></td><td class="sql-number"><code>10.00</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT category FROM learn_sql_lab.products;</code><span class="sql-caption-context">预期报错</span></span></caption>
+<thead><tr><th scope="col">错误码</th><th scope="col">涉及的列</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1143</code></td><td><code>category</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　两列查询返回 <code>Notebook | 10.00</code>。读取 category 报 <code>1143</code>。</p>
+</details>
+</div>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">-- 回到管理员连接，锁定并收回练习权限。
+ALTER USER &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27; ACCOUNT LOCK;
+REVOKE SELECT (name, price) ON learn_sql_lab.products FROM &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27;;
+SHOW GRANTS FOR &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="授权与账号状态" tabindex="0">
+<table class="sql-result"><caption>授权与账号状态</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">SELECT 列</th><th scope="col">账号状态</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>name、price</code></td><td><code>若完成连接演练则已解锁</code></td></tr>
+<tr><td><code>执行后</code></td><td><code>无</code></td><td><code>锁定</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　报表账号仍有两列授权。如果做了登录测试，先退出测试连接。</p><p><strong>执行后</strong>　再次锁定账号并撤销两列权限。SHOW GRANTS 不再显示该商品列授权。</p>
+<p class="outcome">临时解锁时，允许的两列可读，category 查询会得到 1143。收回后列级授权消失。USAGE 代表没有额外全局权限。</p>
+</details>
+</div></section>
+<section id="p4" class="point" data-dialects="mysql" data-alternate-anchor="dial-acl"><h2>用角色批量维护授权</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>角色是可授予多个账号的权限集合。将角色设为默认后，新会话可自动激活。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">CREATE ROLE &#x27;ch28_reader&#x27;;
+GRANT SELECT ON learn_sql_lab.products TO &#x27;ch28_reader&#x27;;
+GRANT &#x27;ch28_reader&#x27; TO &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27;;
+SET DEFAULT ROLE &#x27;ch28_reader&#x27; TO &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27;;
+SHOW GRANTS FOR &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27; USING &#x27;ch28_reader&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="角色授权" tabindex="0">
+<table class="sql-result"><caption>角色授权</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">默认角色</th><th scope="col">products 权限</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>无</code></td><td><code>无</code></td></tr>
+<tr><td><code>执行后</code></td><td><code>ch28_reader</code></td><td><code>SELECT</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　报表账号锁定，尚无练习角色。</p><p><strong>执行后</strong>　创建并绑定 <code>ch28_reader</code>，它含 products 的表级 SELECT，并被设为默认角色。账号仍锁定。</p>
+<p class="outcome">结果中可见角色及其对 products 的 SELECT 权限。账号在练习中仍锁定。</p>
+</details>
+</div></section>
+<section id="p5" class="point" data-dialects="mysql" data-alternate-anchor="dial-acl"><h2>改密、重命名与移除</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p><p>通过 <code>ALTER USER</code> 改密。<code>RENAME USER</code> 改账户名，<code>DROP USER</code> 移除账号。改名和移除前应检查以该账号为 DEFINER 的对象。</p>
+<p class="version-note"><strong>过时 · 已移除</strong> <code>PASSWORD()</code>、<code>IDENTIFIED BY PASSWORD</code> 和用 <code>GRANT</code> 创建账号的写法已在 8.0 移除。用 <code>CREATE USER</code> 建账号，再单独 <code>GRANT</code>。<a href="https://dev.mysql.com/worklog/task/?id=10774">MySQL 8.0 认证变更</a>。</p>
+<p class="version-note"><strong>过时 · 已移除</strong> 服务端 <code>mysql_native_password</code> 在 8.4 默认禁用，9.0 起移除。升级前，把使用旧插件的账号改为 <code>caching_sha2_password</code>，再用兼容客户端验证登录。新写法可用 <code>ALTER USER &#39;账号&#39;@&#39;主机&#39; IDENTIFIED WITH caching_sha2_password BY RANDOM PASSWORD;</code>。<a href="https://dev.mysql.com/doc/refman/8.4/en/native-pluggable-authentication.html">MySQL 认证插件说明</a>。</p>
+<figure><figcaption>SQL · MySQL</figcaption><pre><code data-kind="sql">ALTER USER &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27; IDENTIFIED BY RANDOM PASSWORD;
+RENAME USER &#x27;ch28_reporter&#x27;@&#x27;localhost&#x27; TO &#x27;ch28_reader_demo&#x27;@&#x27;localhost&#x27;;
+SHOW GRANTS FOR &#x27;ch28_reader_demo&#x27;@&#x27;localhost&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="账号状态" tabindex="0">
+<table class="sql-result"><caption>账号状态</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">账号</th><th scope="col">锁定</th><th scope="col">默认角色</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>ch28_reporter@localhost</code></td><td><code>是</code></td><td><code>ch28_reader</code></td></tr>
+<tr><td><code>执行后</code></td><td><code>ch28_reader_demo@localhost</code></td><td><code>是</code></td><td><code>ch28_reader</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　已有 reporter 账号和角色授权。</p><p><strong>执行后</strong>　随机口令更新，账号改名为 <code>ch28_reader_demo@localhost</code>。原授权与锁定状态都保留。</p>
+</details>
+</div>
+<figure><figcaption>SQL · 按提示操作</figcaption><pre><code data-kind="sql-manual">DROP USER IF EXISTS &#x27;ch28_reader_demo&#x27;@&#x27;localhost&#x27;;
+DROP ROLE IF EXISTS &#x27;ch28_reader&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<div class="sql-grid-viewport" role="region" aria-label="账号与角色状态" tabindex="0">
+<table class="sql-result"><caption>账号与角色状态</caption>
+<thead><tr><th scope="col">阶段</th><th scope="col">ch28_reader_demo@localhost</th><th scope="col">ch28_reader</th></tr></thead>
+<tbody>
+<tr><td><code>执行前</code></td><td><code>存在</code></td><td><code>存在</code></td></tr>
+<tr><td><code>执行后</code></td><td><code>已移除</code></td><td><code>已移除</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　演练账号和角色都存在。</p><p><strong>执行后</strong>　两个练习授权对象被移除。</p>
+<p class="outcome">改密后仍保持原先的授权。重命名后用新名查询。最后只移除本章练习账号与角色。</p>
+</details>
+</div></section>
+<section id="dial-acl" class="point" data-dialects="postgresql sqlserver" data-alternate-anchor="p1">
+<h2>角色、最小授权与当前身份</h2>
+<p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>用角色授权一组对象，再按需分配成员。PostgreSQL 的 NOLOGIN 角色用于承载授权。SQL Server 的数据库角色与服务器登录名分属不同作用域。使用有建角色及对象授权权限的练习管理员。PostgreSQL 需要 CREATEROLE 或超级用户权限。SQL Server 需要数据库内的 CREATE ROLE。</p>
+<details class="sql-grid-details input-grids"><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="角色 · 授权前" tabindex="0">
+<table class="sql-result"><caption>角色 · 授权前</caption><thead><tr><th scope="col">角色名</th><th scope="col">角色状态</th></tr></thead>
+<tbody><tr><td><code>notes_readonly</code></td><td><code>尚未创建</code></td></tr></tbody></table></div>
+</details>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE ROLE notes_readonly NOLOGIN;
+GRANT USAGE ON SCHEMA sql_notes_lab TO notes_readonly;
+GRANT SELECT ON products TO notes_readonly;
+SELECT has_table_privilege(&#x27;notes_readonly&#x27;,&#x27;sql_notes_lab.products&#x27;,&#x27;SELECT&#x27;) AS can_read,
+       has_table_privilege(&#x27;notes_readonly&#x27;,&#x27;sql_notes_lab.products&#x27;,&#x27;UPDATE&#x27;) AS can_write;</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT has_table_privilege(&#x27;notes_readonly&#x27;,&#x27;sql_notes_lab.products&#x27;,&#x27;SELECT&#x27;) AS can_read, has_table_privilege(&#x27;notes_readonly&#x27;,&#x27;sql_notes_lab.products&#x27;,&#x27;UPDATE&#x27;) AS can_write;</code></span></caption>
+<thead><tr><th scope="col">can_read</th><th scope="col">can_write</th></tr></thead>
+<tbody>
+<tr><td><code>true</code></td><td><code>false</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE ROLE notes_readonly;
+GRANT SELECT ON OBJECT::dbo.products TO notes_readonly;
+SELECT p.permission_name,p.state_desc
+FROM sys.database_permissions AS p JOIN sys.database_principals AS u
+  ON p.grantee_principal_id=u.principal_id
+WHERE u.name=N&#x27;notes_readonly&#x27; AND p.major_id=OBJECT_ID(N&#x27;dbo.products&#x27;);</code></pre></figure>
+<div class="execution-grids"><h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT p.permission_name,p.state_desc FROM sys.database_permissions AS p JOIN sys.database_principals AS u ON p.grantee_principal_id=u.principal_id WHERE u.name=N&#x27;notes_readonly&#x27; AND p.major_id=OBJECT_ID(N&#x27;dbo.products&#x27;);</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">permission_name</th><th scope="col">state_desc</th></tr></thead>
+<tbody>
+<tr><td><code>SELECT</code></td><td><code>GRANT</code></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/sql-grant.html">PostgreSQL GRANT</a> · <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-transact-sql">SQL Server GRANT</a></p>
+</section>
+<section class="panel" data-dialects="mysql"><h2>自测</h2><p>报表服务仅需读取 products，最小授权范围应该怎么写？</p><details><summary>查看答案</summary><figure><figcaption>样例</figcaption><pre><code data-kind="text">GRANT SELECT ON learn_sql_lab.products TO &#x27;报表账号&#x27;@&#x27;允许的主机&#x27;;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　假设报表账号已经创建，业务只读 products。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>GRANT SELECT ON learn_sql_lab.products TO &#x27;报表账号&#x27;@&#x27;允许的主机&#x27;;</code><span class="sql-caption-context">授权状态</span></span></caption>
+<thead><tr><th scope="col">对象</th><th scope="col">授权</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab.products</code></td><td><code>SELECT</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　填入实际账号和主机再授权后，可读该商品表。语句没有授予写权限。</p>
+<p class="outcome">实际账号名和主机范围需按部署填写。若只用两个列，可进一步授予列级 SELECT。</p>
+</details>
+</div></details></section>
+<p class="sources" data-dialects="mysql">参考资料 · <a href="https://dev.mysql.com/doc/refman/8.4/en/create-user.html">CREATE USER</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/grant.html">GRANT</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/revoke.html">REVOKE</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/roles.html">角色</a> · <a href="https://dev.mysql.com/doc/refman/8.4/en/alter-user.html">ALTER USER</a></p>
+</article><nav class="jump" aria-label="本页知识点"><strong>本页速查</strong><ol><li data-dialects="mysql"><a href="#p1">查看连接身份和实际授权账号</a></li><li data-dialects="mysql"><a href="#p2">创建账号与主机范围</a></li><li data-dialects="mysql"><a href="#p3">授予或收回列、表和库的权限</a></li><li data-dialects="mysql"><a href="#p4">用角色批量维护授权</a></li><li data-dialects="mysql"><a href="#p5">更改密码、改名或移除账号</a></li><li data-dialects="postgresql sqlserver"><a href="#dial-acl">角色、最小授权与当前身份</a></li></ol></nav></div>
+<nav class="pager" aria-label="前后章节"><a rel="prev" href="27-character-sets.html">← 全球化和本地化</a><a href="../v1.html">章节目录</a><a rel="next" href="29-maintenance.html">数据库维护 →</a></nav>
+</main>
+</body></html>
