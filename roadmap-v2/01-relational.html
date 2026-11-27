@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>关系数据库入门 · SQL 路线速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../index.html">章节目录</a>
+<a href="../v1.html">v1 旧版</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap roadmap-v2">
+<p class="kicker">第 01 章 · 共 17 章</p>
+<h1>关系数据库入门</h1>
+<div class="layout">
+<article class="content" aria-label="知识点">
+<section class="point" id="relational" data-dialects="postgresql sqlserver mysql">
+<h2>关系数据库 按客户编号关联订单</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT order_id, customer_id
+FROM sql_notes_lab.orders WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT order_id, customer_id
+FROM orders WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, customer_id
+FROM dbo.orders WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>订单 101 的 customer_id 是 1，可到 customers 表查客户 1。订单和客户分表存储，一个客户可以有多笔订单。</p>
+
+<p class="sources"><a href="../reference/01-understand-sql.html">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="rdbms" data-dialects="postgresql sqlserver mysql">
+<h2>RDBMS 统一结构并复用查询</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT COUNT(*) AS order_count
+FROM sql_notes_lab.orders WHERE customer_id = 1;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td></tr><tr><td><code>104</code></td><td><code>3</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_count</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT COUNT(*) AS order_count
+FROM orders WHERE customer_id = 1;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td></tr><tr><td><code>104</code></td><td><code>3</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_count</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT COUNT(*) AS order_count
+FROM dbo.orders WHERE customer_id = 1;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td></tr><tr><td><code>104</code></td><td><code>3</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_count</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>统一结构让统计和约束容易复用。跨表联结需要执行成本。数据量增大时要检查索引、读写负载和事务边界。</p>
+
+<p class="sources"><a href="../reference/15-joins.html">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="nosql" data-dialects="postgresql sqlserver mysql">
+<h2>SQL 与 NoSQL 对照关系行与文档</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT order_id, status FROM sql_notes_lab.orders WHERE order_id = 101;
+SELECT jsonb_build_object('order_id', order_id, 'status', status) AS order_document
+FROM sql_notes_lab.orders WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres（sql_notes_lab 模式）</code>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（订单 101）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（订单 101）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 文档字段" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 文档字段</caption>
+<thead><tr><th scope="col">order_document</th></tr></thead><tbody><tr><td><code>{&quot;order_id&quot;:101,&quot;status&quot;:&quot;paid&quot;}</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, status FROM dbo.orders WHERE order_id = 101;
+SELECT (SELECT order_id, status FROM dbo.orders WHERE order_id = 101
+  FOR JSON PATH, WITHOUT_ARRAY_WRAPPER) AS order_document;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（订单 101）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（订单 101）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 文档字段" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 文档字段</caption>
+<thead><tr><th scope="col">order_document</th></tr></thead><tbody><tr><td><code>{&quot;order_id&quot;:101,&quot;status&quot;:&quot;paid&quot;}</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT order_id, status FROM orders WHERE order_id = 101;
+SELECT JSON_OBJECT('order_id', order_id, 'status', status) AS order_document
+FROM orders WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（订单 101）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（订单 101）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 文档字段" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 文档字段</caption>
+<thead><tr><th scope="col">order_document</th></tr></thead><tbody><tr><td><code>{&quot;order_id&quot;:101,&quot;status&quot;:&quot;paid&quot;}</code></td></tr></tbody>
+</table></div>
+</div>
+<p>关系表把值放在固定字段中。文档模型把相关字段组织在一个对象里，可包含数组或嵌套对象。第二条 SQL 展示同一笔订单的文档投影，键的顺序和空格可因方言而异。</p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="panel"><h2>合上示例试一题</h2><p>订单 101 和 103 是否属于同一客户？</p>
+<details><summary>查看答案</summary><p>是，两行的 customer_id 都是 1。</p></details></section>
+</article>
+<nav class="jump" aria-label="本阶段知识点"><strong>本阶段知识点</strong>
+<ol>
+<li><a href="#relational">关系数据库 按客户编号关联订单</a></li>
+<li><a href="#rdbms">RDBMS 统一结构并复用查询</a></li>
+<li><a href="#nosql">SQL 与 NoSQL 对照关系行与文档</a></li>
+</ol></nav>
+</div>
+<nav class="pager" aria-label="章节导航"><a href="../index.html">章节目录</a><a rel="next" href="02-syntax.html">SQL 基本语法 →</a></nav>
+</main>
+</body>
+</html>

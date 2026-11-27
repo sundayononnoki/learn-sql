@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>数据完整性与安全 · SQL 路线速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../index.html">章节目录</a>
+<a href="../v1.html">v1 旧版</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap roadmap-v2">
+<p class="kicker">第 13 章 · 共 17 章</p>
+<h1>数据完整性与安全</h1>
+<div class="layout">
+<article class="content" aria-label="知识点">
+<section class="point" id="integrity" data-dialects="postgresql sqlserver mysql">
+<h2>数据完整性 筛查无订单的明细</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT COUNT(*) AS orphan_lines FROM sql_notes_lab.order_items AS i
+WHERE NOT EXISTS (SELECT 1 FROM sql_notes_lab.orders AS o WHERE o.order_id = i.order_id);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="grid sql-input-tables">
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · order_items" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · order_items</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr><tr><td><code>101</code></td><td><code>4</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td></tr><tr><td><code>103</code></td><td><code>3</code></td></tr><tr><td><code>104</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead><tbody><tr><td><code>101</code></td></tr><tr><td><code>102</code></td></tr><tr><td><code>103</code></td></tr><tr><td><code>104</code></td></tr></tbody>
+</table></div>
+</div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">orphan_lines</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT COUNT(*) AS orphan_lines FROM order_items AS i
+WHERE NOT EXISTS (SELECT 1 FROM orders AS o WHERE o.order_id = i.order_id);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="grid sql-input-tables">
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · order_items" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · order_items</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr><tr><td><code>101</code></td><td><code>4</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td></tr><tr><td><code>103</code></td><td><code>3</code></td></tr><tr><td><code>104</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead><tbody><tr><td><code>101</code></td></tr><tr><td><code>102</code></td></tr><tr><td><code>103</code></td></tr><tr><td><code>104</code></td></tr></tbody>
+</table></div>
+</div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">orphan_lines</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT COUNT(*) AS orphan_lines FROM dbo.order_items AS i
+WHERE NOT EXISTS (SELECT 1 FROM dbo.orders AS o WHERE o.order_id = i.order_id);</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="grid sql-input-tables">
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · order_items" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · order_items</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr><tr><td><code>101</code></td><td><code>4</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td></tr><tr><td><code>103</code></td><td><code>3</code></td></tr><tr><td><code>104</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead><tbody><tr><td><code>101</code></td></tr><tr><td><code>102</code></td></tr><tr><td><code>103</code></td></tr><tr><td><code>104</code></td></tr></tbody>
+</table></div>
+</div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">orphan_lines</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>这是可审计的完整性检查。外键在写入时守住订单存在性，业务规则如数量范围用 CHECK 补充。</p>
+
+<p class="sources"><a href="../reference/21-tables.html#p2">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="grant-revoke" data-dialects="postgresql sqlserver mysql">
+<h2>GRANT / REVOKE 授予和收回权限</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE ROLE path_order_reader NOLOGIN;
+GRANT SELECT ON sql_notes_lab.orders TO path_order_reader;
+SELECT CASE WHEN has_table_privilege('path_order_reader', 'sql_notes_lab.orders', 'SELECT') THEN 1 ELSE 0 END AS can_read;
+REVOKE SELECT ON sql_notes_lab.orders FROM path_order_reader;
+SELECT CASE WHEN has_table_privilege('path_order_reader', 'sql_notes_lab.orders', 'SELECT') THEN 1 ELSE 0 END AS can_read;
+DROP ROLE path_order_reader;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。仅在独立练习实例由有创建角色和授权权限的管理员执行。先确认角色名 path_order_reader 未被占用。建议按句执行，第一句失败时停止。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 授权后" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 授权后</caption>
+<thead><tr><th scope="col">can_read</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 撤权后" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 撤权后</caption>
+<thead><tr><th scope="col">can_read</th></tr></thead><tbody><tr><td><code>0</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE ROLE 'path_order_reader';
+GRANT SELECT ON learn_sql_lab.orders TO 'path_order_reader';
+SHOW GRANTS FOR 'path_order_reader';
+REVOKE SELECT ON learn_sql_lab.orders FROM 'path_order_reader';
+SHOW GRANTS FOR 'path_order_reader';
+DROP ROLE 'path_order_reader';</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。在专用练习实例，用具备 CREATE ROLE、DROP ROLE 及该表 SELECT 授权权的管理账号。确认角色名未占用，CREATE 成功后再执行后续语句。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期观察 · 授权后" tabindex="0">
+<table class="sql-result">
+<caption>预期观察 · 授权后</caption>
+<thead><tr><th scope="col">观察项</th><th scope="col">预期</th></tr></thead><tbody><tr><td><code>orders 的 SELECT 授权</code></td><td><code>出现</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期观察 · 撤权后" tabindex="0">
+<table class="sql-result">
+<caption>预期观察 · 撤权后</caption>
+<thead><tr><th scope="col">观察项</th><th scope="col">预期</th></tr></thead><tbody><tr><td><code>orders 的 SELECT 授权</code></td><td><code>消失</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE ROLE path_order_reader;
+GRANT SELECT ON OBJECT::dbo.orders TO path_order_reader;
+SELECT COUNT(*) AS explicit_read
+FROM sys.database_permissions
+WHERE grantee_principal_id = DATABASE_PRINCIPAL_ID('path_order_reader')
+  AND major_id = OBJECT_ID('dbo.orders') AND permission_name = 'SELECT' AND state_desc = 'GRANT';
+REVOKE SELECT ON OBJECT::dbo.orders FROM path_order_reader;
+SELECT COUNT(*) AS explicit_read
+FROM sys.database_permissions
+WHERE grantee_principal_id = DATABASE_PRINCIPAL_ID('path_order_reader')
+  AND major_id = OBJECT_ID('dbo.orders') AND permission_name = 'SELECT' AND state_desc = 'GRANT';
+DROP ROLE path_order_reader;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。仅在独立练习实例由有创建角色和授权权限的管理员执行。先确认角色名 path_order_reader 未被占用。建议按句执行，第一句失败时停止。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 授权后" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 授权后</caption>
+<thead><tr><th scope="col">explicit_read</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 撤权后" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 撤权后</caption>
+<thead><tr><th scope="col">explicit_read</th></tr></thead><tbody><tr><td><code>0</code></td></tr></tbody>
+</table></div>
+</div>
+<p>给临时演练角色授予订单表读取权限，然后读目录结果，再撤销和移除本段新建的角色。使用角色集中管理权限。</p>
+
+<p class="sources"><a href="../reference/28-access-control.html">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="security" data-dialects="postgresql sqlserver mysql">
+<h2>CURRENT_USER 核对执行身份</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT CURRENT_USER AS database_identity;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期观察" tabindex="0">
+<table class="sql-result">
+<caption>预期观察</caption>
+<thead><tr><th scope="col">database_identity</th></tr></thead>
+<tbody>
+<tr><td><code>当前数据库执行身份，值随连接而异</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT CURRENT_USER() AS database_identity;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期观察" tabindex="0">
+<table class="sql-result">
+<caption>预期观察</caption>
+<thead><tr><th scope="col">database_identity</th></tr></thead>
+<tbody>
+<tr><td><code>当前数据库执行身份，值随连接而异</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CURRENT_USER AS database_identity;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期观察" tabindex="0">
+<table class="sql-result">
+<caption>预期观察</caption>
+<thead><tr><th scope="col">database_identity</th></tr></thead>
+<tbody>
+<tr><td><code>当前数据库执行身份，值随连接而异</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>部署前确认会话身份和授权范围。应用使用专用低权限角色，账号凭据交给配置管理，业务值走参数绑定。</p>
+
+<p class="sources"><a href="../reference/28-access-control.html">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="panel"><h2>合上示例试一题</h2><p>哪条命令可以收回已授予的 SELECT 权限？</p>
+<details><summary>查看答案</summary><p>REVOKE。还需检查是否有其他授权来源。</p></details></section>
+</article>
+<nav class="jump" aria-label="本阶段知识点"><strong>本阶段知识点</strong>
+<ol>
+<li><a href="#integrity">数据完整性 筛查无订单的明细</a></li>
+<li><a href="#grant-revoke">GRANT / REVOKE 授予和收回权限</a></li>
+<li><a href="#security">CURRENT_USER 核对执行身份</a></li>
+</ol></nav>
+</div>
+<nav class="pager" aria-label="章节导航"><a rel="prev" href="12-transactions.html">← 事务</a><a href="../index.html">章节目录</a><a rel="next" href="14-routines.html">存储过程与函数 →</a></nav>
+</main>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>章节目录 · SQL 路线速查</title>
+<link rel="stylesheet" href="assets/notes.css">
+<script src="assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="index.html">章节目录</a>
+<a href="v1.html">v1 旧版</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap roadmap-v2">
+<h1>SQL 路线速查</h1>
+<p class="lead">16 个学习阶段和第 17 章实务补足。先选数据库，再点击知识点查看可运行 SQL 和结果。</p>
+<nav class="grid roadmap-directory" aria-label="章节目录">
+<div>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/01-relational.html"><span aria-hidden="true">01</span>关系数据库入门</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/01-relational.html#relational">关系数据库 按客户编号关联订单</a></li>
+<li><a href="roadmap-v2/01-relational.html#rdbms">RDBMS 统一结构并复用查询</a></li>
+<li><a href="roadmap-v2/01-relational.html#nosql">SQL 与 NoSQL 对照关系行与文档</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/02-syntax.html"><span aria-hidden="true">02</span>SQL 基本语法</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/02-syntax.html#keywords">SQL 关键字 识别查询骨架</a></li>
+<li><a href="roadmap-v2/02-syntax.html#data-types">数据类型 表示数量、金额和日期</a></li>
+<li><a href="roadmap-v2/02-syntax.html#operators">算术运算符 计算明细金额</a></li>
+</ol>
+<h3>基本语句</h3>
+<ol class="roadmap-topic-list" start="4">
+<li><a href="roadmap-v2/02-syntax.html#select">SELECT 选择返回的列</a></li>
+<li><a href="roadmap-v2/02-syntax.html#insert">INSERT 添加明细</a></li>
+<li><a href="roadmap-v2/02-syntax.html#delete">DELETE 删除指定明细</a></li>
+<li><a href="roadmap-v2/02-syntax.html#update">UPDATE 修改指定明细</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/03-ddl.html"><span aria-hidden="true">03</span>数据定义语言（DDL）</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/03-ddl.html#truncate-table">TRUNCATE TABLE 清空表数据</a></li>
+<li><a href="roadmap-v2/03-ddl.html#alter-table">ALTER TABLE 添加列</a></li>
+<li><a href="roadmap-v2/03-ddl.html#create-table">CREATE TABLE 新建临时表</a></li>
+<li><a href="roadmap-v2/03-ddl.html#drop-table">DROP TABLE 删除表</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/04-dml.html"><span aria-hidden="true">04</span>数据操作语言（DML）</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/04-dml.html#select">SELECT 选择返回的列</a>
+<ol>
+<li><a href="roadmap-v2/04-dml.html#from">FROM 指定数据来源</a></li>
+<li><a href="roadmap-v2/04-dml.html#where">WHERE 筛选订单</a></li>
+<li><a href="roadmap-v2/04-dml.html#join">JOIN 为订单带出客户</a></li>
+<li><a href="roadmap-v2/04-dml.html#group-by">GROUP BY 按状态汇总</a></li>
+<li><a href="roadmap-v2/04-dml.html#order-by">ORDER BY 按日期和编号排序</a></li>
+<li><a href="roadmap-v2/04-dml.html#having">HAVING 筛选汇总结果</a></li>
+</ol>
+</li>
+<li><a href="roadmap-v2/04-dml.html#insert">INSERT 添加明细</a></li>
+<li><a href="roadmap-v2/04-dml.html#update">UPDATE 修改指定明细</a></li>
+<li><a href="roadmap-v2/04-dml.html#delete">DELETE 删除指定明细</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/05-aggregates.html"><span aria-hidden="true">05</span>聚合查询</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/05-aggregates.html#sum">SUM 求数量总和</a></li>
+<li><a href="roadmap-v2/05-aggregates.html#count">COUNT 统计行数</a></li>
+<li><a href="roadmap-v2/05-aggregates.html#avg">AVG 求平均数量</a></li>
+<li><a href="roadmap-v2/05-aggregates.html#min">MIN 找到最小数量</a></li>
+<li><a href="roadmap-v2/05-aggregates.html#max">MAX 找到最大数量</a></li>
+<li><a href="roadmap-v2/05-aggregates.html#group-by">GROUP BY 按状态汇总</a></li>
+<li><a href="roadmap-v2/05-aggregates.html#having">HAVING 筛选汇总结果</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/06-constraints.html"><span aria-hidden="true">06</span>数据约束</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/06-constraints.html#primary-key">PRIMARY KEY 唯一标识行</a></li>
+<li><a href="roadmap-v2/06-constraints.html#foreign-key">FOREIGN KEY 要求订单存在</a></li>
+<li><a href="roadmap-v2/06-constraints.html#unique">UNIQUE 防止重复值</a></li>
+<li><a href="roadmap-v2/06-constraints.html#not-null">NOT NULL 要求列有值</a></li>
+<li><a href="roadmap-v2/06-constraints.html#check">CHECK 校验数量范围</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/07-joins.html"><span aria-hidden="true">07</span>联结查询</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/07-joins.html#inner-join">INNER JOIN 保留匹配行</a></li>
+<li><a href="roadmap-v2/07-joins.html#left-join">LEFT JOIN 保留左表全部行</a></li>
+<li><a href="roadmap-v2/07-joins.html#right-join">RIGHT JOIN 保留右表全部行</a></li>
+<li><a href="roadmap-v2/07-joins.html#full-join">FULL OUTER JOIN 保留两侧未匹配行</a></li>
+<li><a href="roadmap-v2/07-joins.html#self-join">自联结 匹配同一客户的订单</a></li>
+<li><a href="roadmap-v2/07-joins.html#cross-join">CROSS JOIN 生成行的组合</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/08-subqueries.html"><span aria-hidden="true">08</span>子查询</a></h2>
+<h3>按结果形状分类</h3>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/08-subqueries.html#scalar">标量子查询 返回单个值</a></li>
+<li><a href="roadmap-v2/08-subqueries.html#column">单列子查询 为 IN 提供候选值</a></li>
+<li><a href="roadmap-v2/08-subqueries.html#row">行子查询 按多列匹配</a></li>
+<li><a href="roadmap-v2/08-subqueries.html#derived">表子查询 为 FROM 提供数据</a></li>
+</ol>
+<h3>按查询之间的关系分类</h3>
+<ol class="roadmap-topic-list" start="5">
+<li><a href="roadmap-v2/08-subqueries.html#nested">嵌套子查询 从明细追查客户</a></li>
+<li><a href="roadmap-v2/08-subqueries.html#correlated">相关子查询 判断客户是否有订单</a></li>
+</ol>
+</section>
+</div>
+<div>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/09-functions.html"><span aria-hidden="true">09</span>常用进阶函数与表达式</a></h2>
+<h3>字符串函数</h3>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/09-functions.html#concat">CONCAT 连接字符串</a></li>
+<li><a href="roadmap-v2/09-functions.html#length">LENGTH / LEN 测量字符串长度</a></li>
+<li><a href="roadmap-v2/09-functions.html#substring">SUBSTRING 截取字符串</a></li>
+<li><a href="roadmap-v2/09-functions.html#replace">REPLACE 替换文本</a></li>
+<li><a href="roadmap-v2/09-functions.html#upper">UPPER 转为大写</a></li>
+<li><a href="roadmap-v2/09-functions.html#lower">LOWER 转为小写</a></li>
+</ol>
+<h3>数值函数</h3>
+<ol class="roadmap-topic-list" start="7">
+<li><a href="roadmap-v2/09-functions.html#floor">FLOOR 向下取整</a></li>
+<li><a href="roadmap-v2/09-functions.html#abs">ABS 求绝对值</a></li>
+<li><a href="roadmap-v2/09-functions.html#mod">MOD / % 求余数</a></li>
+<li><a href="roadmap-v2/09-functions.html#round">ROUND 四舍五入</a></li>
+<li><a href="roadmap-v2/09-functions.html#ceiling">CEILING 向上取整</a></li>
+</ol>
+<h3>条件表达式</h3>
+<ol class="roadmap-topic-list" start="12">
+<li><a href="roadmap-v2/09-functions.html#case">CASE 按条件返回值</a></li>
+<li><a href="roadmap-v2/09-functions.html#nullif">NULLIF 两值相等时返回 NULL</a></li>
+<li><a href="roadmap-v2/09-functions.html#coalesce">COALESCE 取第一个非空值</a></li>
+</ol>
+<h3>日期与时间</h3>
+<ol class="roadmap-topic-list" start="15">
+<li><a href="roadmap-v2/09-functions.html#date">DATE 仅保留日期</a></li>
+<li><a href="roadmap-v2/09-functions.html#time">TIME 表示时刻</a></li>
+<li><a href="roadmap-v2/09-functions.html#timestamp">TIMESTAMP / datetime2 保存日期和时间</a></li>
+<li><a href="roadmap-v2/09-functions.html#datepart">DATEPART / EXTRACT 提取月份</a></li>
+<li><a href="roadmap-v2/09-functions.html#dateadd">DATEADD / DATE_ADD 为日期加天数</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/10-views.html"><span aria-hidden="true">10</span>视图</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/10-views.html#view-create">CREATE VIEW 保存常用查询</a></li>
+<li><a href="roadmap-v2/10-views.html#view-change">修改视图 更换保存的查询</a></li>
+<li><a href="roadmap-v2/10-views.html#view-drop">DROP VIEW 删除视图</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/11-indexes.html"><span aria-hidden="true">11</span>索引</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/11-indexes.html#indexes">CREATE INDEX 为查询键建索引</a></li>
+<li><a href="roadmap-v2/11-indexes.html#query-optimization">执行计划 检查数据库如何查找订单</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/12-transactions.html"><span aria-hidden="true">12</span>事务</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/12-transactions.html#begin">BEGIN 开启事务</a></li>
+<li><a href="roadmap-v2/12-transactions.html#commit">COMMIT 确认事务写入</a></li>
+<li><a href="roadmap-v2/12-transactions.html#rollback">ROLLBACK 撤销未提交写入</a></li>
+<li><a href="roadmap-v2/12-transactions.html#savepoint">SAVEPOINT 撤销部分操作</a></li>
+<li><a href="roadmap-v2/12-transactions.html#acid">ACID 验证修改一起回滚</a></li>
+<li><a href="roadmap-v2/12-transactions.html#isolation">READ COMMITTED 读取已提交的数据</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/13-integrity-security.html"><span aria-hidden="true">13</span>数据完整性与安全</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/13-integrity-security.html#integrity">数据完整性 筛查无订单的明细</a></li>
+<li><a href="roadmap-v2/13-integrity-security.html#grant-revoke">GRANT / REVOKE 授予和收回权限</a></li>
+<li><a href="roadmap-v2/13-integrity-security.html#security">CURRENT_USER 核对执行身份</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/14-routines.html"><span aria-hidden="true">14</span>存储过程与函数</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/14-routines.html#procedure">存储过程按参数读取明细</a></li>
+<li><a href="roadmap-v2/14-routines.html#function">存储函数在 SELECT 中取值</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/15-performance.html"><span aria-hidden="true">15</span>性能优化</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/15-performance.html#analysis">执行计划 检查订单明细的读取方式</a></li>
+</ol>
+<h3>查询优化方法</h3>
+<ol class="roadmap-topic-list" start="2">
+<li><a href="roadmap-v2/15-performance.html#use-index">复合索引 按前导列查找</a></li>
+<li><a href="roadmap-v2/15-performance.html#efficient-join">JOIN 按键联结并筛选订单</a></li>
+<li><a href="roadmap-v2/15-performance.html#reduce-subquery">先聚合再联结 减少重复查询</a></li>
+<li><a href="roadmap-v2/15-performance.html#projection">SELECT 只返回所需列</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/16-advanced.html"><span aria-hidden="true">16</span>高级 SQL</a></h2>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/16-advanced.html#window">窗口函数 OVER 保留明细并汇总</a>
+<ol>
+<li><a href="roadmap-v2/16-advanced.html#rank">RANK 并列后跳号</a></li>
+<li><a href="roadmap-v2/16-advanced.html#dense-rank">DENSE_RANK 并列后连续排名</a></li>
+<li><a href="roadmap-v2/16-advanced.html#lead">LEAD 读取下一行</a></li>
+<li><a href="roadmap-v2/16-advanced.html#lag">LAG 读取上一行</a></li>
+<li><a href="roadmap-v2/16-advanced.html#row-number">ROW_NUMBER 组内逐行编号</a></li>
+<li><a href="roadmap-v2/16-advanced.html#first-value">FIRST_VALUE 取窗口首行值</a></li>
+</ol>
+</li>
+<li><a href="roadmap-v2/16-advanced.html#recursive">递归 CTE 逐步生成序列</a></li>
+<li><a href="roadmap-v2/16-advanced.html#pivot">PIVOT / UNPIVOT 互换行与列</a></li>
+<li><a href="roadmap-v2/16-advanced.html#cte">WITH 命名中间结果</a></li>
+<li><a href="roadmap-v2/16-advanced.html#dynamic">动态 SQL 绑定参数后执行</a></li>
+</ol>
+</section>
+<section class="panel roadmap-stage">
+<h2><a href="roadmap-v2/17-practical.html"><span aria-hidden="true">17</span>SQL 实务细节</a></h2>
+<h3>查询写法</h3>
+<ol class="roadmap-topic-list" start="1">
+<li><a href="roadmap-v2/17-practical.html#alias">AS 给列和表起别名</a></li>
+<li><a href="roadmap-v2/17-practical.html#alias-filter">列别名 用派生表在 WHERE 中筛选</a></li>
+<li><a href="roadmap-v2/17-practical.html#logic-order">AND / OR 用括号明确筛选范围</a></li>
+<li><a href="roadmap-v2/17-practical.html#left-join-filter">LEFT JOIN 在 ON 里限制右表</a></li>
+<li><a href="roadmap-v2/17-practical.html#stable-top">ORDER BY 用唯一键稳定取前 N 行</a></li>
+<li><a href="roadmap-v2/17-practical.html#literal-like">LIKE ESCAPE 按字面查找百分号和下划线</a></li>
+</ol>
+<h3>NULL 与空白</h3>
+<ol class="roadmap-topic-list" start="7">
+<li><a href="roadmap-v2/17-practical.html#where-null">WHERE IS NULL 查缺失值</a></li>
+<li><a href="roadmap-v2/17-practical.html#null-safe">NULL 安全比较 让两个缺失值相等</a></li>
+<li><a href="roadmap-v2/17-practical.html#count-null">COUNT(*) 和 COUNT(列) 区分总行数与非空数</a></li>
+<li><a href="roadmap-v2/17-practical.html#null-default">COALESCE 给 NULL 设置显示值</a></li>
+<li><a href="roadmap-v2/17-practical.html#not-in-null">NOT IN 遇到 NULL 时用 NOT EXISTS 查未匹配行</a></li>
+<li><a href="roadmap-v2/17-practical.html#trim-blanks">TRIM + NULLIF 清理首尾空格并识别空白值</a></li>
+<li><a href="roadmap-v2/17-practical.html#invisible-space">REPLACE 清理 Tab 和不换行空格</a></li>
+<li><a href="roadmap-v2/17-practical.html#string-length">字符数、字节数与尾随空格</a></li>
+</ol>
+<h3>数值与日期时间</h3>
+<ol class="roadmap-topic-list" start="15">
+<li><a href="roadmap-v2/17-practical.html#numeric-division">CAST 先转小数再相除</a></li>
+<li><a href="roadmap-v2/17-practical.html#date-range">日期时间 WHERE 用半开区间筛整天或整月</a></li>
+<li><a href="roadmap-v2/17-practical.html#month-group">按月分组 用月初日期作为分组键</a></li>
+<li><a href="roadmap-v2/17-practical.html#date-display">日期格式化 在输出时转换为文本</a></li>
+<li><a href="roadmap-v2/17-practical.html#time-zone">时区转换 将东京本地时间换算为 UTC</a></li>
+</ol>
+<h3>数据同步</h3>
+<ol class="roadmap-topic-list" start="20">
+<li><a href="roadmap-v2/17-practical.html#merge">MERGE / UPSERT 按订单号更新或插入</a></li>
+</ol>
+<h3>索引实操</h3>
+<ol class="roadmap-topic-list" start="21">
+<li><a href="roadmap-v2/17-practical.html#index-choice">选择索引 先看等值列、范围列和排序</a></li>
+<li><a href="roadmap-v2/17-practical.html#index-create">CREATE INDEX 把多列索引建到查询对象上</a></li>
+<li><a href="roadmap-v2/17-practical.html#index-verify">执行计划 对比加索引前后的实际读数</a></li>
+</ol>
+</section>
+</div>
+</nav>
+<p class="sources">路线依据 <a href="https://roadmap.sh/sql">roadmap.sh SQL 路线图</a></p>
+
+</main>
+</body>
+</html>

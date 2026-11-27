@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SQL 基本语法 · SQL 路线速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../index.html">章节目录</a>
+<a href="../v1.html">v1 旧版</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap roadmap-v2">
+<p class="kicker">第 02 章 · 共 17 章</p>
+<h1>SQL 基本语法</h1>
+<div class="layout">
+<article class="content" aria-label="知识点">
+<section class="point" id="keywords" data-dialects="postgresql sqlserver mysql">
+<h2>SQL 关键字 识别查询骨架</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT order_id
+FROM sql_notes_lab.orders WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead><tbody><tr><td><code>101</code></td></tr><tr><td><code>102</code></td></tr><tr><td><code>103</code></td></tr><tr><td><code>104</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT order_id
+FROM orders WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead><tbody><tr><td><code>101</code></td></tr><tr><td><code>102</code></td></tr><tr><td><code>103</code></td></tr><tr><td><code>104</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id
+FROM dbo.orders WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead><tbody><tr><td><code>101</code></td></tr><tr><td><code>102</code></td></tr><tr><td><code>103</code></td></tr><tr><td><code>104</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>SELECT、FROM、WHERE 是关键字。写成大写方便辨认，表名和标识符须遵守所用引擎的规则。</p>
+
+<p class="sources"><a href="../reference/04-select.html#p1">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="data-types" data-dialects="postgresql sqlserver mysql">
+<h2>数据类型 表示数量、金额和日期</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT CAST(2 AS INT) AS qty, CAST(20 AS DECIMAL(8,2)) AS price,
+       CAST(&#x27;2025-01-10&#x27; AS DATE) AS ordered_on;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">qty</th><th scope="col">price</th><th scope="col">ordered_on</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT CAST(2 AS SIGNED) AS qty, CAST(20 AS DECIMAL(8,2)) AS price,
+       CAST(&#x27;2025-01-10&#x27; AS DATE) AS ordered_on;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">qty</th><th scope="col">price</th><th scope="col">ordered_on</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT CAST(2 AS INT) AS qty, CAST(20 AS DECIMAL(8,2)) AS price,
+       CAST(&#x27;2025-01-10&#x27; AS DATE) AS ordered_on;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">qty</th><th scope="col">price</th><th scope="col">ordered_on</th></tr></thead>
+<tbody>
+<tr><td><code>2</code></td><td><code>20.00</code></td><td><code>2025-01-10</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>数量用整数，金额用精确小数。日期在数据库里可直接比较与排序。</p>
+
+<p class="sources"><a href="../reference/31-appendices.html">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="operators" data-dialects="postgresql sqlserver mysql">
+<h2>算术运算符 计算明细金额</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT qty * unit_price AS line_total
+FROM sql_notes_lab.order_items WHERE order_id = 101 AND product_id = 1;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · order_items（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · order_items（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2</code></td><td><code>20.00</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">line_total</th></tr></thead>
+<tbody>
+<tr><td><code>40.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT qty * unit_price AS line_total
+FROM order_items WHERE order_id = 101 AND product_id = 1;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · order_items（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · order_items（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2</code></td><td><code>20.00</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">line_total</th></tr></thead>
+<tbody>
+<tr><td><code>40.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT qty * unit_price AS line_total
+FROM dbo.order_items WHERE order_id = 101 AND product_id = 1;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · order_items（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · order_items（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">product_id</th><th scope="col">qty</th><th scope="col">unit_price</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2</code></td><td><code>20.00</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">line_total</th></tr></thead>
+<tbody>
+<tr><td><code>40.00</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>乘号计算表达式。等号比较值，AND 要求两个条件都成立。</p>
+
+<p class="sources"><a href="../reference/10-calculated-fields.html">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="select" data-dialects="postgresql sqlserver mysql">
+<h2>SELECT 选择返回的列</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT order_id, status
+FROM sql_notes_lab.orders WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT order_id, status
+FROM orders WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, status
+FROM dbo.orders WHERE order_id = 101;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>这一条只读取编号和状态。SELECT 在部分分类里称为查询语言。</p>
+
+<p class="sources"><a href="../reference/04-select.html#p1">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="insert" data-dialects="postgresql sqlserver mysql">
+<h2>INSERT 添加明细</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE rv2_basic_insert AS
+SELECT order_id, status FROM sql_notes_lab.orders WHERE 1 = 0;
+INSERT INTO rv2_basic_insert (order_id, status) VALUES (101, 'paid');
+SELECT order_id, status FROM rv2_basic_insert;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres（sql_notes_lab 模式）</code>。在有临时表权限的新连接中运行。第一步从订单表建立临时表，关闭连接后可重新练习。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="INSERT 前 · rv2_basic_insert" tabindex="0">
+<table class="sql-result">
+<caption>INSERT 前 · rv2_basic_insert</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td colspan="2">0 行</td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, status INTO #rv2_basic_insert FROM dbo.orders WHERE 1 = 0;
+INSERT INTO #rv2_basic_insert (order_id, status) VALUES (101, 'paid');
+SELECT order_id, status FROM #rv2_basic_insert;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。在有临时表权限的新连接中运行。第一步从订单表建立临时表，关闭连接后可重新练习。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="INSERT 前 · #rv2_basic_insert" tabindex="0">
+<table class="sql-result">
+<caption>INSERT 前 · #rv2_basic_insert</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td colspan="2">0 行</td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE rv2_basic_insert AS
+SELECT order_id, status FROM orders WHERE 1 = 0;
+INSERT INTO rv2_basic_insert (order_id, status) VALUES (101, 'paid');
+SELECT order_id, status FROM rv2_basic_insert;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。在有临时表权限的新连接中运行。第一步从订单表建立临时表，关闭连接后可重新练习。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="INSERT 前 · rv2_basic_insert" tabindex="0">
+<table class="sql-result">
+<caption>INSERT 前 · rv2_basic_insert</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td colspan="2">0 行</td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+</div>
+<p>本例只写入当前会话的临时表。<a href="04-dml.html#insert">第 04 阶段</a>展示在订单明细上修改并回滚。</p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="delete" data-dialects="postgresql sqlserver mysql">
+<h2>DELETE 删除指定明细</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE rv2_basic_delete AS
+SELECT order_id, status FROM sql_notes_lab.orders WHERE order_id = 101;
+DELETE FROM rv2_basic_delete WHERE order_id = 101;
+SELECT order_id, status FROM rv2_basic_delete;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres（sql_notes_lab 模式）</code>。在有临时表权限的新连接中运行。第一步从订单表建立临时表，关闭连接后可重新练习。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="DELETE 前 · rv2_basic_delete" tabindex="0">
+<table class="sql-result">
+<caption>DELETE 前 · rv2_basic_delete</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td colspan="2">0 行</td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, status INTO #rv2_basic_delete FROM dbo.orders WHERE order_id = 101;
+DELETE FROM #rv2_basic_delete WHERE order_id = 101;
+SELECT order_id, status FROM #rv2_basic_delete;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。在有临时表权限的新连接中运行。第一步从订单表建立临时表，关闭连接后可重新练习。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="DELETE 前 · #rv2_basic_delete" tabindex="0">
+<table class="sql-result">
+<caption>DELETE 前 · #rv2_basic_delete</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td colspan="2">0 行</td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE rv2_basic_delete AS
+SELECT order_id, status FROM orders WHERE order_id = 101;
+DELETE FROM rv2_basic_delete WHERE order_id = 101;
+SELECT order_id, status FROM rv2_basic_delete;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。在有临时表权限的新连接中运行。第一步从订单表建立临时表，关闭连接后可重新练习。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="DELETE 前 · rv2_basic_delete" tabindex="0">
+<table class="sql-result">
+<caption>DELETE 前 · rv2_basic_delete</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td colspan="2">0 行</td></tr></tbody>
+</table></div>
+</div>
+<p>本例只写入当前会话的临时表。<a href="04-dml.html#delete">第 04 阶段</a>展示在订单明细上修改并回滚。</p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="update" data-dialects="postgresql sqlserver mysql">
+<h2>UPDATE 修改指定明细</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP TABLE rv2_basic_update AS
+SELECT order_id, status FROM sql_notes_lab.orders WHERE order_id = 101;
+UPDATE rv2_basic_update SET status = 'pending' WHERE order_id = 101;
+SELECT order_id, status FROM rv2_basic_update;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres（sql_notes_lab 模式）</code>。在有临时表权限的新连接中运行。第一步从订单表建立临时表，关闭连接后可重新练习。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="UPDATE 前 · rv2_basic_update" tabindex="0">
+<table class="sql-result">
+<caption>UPDATE 前 · rv2_basic_update</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, status INTO #rv2_basic_update FROM dbo.orders WHERE order_id = 101;
+UPDATE #rv2_basic_update SET status = 'pending' WHERE order_id = 101;
+SELECT order_id, status FROM #rv2_basic_update;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。在有临时表权限的新连接中运行。第一步从订单表建立临时表，关闭连接后可重新练习。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="UPDATE 前 · #rv2_basic_update" tabindex="0">
+<table class="sql-result">
+<caption>UPDATE 前 · #rv2_basic_update</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE TEMPORARY TABLE rv2_basic_update AS
+SELECT order_id, status FROM orders WHERE order_id = 101;
+UPDATE rv2_basic_update SET status = 'pending' WHERE order_id = 101;
+SELECT order_id, status FROM rv2_basic_update;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。在有临时表权限的新连接中运行。第一步从订单表建立临时表，关闭连接后可重新练习。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="UPDATE 前 · rv2_basic_update" tabindex="0">
+<table class="sql-result">
+<caption>UPDATE 前 · rv2_basic_update</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+</div>
+<p>本例只写入当前会话的临时表。<a href="04-dml.html#update">第 04 阶段</a>展示在订单明细上修改并回滚。</p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="panel"><h2>合上示例试一题</h2><p>哪一个关键字用于修改现有行？</p>
+<details><summary>查看答案</summary><p>UPDATE，配合 WHERE 缩小范围。</p></details></section>
+</article>
+<nav class="jump" aria-label="本阶段知识点"><strong>本阶段知识点</strong>
+<ol>
+<li><a href="#keywords">SQL 关键字 识别查询骨架</a></li>
+<li><a href="#data-types">数据类型 表示数量、金额和日期</a></li>
+<li><a href="#operators">算术运算符 计算明细金额</a></li>
+</ol>
+<p><strong>基本语句</strong></p><ol start="4">
+<li><a href="#select">SELECT 选择返回的列</a></li>
+<li><a href="#insert">INSERT 添加明细</a></li>
+<li><a href="#delete">DELETE 删除指定明细</a></li>
+<li><a href="#update">UPDATE 修改指定明细</a></li>
+</ol></nav>
+</div>
+<nav class="pager" aria-label="章节导航"><a rel="prev" href="01-relational.html">← 关系数据库入门</a><a href="../index.html">章节目录</a><a rel="next" href="03-ddl.html">数据定义语言（DDL） →</a></nav>
+</main>
+</body>
+</html>

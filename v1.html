@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>章节目录 · SQL 速查 v1</title>
+<link rel="stylesheet" href="assets/notes.css">
+<script src="assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="index.html">返回新版</a>
+<a href="lessons/0001-first-query.html">五分钟上手</a>
+<a href="assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<h1>SQL 速查笔记 · v1</h1>
+<p class="lead">从页首切换数据库。每个知识点标出有对应示例的方言。三套练习使用相同的订单数据，结果表顶部显示对应的 SQL 语句。</p>
+<p class="entry-links"><a class="cta" href="lessons/0001-first-query.html">运行第一条查询</a>
+<a href="reference/sql-roadmap.html">按路线学习 SQL</a>
+<a href="assets/setup-postgresql.sql" download data-dialects="postgresql">下载练习数据</a>
+<a href="assets/setup-sqlserver.sql" download data-dialects="sqlserver">下载练习数据</a>
+<a href="assets/setup.sql" download data-dialects="mysql">下载练习数据</a>
+</p>
+<p class="setup-note" data-dialects="postgresql">PostgreSQL 主线。多数示例可在 18 中运行，MERGE、DO SELECT 等特性按最低版本标注。</p>
+<p class="setup-note" data-dialects="sqlserver">SQL Server 主线。T-SQL 以 SQL Server 2025 的语法核对，结果表提供可对照的预期值。</p>
+<div id="operations">
+<button type="button" id="operation-launcher" aria-haspopup="dialog" aria-controls="operation-dialog" aria-keyshortcuts="F" hidden>
+<span class="operation-icon" aria-hidden="true"></span>
+<span>搜索 SQL 笔记</span>
+<kbd aria-hidden="true">F</kbd>
+</button>
+</div>
+<div class="grid" id="core-chapters" data-dialects="postgresql sqlserver mysql"><section class="panel"><h2>连接与读取</h2><ul class="chapter-list"><li><a href="reference/01-understand-sql.html"><span aria-hidden="true">01</span>了解SQL</a></li><li><a href="reference/02-mysql-overview.html"><span aria-hidden="true">02</span>客户端与服务器</a></li><li><a href="reference/03-mysql-basics.html"><span aria-hidden="true">03</span>连接与对象元数据</a></li><li><a href="reference/04-select.html"><span aria-hidden="true">04</span>检索数据</a></li><li><a href="reference/05-order-by.html"><span aria-hidden="true">05</span>排序检索数据</a></li></ul></section>
+<section class="panel"><h2>过滤与表达式</h2><ul class="chapter-list"><li><a href="reference/06-where.html"><span aria-hidden="true">06</span>过滤数据</a></li><li><a href="reference/07-combined-filters.html"><span aria-hidden="true">07</span>数据过滤</a></li><li><a href="reference/08-like.html"><span aria-hidden="true">08</span>用通配符进行过滤</a></li><li><a href="reference/09-regexp.html"><span aria-hidden="true">09</span>用正则表达式进行搜索</a></li><li><a href="reference/10-calculated-fields.html"><span aria-hidden="true">10</span>创建计算字段</a></li><li><a href="reference/11-functions.html"><span aria-hidden="true">11</span>使用数据处理函数</a></li></ul></section>
+<section class="panel"><h2>汇总、联结与搜索</h2><ul class="chapter-list"><li><a href="reference/12-aggregates.html"><span aria-hidden="true">12</span>汇总数据</a></li><li><a href="reference/13-group-by.html"><span aria-hidden="true">13</span>分组数据</a></li><li><a href="reference/14-subqueries.html"><span aria-hidden="true">14</span>使用子查询</a></li><li><a href="reference/15-joins.html"><span aria-hidden="true">15</span>联结表</a></li><li><a href="reference/16-advanced-joins.html"><span aria-hidden="true">16</span>创建高级联结</a></li><li><a href="reference/17-set-operations.html"><span aria-hidden="true">17</span>组合查询</a></li><li><a href="reference/18-fulltext.html"><span aria-hidden="true">18</span>全文本搜索</a></li></ul></section>
+<section class="panel"><h2>写入与表结构</h2><ul class="chapter-list"><li><a href="reference/19-insert.html"><span aria-hidden="true">19</span>插入数据</a></li><li><a href="reference/20-update-delete.html"><span aria-hidden="true">20</span>更新和删除数据</a></li><li><a href="reference/21-tables.html"><span aria-hidden="true">21</span>创建和操纵表</a></li><li><a href="reference/22-views.html"><span aria-hidden="true">22</span>使用视图</a></li></ul></section>
+<section class="panel"><h2>存储对象与事务</h2><ul class="chapter-list"><li><a href="reference/23-procedures.html"><span aria-hidden="true">23</span>使用存储过程</a></li><li><a href="reference/24-cursors.html"><span aria-hidden="true">24</span>使用游标</a></li><li><a href="reference/25-triggers.html"><span aria-hidden="true">25</span>使用触发器</a></li><li><a href="reference/26-transactions.html"><span aria-hidden="true">26</span>管理事务处理</a></li><li><a href="reference/27-character-sets.html"><span aria-hidden="true">27</span>全球化和本地化</a></li></ul></section>
+<section class="panel"><h2>管理、性能与进阶</h2><ul class="chapter-list"><li><a href="reference/28-access-control.html"><span aria-hidden="true">28</span>安全管理</a></li><li><a href="reference/29-maintenance.html"><span aria-hidden="true">29</span>数据库维护</a></li><li><a href="reference/30-performance.html"><span aria-hidden="true">30</span>改善性能</a></li><li><a href="reference/31-appendices.html"><span aria-hidden="true">31</span>附录速查</a></li><li><a href="reference/32-modern-sql.html"><span aria-hidden="true">32</span>现代 SQL 与工程实践</a></li></ul></section></div>
+<section class="panel chapter-track" id="postgresql-chapters" data-dialects="postgresql" data-alternate-anchor="sqlserver-chapters core-chapters">
+<h2>PostgreSQL 原生语法</h2>
+<ol class="chapter-list">
+<li><a href="reference/33-postgresql-write.html"><span aria-hidden="true">33</span>数据写入与同步</a></li>
+<li><a href="reference/34-postgresql-query.html"><span aria-hidden="true">34</span>原生查询、数组与 JSONB</a></li>
+<li><a href="reference/35-postgresql-design.html"><span aria-hidden="true">35</span>时间区间与索引约束</a></li>
+<li><a href="reference/39-postgresql-syntax.html"><span aria-hidden="true">39</span>SQL 基本元素与名称解析</a></li>
+<li><a href="reference/40-postgresql-analytics.html"><span aria-hidden="true">40</span>聚合、窗口与集合函数</a></li>
+<li><a href="reference/41-postgresql-types.html"><span aria-hidden="true">41</span>内置类型与类型行为</a></li>
+<li><a href="reference/42-postgresql-functions.html"><span aria-hidden="true">42</span>字符串、正则、时间和运算符</a></li>
+<li><a href="reference/43-postgresql-documents.html"><span aria-hidden="true">43</span>数组、JSONB、SQL/JSON、XML 与全文</a></li>
+<li><a href="reference/44-postgresql-schema.html"><span aria-hidden="true">44</span>表结构、约束、视图与分区</a></li>
+<li><a href="reference/45-postgresql-plans.html"><span aria-hidden="true">45</span>索引、统计和执行计划</a></li>
+<li><a href="reference/46-postgresql-routines.html"><span aria-hidden="true">46</span>例程、触发器与自定义对象</a></li>
+<li><a href="reference/47-postgresql-transactions.html"><span aria-hidden="true">47</span>事务、锁、权限与会话</a></li>
+<li><a href="reference/48-postgresql-administration.html"><span aria-hidden="true">48</span>管理、系统对象、复制与扩展</a></li>
+<li><a href="reference/49-postgresql-versions.html"><span aria-hidden="true">49</span>PostgreSQL 版本与迁移附录</a></li>
+<li><a href="reference/62-postgresql-utilities.html"><span aria-hidden="true">62</span>对象生命周期与会话工具</a></li>
+</ol>
+</section>
+<section class="panel chapter-track" id="sqlserver-chapters" data-dialects="sqlserver" data-alternate-anchor="postgresql-chapters core-chapters">
+<h2>SQL Server 原生语法</h2>
+<ol class="chapter-list">
+<li><a href="reference/36-sqlserver-write.html"><span aria-hidden="true">36</span>数据同步、OUTPUT 与事务</a></li>
+<li><a href="reference/37-sqlserver-query.html"><span aria-hidden="true">37</span>APPLY、行列转换与 JSON</a></li>
+<li><a href="reference/38-sqlserver-design.html"><span aria-hidden="true">38</span>历史版本、并发与索引</a></li>
+<li><a href="reference/50-sqlserver-batches.html"><span aria-hidden="true">50</span>批次、名称解析和表达式</a></li>
+<li><a href="reference/51-sqlserver-analytics.html"><span aria-hidden="true">51</span>聚合、窗口与分析函数</a></li>
+<li><a href="reference/52-sqlserver-types.html"><span aria-hidden="true">52</span>类型、字符串与时间</a></li>
+<li><a href="reference/53-sqlserver-documents.html"><span aria-hidden="true">53</span>JSON、XML、全文、正则和模糊匹配</a></li>
+<li><a href="reference/54-sqlserver-schema.html"><span aria-hidden="true">54</span>表结构、约束、视图与分区</a></li>
+<li><a href="reference/55-sqlserver-history-graph.html"><span aria-hidden="true">55</span>时态、变更跟踪、图与账本</a></li>
+<li><a href="reference/56-sqlserver-plans.html"><span aria-hidden="true">56</span>索引、统计、计划与诊断</a></li>
+<li><a href="reference/57-sqlserver-routines.html"><span aria-hidden="true">57</span>程序结构与服务队列</a></li>
+<li><a href="reference/58-sqlserver-transactions.html"><span aria-hidden="true">58</span>事务、隔离和错误处理</a></li>
+<li><a href="reference/59-sqlserver-security.html"><span aria-hidden="true">59</span>权限、加密和审计</a></li>
+<li><a href="reference/60-sqlserver-administration.html"><span aria-hidden="true">60</span>实例、备份、系统对象和外部数据</a></li>
+<li><a href="reference/61-sqlserver-versions.html"><span aria-hidden="true">61</span>SQL Server 版本与迁移附录</a></li>
+<li><a href="reference/63-sqlserver-utilities.html"><span aria-hidden="true">63</span>诊断与对象实用语句</a></li>
+</ol>
+</section>
+<section class="panel chapter-track" id="reference-appendices"><h2>参考附录</h2><p class="entry-links"><a href="reference/modern-glossary.html">术语速查</a>
+<a href="reference/w3schools-sql.html">W3Schools SQL 对照</a>
+<a href="reference/mysql-versions.html" data-dialects="mysql">MySQL 新版本与过时内容</a>
+<a href="RESOURCES.md">参考资料</a>
+<a href="DIALECT-COVERAGE.md">语法覆盖与验证</a></p></section>
+</main>
+</body></html>

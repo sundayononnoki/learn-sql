@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>五分钟上手 · SQL 速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/first-query.js" defer></script>
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../reference/01-understand-sql.html">第 1 章</a>
+<a href="../assets/setup-postgresql.sql" download data-dialects="postgresql">练习数据</a>
+<a href="../assets/setup-sqlserver.sql" download data-dialects="sqlserver">练习数据</a>
+<a href="../assets/setup.sql" download data-dialects="mysql">练习数据</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap">
+<p class="kicker">SQL · 第一课</p>
+<h1>跑出第一条查询</h1>
+<p class="lead">连接并导入练习数据后，用一条查询找出最贵的图书，再试着只保留一件。</p>
+<div class="layout">
+<article class="content">
+<section id="setup" class="point" data-dialects="mysql" data-alternate-anchor="setup-postgresql setup-sqlserver">
+<h2>1. 准备练习库</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>需要正在运行的 MySQL Community Server 和 <code>mysql</code> 客户端。新装可选 <a href="../reference/mysql-versions.html#releases">9.7.4 LTS</a>。已有 8.4 LTS 或 26.10 实例可直接连接。<a href="https://dev.mysql.com/doc/refman/9.7/en/installing.html">安装手册</a></p>
+<p>在终端进入本笔记所在的文件夹。下面以本机管理员 <code>root</code> 为例，按练习实例替换账号。<code>-p</code> 会提示输入口令。若使用远程或指定 TCP 实例，可参考第 3 章的主机和端口参数。</p>
+<figure><figcaption>系统终端</figcaption><pre><code>mysql --version
+mysql --default-character-set=utf8mb4 -u root -p &lt; assets/setup.sql
+mysql --default-character-set=utf8mb4 -u root -p learn_sql_lab</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　终端已有 MySQL 客户端及可连接的练习实例，还未导入 <code>setup.sql</code>。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>mysql --default-character-set=utf8mb4 -u root -p learn_sql_lab</code><span class="sql-caption-context">初始化后的会话</span></span></caption>
+<thead><tr><th scope="col">数据库</th><th scope="col">表数</th><th scope="col">终端提示符</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab</code></td><td class="sql-number"><code>5</code></td><td><code>mysql&gt;</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　打印客户端版本，再创建 <code>learn_sql_lab</code> 与五张表。成功连接后出现 <code>mysql&gt;</code>。</p>
+</details>
+</div>
+<p class="outcome">成功导入后，最后一行会打开 <code>mysql&gt;</code> 提示符。若库已存在，导入会在创建数据库时停止，先确认实例和库内容。下方核对查询可区分是否已有完整基础数据。</p>
+<figure><figcaption>mysql 提示符</figcaption><pre><code>SELECT DATABASE(), VERSION();
+SELECT (SELECT COUNT(*) FROM customers) AS customers,
+       (SELECT COUNT(*) FROM products) AS products,
+       (SELECT COUNT(*) FROM orders) AS orders,
+       (SELECT COUNT(*) FROM order_items) AS items,
+       (SELECT COUNT(*) FROM docs) AS docs;</code></pre></figure>
+<div class="execution-grids">
+<p class="sql-input-note"><strong>执行前</strong>　练习库已创建并选中。</p>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="结果 1" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">1 · </span><code>SELECT DATABASE(), VERSION();</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">DATABASE()</th><th scope="col">VERSION()</th></tr></thead>
+<tbody>
+<tr><td><code>learn_sql_lab</code></td><td><code>9.7.4</code></td></tr>
+</tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="结果 2" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><span class="sql-caption-order">2 · </span><code>SELECT (SELECT COUNT(*) FROM customers) AS customers, (SELECT COUNT(*) FROM products) AS products, (SELECT COUNT(*) FROM orders) AS orders, (SELECT COUNT(*) FROM order_items) AS items, (SELECT COUNT(*) FROM docs) AS docs;</code><span class="sql-caption-context">示例输出</span></span></caption>
+<thead><tr><th scope="col">customers</th><th scope="col">products</th><th scope="col">orders</th><th scope="col">items</th><th scope="col">docs</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>4</code></td><td class="sql-number"><code>5</code></td><td class="sql-number"><code>4</code></td><td class="sql-number"><code>5</code></td><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行后</strong>　返回当前库与服务器版本。五张表的行数按查询列序为 <code>4,5,4,5,5</code>。</p>
+</details>
+</div>
+<p class="outcome">当前库为 <code>learn_sql_lab</code>，练习数据的行数依次为 4、5、4、5、5。</p>
+<details>
+<summary>连接失败时看哪里</summary>
+<p><code>command not found</code> 时检查客户端是否安装并在 PATH 中。<code>ERROR 2002</code> 通常先核对服务是否启动及 socket 路径，<code>ERROR 1045</code> 核对账号、主机匹配和口令。<a href="../reference/03-mysql-basics.html">连接参数和检查命令</a></p>
+</details>
+</section>
+
+<section id="setup-postgresql" class="point" data-dialects="postgresql" data-alternate-anchor="setup-sqlserver setup">
+<h2>1. 准备 PostgreSQL 练习库</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span></p>
+<p>先启动 PostgreSQL 并安装 psql。示例通过默认连接访问 postgres 数据库。也可以用 <code>-h</code> 和 <code>-U</code> 指定地址与练习账号。先在终端进入笔记所在文件夹，或把脚本参数换成下载文件的实际路径。初始化脚本创建独立模式 <code>sql_notes_lab</code>，账号需要在目标数据库创建模式的权限。</p>
+<figure><figcaption>系统终端 · psql</figcaption><pre><code>psql -X -v ON_ERROR_STOP=1 -d postgres -f assets/setup-postgresql.sql
+psql -X -d postgres</code></pre></figure>
+<p>在查询窗口执行下面的 SQL。每个新练习会话都要重新设置 <code>search_path</code>。</p>
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SET search_path TO sql_notes_lab;
+SELECT current_schema() AS active_schema, (SELECT COUNT(*) FROM products) AS products;</code></pre></figure>
+<div class="execution-grids"><div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT current_schema() AS active_schema, (SELECT COUNT(*) FROM products) AS products;</code></span></caption>
+<thead><tr><th scope="col">active_schema</th><th scope="col">products</th></tr></thead>
+<tbody>
+<tr><td><code>sql_notes_lab</code></td><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div></div>
+<p class="sources"><a href="https://www.postgresql.org/docs/current/tutorial-install.html">PostgreSQL 安装教程</a> · <a href="https://www.postgresql.org/docs/current/app-psql.html">psql</a></p>
+</section>
+<section id="setup-sqlserver" class="point" data-dialects="sqlserver" data-alternate-anchor="setup-postgresql setup">
+<h2>1. 准备 SQL Server 练习库</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="sqlserver">SQL Server</span></p>
+<p>先连到可用的 SQL Server 实例。把 <code>localhost</code> 和 <code>lab_admin</code> 换成练习实例和账号。运行前确认 <code>SQLNotesLab</code> 尚未创建，账号需要对应的建库和建表权限。先在终端进入笔记所在文件夹，或把脚本参数换成下载文件的实际路径。也可用 SSMS 创建空库，再打开练习脚本执行。</p>
+<figure><figcaption>系统终端 · sqlcmd</figcaption><pre><code>sqlcmd -S localhost -U lab_admin -b -Q &quot;CREATE DATABASE SQLNotesLab;&quot;
+sqlcmd -S localhost -U lab_admin -b -d SQLNotesLab -f i:65001 -i assets/setup-sqlserver.sql</code></pre></figure>
+<p><code>-f i:65001</code> 指定以 UTF-8 读取样例里的中文。打开查询窗口后切换到练习库。部署的 SQL Server 在其他主机上时，使用管理员提供的端点和 TLS 配置。</p>
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>USE SQLNotesLab;
+SELECT DB_NAME() AS active_database, (SELECT COUNT(*) FROM dbo.products) AS products;</code></pre></figure>
+<div class="execution-grids"><div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT DB_NAME() AS active_database, (SELECT COUNT(*) FROM dbo.products) AS products;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">active_database</th><th scope="col">products</th></tr></thead>
+<tbody>
+<tr><td><code>SQLNotesLab</code></td><td class="sql-number"><code>5</code></td></tr>
+</tbody>
+</table></div></div>
+<p class="sources"><a href="https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-use-utility">sqlcmd</a> · <a href="https://learn.microsoft.com/en-us/sql/sql-server/what-s-new-in-sql-server-2025">SQL Server 2025</a></p>
+</section>
+<section id="query" class="point" data-dialects="postgresql sqlserver mysql">
+<h2>2. 先筛图书，再排价格</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p>在当前 SQL 客户端运行下面的查询。SELECT 选结果列，WHERE 留下图书。ORDER BY 先按价格降序，再按编号升序处理同价。</p>
+<figure><figcaption>SQL</figcaption><pre><code>SELECT product_id, name, price
+FROM products
+WHERE category = 'book'
+ORDER BY price DESC, product_id ASC;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids" open><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="products · 练习数据" tabindex="0">
+<table class="sql-result"><caption>products · 练习数据</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">category</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td><code>book</code></td><td class="sql-number"><code>20.00</code></td></tr>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>3</code></td><td><code>Notebook</code></td><td><code>stationery</code></td><td class="sql-number"><code>10.00</code></td></tr>
+<tr><td class="sql-number"><code>4</code></td><td><code>Pen</code></td><td><code>stationery</code></td><td class="sql-number"><code>5.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td><code>book</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id, name, price FROM products WHERE category = &#x27;book&#x27; ORDER BY price DESC, product_id ASC;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td class="sql-number"><code>20.00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　图书有 1 SQL Basics、2 SQL Practice、5 SQLX。文具还有 3 Notebook（10.00）和 4 Pen（5.00）。</p><p><strong>执行后</strong>　文具被筛掉。三本图书按价格降序、编号升序排成 <code>2、5、1</code>，见下表。</p>
+</details>
+</div>
+
+</section>
+<section id="practice" class="point" data-dialects="postgresql sqlserver mysql">
+<h2>3. 预测并验证</h2><p class="dialect-tags" aria-label="适用数据库"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span><span class="dialect-tag" data-engine="sqlserver">SQL Server</span><span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+<p data-dialects="mysql postgresql">在分号前加上 <code>LIMIT 1</code>。先预测唯一返回的编号，再回到客户端运行修改后的 SQL。</p>
+<p data-dialects="sqlserver">在 <code>SELECT</code> 后加上 <code>TOP (1)</code>。先预测唯一返回的编号，再运行修改后的 SQL。</p>
+<form id="query-check">
+<fieldset>
+<legend>哪件商品排在第一行？</legend>
+<label class="choice"><input type="radio" name="first_product" value="1"> 编号 1</label>
+<label class="choice"><input type="radio" name="first_product" value="2"> 编号 2</label>
+<label class="choice"><input type="radio" name="first_product" value="5"> 编号 5</label>
+</fieldset>
+<button type="submit">核对预测</button>
+<p id="query-feedback" role="status" aria-live="polite"></p>
+</form>
+<details data-dialects="mysql postgresql"><summary>查看完整查询</summary>
+<figure><figcaption>SQL</figcaption><pre><code>SELECT product_id, name, price FROM products
+WHERE category = 'book'
+ORDER BY price DESC, product_id ASC
+LIMIT 1;</code></pre></figure>
+<div class="execution-grids">
+<details class="sql-grid-details input-grids" open><summary>查看执行前的数据</summary>
+<div class="sql-grid-viewport" role="region" aria-label="已排序的结果" tabindex="0">
+<table class="sql-result"><caption>已排序的结果</caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>5</code></td><td><code>SQLX</code></td><td class="sql-number"><code>30.00</code></td></tr>
+<tr><td class="sql-number"><code>1</code></td><td><code>SQL Basics</code></td><td class="sql-number"><code>20.00</code></td></tr>
+</tbody>
+</table></div>
+</details>
+<h3 class="sql-grid-label">执行结果</h3>
+<div class="sql-grid-viewport" role="region" aria-label="执行结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT product_id, name, price FROM products WHERE category = &#x27;book&#x27; ORDER BY price DESC, product_id ASC LIMIT 1;</code></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div>
+<details class="sql-grid-details execution-notes"><summary>执行说明</summary>
+<p><strong>执行前</strong>　排序后的三个编号为 <code>2,5,1</code>。</p><p><strong>执行后</strong>　加 LIMIT 1 后只返回 <code>2 | SQL Practice | 30.00</code>。</p>
+</details>
+</div>
+<p class="outcome">返回编号 2。下一次练习可以把并列时的编号排序改成降序，先自己预测结果。</p>
+</details>
+
+<details data-dialects="sqlserver"><summary>查看完整查询</summary><figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT TOP (1) product_id, name, price
+FROM products WHERE category=&#x27;book&#x27; ORDER BY price DESC, product_id ASC;</code></pre></figure><div class="execution-grids"><div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result"><caption class="sql-statement-caption"><span class="sql-caption-line"><code>SELECT TOP (1) product_id, name, price FROM products WHERE category=&#x27;book&#x27; ORDER BY price DESC, product_id ASC;</code><span class="sql-caption-context">预期结果</span></span></caption>
+<thead><tr><th scope="col">product_id</th><th scope="col">name</th><th scope="col">price</th></tr></thead>
+<tbody>
+<tr><td class="sql-number"><code>2</code></td><td><code>SQL Practice</code></td><td class="sql-number"><code>30.00</code></td></tr>
+</tbody>
+</table></div></div></details>
+</section>
+<p class="sources">遇到和预期不同的结果，可以把 SQL 和报错发给我一起排查。<a data-dialects="postgresql" href="https://www.postgresql.org/docs/current/tutorial.html">PostgreSQL 官方教程</a><a data-dialects="sqlserver" href="https://learn.microsoft.com/zh-cn/sql/t-sql/language-reference">T-SQL 官方参考</a><a data-dialects="mysql" href="https://dev.mysql.com/doc/refman/8.4/en/tutorial.html">MySQL 官方教程</a></p>
+<nav class="pager" aria-label="继续学习"><a href="../v1.html">章节目录</a><a href="../reference/04-select.html">继续练 SELECT →</a></nav>
+</article>
+<nav class="jump" aria-label="上手步骤"><strong>练习步骤</strong><ol>
+<li data-dialects="mysql"><a href="#setup">准备练习库</a></li>
+<li data-dialects="postgresql"><a href="#setup-postgresql">准备练习库</a></li>
+<li data-dialects="sqlserver"><a href="#setup-sqlserver">准备练习库</a></li>
+<li><a href="#query">运行查询</a></li>
+<li><a href="#practice">预测与验证</a></li>
+</ol></nav>
+</div>
+</main>
+</body>
+</html>

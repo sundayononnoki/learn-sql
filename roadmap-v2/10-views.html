@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>视图 · SQL 路线速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../index.html">章节目录</a>
+<a href="../v1.html">v1 旧版</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap roadmap-v2">
+<p class="kicker">第 10 章 · 共 17 章</p>
+<h1>视图</h1>
+<div class="layout">
+<article class="content" aria-label="知识点">
+<section class="point" id="view-create" data-dialects="postgresql sqlserver mysql">
+<h2>CREATE VIEW 保存常用查询</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP VIEW path_view_create AS
+SELECT order_id, status
+FROM sql_notes_lab.orders WHERE status = &#x27;pending&#x27;;
+SELECT order_id, status FROM path_view_create;
+DROP VIEW path_view_create;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr><tr><td><code>102</code></td><td><code>pending</code></td></tr><tr><td><code>103</code></td><td><code>paid</code></td></tr><tr><td><code>104</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE VIEW path_view_create AS
+SELECT order_id, status
+FROM orders WHERE status = &#x27;pending&#x27;;
+SELECT order_id, status FROM path_view_create;
+DROP VIEW path_view_create;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr><tr><td><code>102</code></td><td><code>pending</code></td></tr><tr><td><code>103</code></td><td><code>paid</code></td></tr><tr><td><code>104</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE VIEW dbo.path_view_create AS
+SELECT order_id, status
+FROM dbo.orders WHERE status = &#x27;pending&#x27;;
+GO
+SELECT order_id, status FROM dbo.path_view_create;
+DROP VIEW dbo.path_view_create;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SSMS SQL 查询窗口，或 sqlcmd 客户端<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr><tr><td><code>102</code></td><td><code>pending</code></td></tr><tr><td><code>103</code></td><td><code>paid</code></td></tr><tr><td><code>104</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>普通视图在读取时执行保存的查询。示例最后移除本段自己创建的视图。</p>
+
+<p class="sources"><a href="../reference/22-views.html">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="view-change" data-dialects="postgresql sqlserver mysql">
+<h2>修改视图 更换保存的查询</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP VIEW path_view_change AS
+SELECT order_id, status
+FROM sql_notes_lab.orders WHERE status = &#x27;pending&#x27;;
+CREATE OR REPLACE TEMP VIEW path_view_change AS
+SELECT order_id, status
+FROM sql_notes_lab.orders WHERE status = &#x27;paid&#x27; AND order_id = 101;
+SELECT order_id, status FROM path_view_change;
+DROP VIEW path_view_change;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="修改定义前 · path_view_change" tabindex="0">
+<table class="sql-result">
+<caption>修改定义前 · path_view_change</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>102</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE VIEW path_view_change AS
+SELECT order_id, status
+FROM orders WHERE status = &#x27;pending&#x27;;
+ALTER VIEW path_view_change AS
+SELECT order_id, status
+FROM orders WHERE status = &#x27;paid&#x27; AND order_id = 101;
+SELECT order_id, status FROM path_view_change;
+DROP VIEW path_view_change;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="修改定义前 · path_view_change" tabindex="0">
+<table class="sql-result">
+<caption>修改定义前 · path_view_change</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>102</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE VIEW dbo.path_view_change AS
+SELECT order_id, status
+FROM dbo.orders WHERE status = &#x27;pending&#x27;;
+GO
+ALTER VIEW dbo.path_view_change AS
+SELECT order_id, status
+FROM dbo.orders WHERE status = &#x27;paid&#x27; AND order_id = 101;
+GO
+SELECT order_id, status FROM dbo.path_view_change;
+DROP VIEW dbo.path_view_change;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SSMS SQL 查询窗口，或 sqlcmd 客户端<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="修改定义前 · path_view_change" tabindex="0">
+<table class="sql-result">
+<caption>修改定义前 · path_view_change</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>102</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>paid</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>普通视图在读取时执行保存的查询。示例最后移除本段自己创建的视图。</p>
+
+<p class="sources"><a href="../reference/22-views.html">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="view-drop" data-dialects="postgresql sqlserver mysql">
+<h2>DROP VIEW 删除视图</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>CREATE TEMP VIEW path_view_drop AS
+SELECT order_id, status
+FROM sql_notes_lab.orders WHERE status = &#x27;pending&#x27;;
+DROP VIEW path_view_drop;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="DROP VIEW 前 · path_view_drop" tabindex="0">
+<table class="sql-result">
+<caption>DROP VIEW 前 · path_view_drop</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>102</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期状态" tabindex="0">
+<table class="sql-result">
+<caption>预期状态</caption>
+<thead><tr><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>演示视图已移除</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>CREATE VIEW path_view_drop AS
+SELECT order_id, status
+FROM orders WHERE status = &#x27;pending&#x27;;
+DROP VIEW path_view_drop;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="DROP VIEW 前 · path_view_drop" tabindex="0">
+<table class="sql-result">
+<caption>DROP VIEW 前 · path_view_drop</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>102</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期状态" tabindex="0">
+<table class="sql-result">
+<caption>预期状态</caption>
+<thead><tr><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>演示视图已移除</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>CREATE VIEW dbo.path_view_drop AS
+SELECT order_id, status
+FROM dbo.orders WHERE status = &#x27;pending&#x27;;
+GO
+DROP VIEW dbo.path_view_drop;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SSMS SQL 查询窗口，或 sqlcmd 客户端<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。新练习连接。确认本段视图名未被使用。创建视图需模式或数据库的相应权限及底表读取权限。逐句运行。SQL Server 用能识别 GO 的 SSMS 或 sqlcmd 按批执行。CREATE 失败时停止，确认本段已成功创建对象后才运行 DROP。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="DROP VIEW 前 · path_view_drop" tabindex="0">
+<table class="sql-result">
+<caption>DROP VIEW 前 · path_view_drop</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>102</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期状态" tabindex="0">
+<table class="sql-result">
+<caption>预期状态</caption>
+<thead><tr><th scope="col">状态</th></tr></thead>
+<tbody>
+<tr><td><code>演示视图已移除</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>普通视图在读取时执行保存的查询。示例最后移除本段自己创建的视图。</p>
+
+<p class="sources"><a href="../reference/22-views.html">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="panel"><h2>合上示例试一题</h2><p>修改视图定义会改变订单表里的状态吗？</p>
+<details><summary>查看答案</summary><p>订单行保持原值，新的视图查询按更新后的定义返回。</p></details></section>
+</article>
+<nav class="jump" aria-label="本阶段知识点"><strong>本阶段知识点</strong>
+<ol>
+<li><a href="#view-create">CREATE VIEW 保存常用查询</a></li>
+<li><a href="#view-change">修改视图 更换保存的查询</a></li>
+<li><a href="#view-drop">DROP VIEW 删除视图</a></li>
+</ol></nav>
+</div>
+<nav class="pager" aria-label="章节导航"><a rel="prev" href="09-functions.html">← 常用进阶函数与表达式</a><a href="../index.html">章节目录</a><a rel="next" href="11-indexes.html">索引 →</a></nav>
+</main>
+</body>
+</html>

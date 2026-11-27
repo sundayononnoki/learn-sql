@@ -1,0 +1,1971 @@
+# 方言官方参考索引
+
+这是[补录清单](DIALECT-SYLLABUS.md)的逐页核对底表。各项是官方目录条目，包含共有语法、独有语法和需要核对产品适用性的条目。每个页面还要向下核对其语法图、选项、签名和运算符，目录条目数不等于需要补写的知识点数。
+
+SQL Server 项按官方文档仓库导航提取。产品适用性以单页的 Applies to 与版本说明为准，尤其是 Azure、Synapse 和 Fabric 的条目。附加专题和系统对象的来源见补录清单。
+
+适用标记筛查依据 MicrosoftDocs 页面顶部的适用范围。1127 项标明含 SQL Server，44 项页面顶部列了其他产品。PostgreSQL 有 46 个命令名也出现在 MySQL 26.10 的语句索引。页面有同名入口时仍需核对子句及实际行为。
+
+[MicrosoftDocs 官方导航源](https://github.com/MicrosoftDocs/sql-docs/blob/live/docs/toc.yml) · [MySQL 26.10 语句索引](https://dev.mysql.com/doc/refman/26.10/en/sql-statements.html)
+
+<!-- notebook-coverage -->
+当前有 **234** 条目录项可直达引用同一官方页面的示例。链接登记源文档和笔记的对应关系。覆盖状态按各个子句、参数及重载验收。章节与验证状态见[语法覆盖记录](DIALECT-COVERAGE.md)。
+<!-- /notebook-coverage -->
+
+## PostgreSQL 19
+
+### SQL 语句（185）
+
+- [ABORT](https://www.postgresql.org/docs/19/sql-abort.html)
+- [ALTER AGGREGATE](https://www.postgresql.org/docs/19/sql-alteraggregate.html)
+- [ALTER COLLATION](https://www.postgresql.org/docs/19/sql-altercollation.html)
+- [ALTER CONVERSION](https://www.postgresql.org/docs/19/sql-alterconversion.html)
+- [ALTER DATABASE](https://www.postgresql.org/docs/19/sql-alterdatabase.html) · MySQL 26.10 索引有同名语句
+- [ALTER DEFAULT PRIVILEGES](https://www.postgresql.org/docs/19/sql-alterdefaultprivileges.html) · [示例](reference/47-postgresql-transactions.html#roles-default-privileges)
+- [ALTER DOMAIN](https://www.postgresql.org/docs/19/sql-alterdomain.html)
+- [ALTER EVENT TRIGGER](https://www.postgresql.org/docs/19/sql-altereventtrigger.html)
+- [ALTER EXTENSION](https://www.postgresql.org/docs/19/sql-alterextension.html) · [示例](reference/46-postgresql-routines.html#pg-object-extension-install)
+- [ALTER FOREIGN DATA WRAPPER](https://www.postgresql.org/docs/19/sql-alterforeigndatawrapper.html)
+- [ALTER FOREIGN TABLE](https://www.postgresql.org/docs/19/sql-alterforeigntable.html)
+- [ALTER FUNCTION](https://www.postgresql.org/docs/19/sql-alterfunction.html) · MySQL 26.10 索引有同名语句
+- [ALTER GROUP](https://www.postgresql.org/docs/19/sql-altergroup.html)
+- [ALTER INDEX](https://www.postgresql.org/docs/19/sql-alterindex.html)
+- [ALTER LANGUAGE](https://www.postgresql.org/docs/19/sql-alterlanguage.html)
+- [ALTER LARGE OBJECT](https://www.postgresql.org/docs/19/sql-alterlargeobject.html) · [示例](reference/62-postgresql-utilities.html#large-object-owner)
+- [ALTER MATERIALIZED VIEW](https://www.postgresql.org/docs/19/sql-altermaterializedview.html)
+- [ALTER OPERATOR](https://www.postgresql.org/docs/19/sql-alteroperator.html)
+- [ALTER OPERATOR CLASS](https://www.postgresql.org/docs/19/sql-alteropclass.html)
+- [ALTER OPERATOR FAMILY](https://www.postgresql.org/docs/19/sql-alteropfamily.html)
+- [ALTER POLICY](https://www.postgresql.org/docs/19/sql-alterpolicy.html)
+- [ALTER PROCEDURE](https://www.postgresql.org/docs/19/sql-alterprocedure.html) · MySQL 26.10 索引有同名语句
+- [ALTER PUBLICATION](https://www.postgresql.org/docs/19/sql-alterpublication.html)
+- [ALTER ROLE](https://www.postgresql.org/docs/19/sql-alterrole.html)
+- [ALTER ROUTINE](https://www.postgresql.org/docs/19/sql-alterroutine.html)
+- [ALTER RULE](https://www.postgresql.org/docs/19/sql-alterrule.html)
+- [ALTER SCHEMA](https://www.postgresql.org/docs/19/sql-alterschema.html)
+- [ALTER SEQUENCE](https://www.postgresql.org/docs/19/sql-altersequence.html)
+- [ALTER SERVER](https://www.postgresql.org/docs/19/sql-alterserver.html) · MySQL 26.10 索引有同名语句
+- [ALTER STATISTICS](https://www.postgresql.org/docs/19/sql-alterstatistics.html)
+- [ALTER SUBSCRIPTION](https://www.postgresql.org/docs/19/sql-altersubscription.html)
+- [ALTER SYSTEM](https://www.postgresql.org/docs/19/sql-altersystem.html) · [示例](reference/48-postgresql-administration.html#system-settings)
+- [ALTER TABLE](https://www.postgresql.org/docs/19/sql-altertable.html) · [示例](reference/44-postgresql-schema.html#alter-using) · MySQL 26.10 索引有同名语句
+- [ALTER TABLESPACE](https://www.postgresql.org/docs/19/sql-altertablespace.html) · MySQL 26.10 索引有同名语句
+- [ALTER TEXT SEARCH CONFIGURATION](https://www.postgresql.org/docs/19/sql-altertsconfig.html) · [示例](reference/46-postgresql-routines.html#pg-object-search)
+- [ALTER TEXT SEARCH DICTIONARY](https://www.postgresql.org/docs/19/sql-altertsdictionary.html)
+- [ALTER TEXT SEARCH PARSER](https://www.postgresql.org/docs/19/sql-altertsparser.html)
+- [ALTER TEXT SEARCH TEMPLATE](https://www.postgresql.org/docs/19/sql-altertstemplate.html)
+- [ALTER TRIGGER](https://www.postgresql.org/docs/19/sql-altertrigger.html)
+- [ALTER TYPE](https://www.postgresql.org/docs/19/sql-altertype.html)
+- [ALTER USER](https://www.postgresql.org/docs/19/sql-alteruser.html) · MySQL 26.10 索引有同名语句
+- [ALTER USER MAPPING](https://www.postgresql.org/docs/19/sql-alterusermapping.html)
+- [ALTER VIEW](https://www.postgresql.org/docs/19/sql-alterview.html) · MySQL 26.10 索引有同名语句
+- [ANALYZE](https://www.postgresql.org/docs/19/sql-analyze.html) · [示例](reference/29-maintenance.html#dial-statistics)
+- [BEGIN](https://www.postgresql.org/docs/19/sql-begin.html)
+- [CALL](https://www.postgresql.org/docs/19/sql-call.html) · [示例](reference/23-procedures.html#dial-procedure) · MySQL 26.10 索引有同名语句
+- [CHECKPOINT](https://www.postgresql.org/docs/19/sql-checkpoint.html)
+- [CLOSE](https://www.postgresql.org/docs/19/sql-close.html)
+- [CLUSTER](https://www.postgresql.org/docs/19/sql-cluster.html)
+- [COMMENT](https://www.postgresql.org/docs/19/sql-comment.html) · [示例](reference/62-postgresql-utilities.html#comment)
+- [COMMIT](https://www.postgresql.org/docs/19/sql-commit.html)
+- [COMMIT PREPARED](https://www.postgresql.org/docs/19/sql-commit-prepared.html)
+- [COPY](https://www.postgresql.org/docs/19/sql-copy.html) · [示例](reference/33-postgresql-write.html#copy-stdin)
+- [CREATE ACCESS METHOD](https://www.postgresql.org/docs/19/sql-create-access-method.html)
+- [CREATE AGGREGATE](https://www.postgresql.org/docs/19/sql-createaggregate.html) · [示例](reference/46-postgresql-routines.html#pg-object-aggregate)
+- [CREATE CAST](https://www.postgresql.org/docs/19/sql-createcast.html) · [示例](reference/46-postgresql-routines.html#pg-object-cast-op)
+- [CREATE COLLATION](https://www.postgresql.org/docs/19/sql-createcollation.html) · [示例](reference/48-postgresql-administration.html#collation)
+- [CREATE CONVERSION](https://www.postgresql.org/docs/19/sql-createconversion.html)
+- [CREATE DATABASE](https://www.postgresql.org/docs/19/sql-createdatabase.html) · MySQL 26.10 索引有同名语句
+- [CREATE DOMAIN](https://www.postgresql.org/docs/19/sql-createdomain.html) · [示例](reference/41-postgresql-types.html#enum-domain)
+- [CREATE EVENT TRIGGER](https://www.postgresql.org/docs/19/sql-createeventtrigger.html) · [示例](reference/46-postgresql-routines.html#pg-trigger-event)
+- [CREATE EXTENSION](https://www.postgresql.org/docs/19/sql-createextension.html)
+- [CREATE FOREIGN DATA WRAPPER](https://www.postgresql.org/docs/19/sql-createforeigndatawrapper.html)
+- [CREATE FOREIGN TABLE](https://www.postgresql.org/docs/19/sql-createforeigntable.html)
+- [CREATE FUNCTION](https://www.postgresql.org/docs/19/sql-createfunction.html) · [示例](reference/46-postgresql-routines.html#pg-routine-volatility) · MySQL 26.10 索引有同名语句
+- [CREATE GROUP](https://www.postgresql.org/docs/19/sql-creategroup.html)
+- [CREATE INDEX](https://www.postgresql.org/docs/19/sql-createindex.html) · [示例](reference/45-postgresql-plans.html#pg-index-expr-partial) · MySQL 26.10 索引有同名语句
+- [CREATE LANGUAGE](https://www.postgresql.org/docs/19/sql-createlanguage.html)
+- [CREATE MATERIALIZED VIEW](https://www.postgresql.org/docs/19/sql-creatematerializedview.html)
+- [CREATE OPERATOR](https://www.postgresql.org/docs/19/sql-createoperator.html)
+- [CREATE OPERATOR CLASS](https://www.postgresql.org/docs/19/sql-createopclass.html)
+- [CREATE OPERATOR FAMILY](https://www.postgresql.org/docs/19/sql-createopfamily.html)
+- [CREATE POLICY](https://www.postgresql.org/docs/19/sql-createpolicy.html)
+- [CREATE PROCEDURE](https://www.postgresql.org/docs/19/sql-createprocedure.html)
+- [CREATE PUBLICATION](https://www.postgresql.org/docs/19/sql-createpublication.html)
+- [CREATE ROLE](https://www.postgresql.org/docs/19/sql-createrole.html) · MySQL 26.10 索引有同名语句
+- [CREATE RULE](https://www.postgresql.org/docs/19/sql-createrule.html)
+- [CREATE SCHEMA](https://www.postgresql.org/docs/19/sql-createschema.html)
+- [CREATE SEQUENCE](https://www.postgresql.org/docs/19/sql-createsequence.html)
+- [CREATE SERVER](https://www.postgresql.org/docs/19/sql-createserver.html) · MySQL 26.10 索引有同名语句
+- [CREATE STATISTICS](https://www.postgresql.org/docs/19/sql-createstatistics.html) · [示例](reference/45-postgresql-plans.html#pg-index-statistics)
+- [CREATE SUBSCRIPTION](https://www.postgresql.org/docs/19/sql-createsubscription.html)
+- [CREATE TABLE](https://www.postgresql.org/docs/19/sql-createtable.html) · [示例](reference/21-tables.html#dial-ddl) · MySQL 26.10 索引有同名语句
+- [CREATE TABLE AS](https://www.postgresql.org/docs/19/sql-createtableas.html) · [示例](reference/19-insert.html#dial-copy-table)
+- [CREATE TABLESPACE](https://www.postgresql.org/docs/19/sql-createtablespace.html) · MySQL 26.10 索引有同名语句
+- [CREATE TEXT SEARCH CONFIGURATION](https://www.postgresql.org/docs/19/sql-createtsconfig.html)
+- [CREATE TEXT SEARCH DICTIONARY](https://www.postgresql.org/docs/19/sql-createtsdictionary.html)
+- [CREATE TEXT SEARCH PARSER](https://www.postgresql.org/docs/19/sql-createtsparser.html)
+- [CREATE TEXT SEARCH TEMPLATE](https://www.postgresql.org/docs/19/sql-createtstemplate.html)
+- [CREATE TRANSFORM](https://www.postgresql.org/docs/19/sql-createtransform.html)
+- [CREATE TRIGGER](https://www.postgresql.org/docs/19/sql-createtrigger.html) · [示例](reference/25-triggers.html#dial-triggers) · MySQL 26.10 索引有同名语句
+- [CREATE TYPE](https://www.postgresql.org/docs/19/sql-createtype.html) · [示例](reference/46-postgresql-routines.html#pg-object-types)
+- [CREATE USER](https://www.postgresql.org/docs/19/sql-createuser.html) · MySQL 26.10 索引有同名语句
+- [CREATE USER MAPPING](https://www.postgresql.org/docs/19/sql-createusermapping.html)
+- [CREATE VIEW](https://www.postgresql.org/docs/19/sql-createview.html) · [示例](reference/22-views.html#dial-views) · MySQL 26.10 索引有同名语句
+- [DEALLOCATE](https://www.postgresql.org/docs/19/sql-deallocate.html) · [示例](reference/62-postgresql-utilities.html#deallocate-all)
+- [DECLARE](https://www.postgresql.org/docs/19/sql-declare.html) · [示例](reference/24-cursors.html#dial-cursor) · MySQL 26.10 索引有同名语句
+- [DELETE](https://www.postgresql.org/docs/19/sql-delete.html) · [示例](reference/20-update-delete.html#dial-update) · MySQL 26.10 索引有同名语句
+- [DISCARD](https://www.postgresql.org/docs/19/sql-discard.html) · [示例](reference/62-postgresql-utilities.html#discard-plans)
+- [DO](https://www.postgresql.org/docs/19/sql-do.html) · MySQL 26.10 索引有同名语句
+- [DROP ACCESS METHOD](https://www.postgresql.org/docs/19/sql-drop-access-method.html)
+- [DROP AGGREGATE](https://www.postgresql.org/docs/19/sql-dropaggregate.html)
+- [DROP CAST](https://www.postgresql.org/docs/19/sql-dropcast.html)
+- [DROP COLLATION](https://www.postgresql.org/docs/19/sql-dropcollation.html)
+- [DROP CONVERSION](https://www.postgresql.org/docs/19/sql-dropconversion.html)
+- [DROP DATABASE](https://www.postgresql.org/docs/19/sql-dropdatabase.html) · MySQL 26.10 索引有同名语句
+- [DROP DOMAIN](https://www.postgresql.org/docs/19/sql-dropdomain.html)
+- [DROP EVENT TRIGGER](https://www.postgresql.org/docs/19/sql-dropeventtrigger.html)
+- [DROP EXTENSION](https://www.postgresql.org/docs/19/sql-dropextension.html)
+- [DROP FOREIGN DATA WRAPPER](https://www.postgresql.org/docs/19/sql-dropforeigndatawrapper.html)
+- [DROP FOREIGN TABLE](https://www.postgresql.org/docs/19/sql-dropforeigntable.html)
+- [DROP FUNCTION](https://www.postgresql.org/docs/19/sql-dropfunction.html) · MySQL 26.10 索引有同名语句
+- [DROP GROUP](https://www.postgresql.org/docs/19/sql-dropgroup.html)
+- [DROP INDEX](https://www.postgresql.org/docs/19/sql-dropindex.html) · MySQL 26.10 索引有同名语句
+- [DROP LANGUAGE](https://www.postgresql.org/docs/19/sql-droplanguage.html)
+- [DROP MATERIALIZED VIEW](https://www.postgresql.org/docs/19/sql-dropmaterializedview.html)
+- [DROP OPERATOR](https://www.postgresql.org/docs/19/sql-dropoperator.html)
+- [DROP OPERATOR CLASS](https://www.postgresql.org/docs/19/sql-dropopclass.html)
+- [DROP OPERATOR FAMILY](https://www.postgresql.org/docs/19/sql-dropopfamily.html)
+- [DROP OWNED](https://www.postgresql.org/docs/19/sql-drop-owned.html) · [示例](reference/62-postgresql-utilities.html#drop-owned)
+- [DROP POLICY](https://www.postgresql.org/docs/19/sql-droppolicy.html)
+- [DROP PROCEDURE](https://www.postgresql.org/docs/19/sql-dropprocedure.html)
+- [DROP PUBLICATION](https://www.postgresql.org/docs/19/sql-droppublication.html)
+- [DROP ROLE](https://www.postgresql.org/docs/19/sql-droprole.html) · MySQL 26.10 索引有同名语句
+- [DROP ROUTINE](https://www.postgresql.org/docs/19/sql-droproutine.html)
+- [DROP RULE](https://www.postgresql.org/docs/19/sql-droprule.html)
+- [DROP SCHEMA](https://www.postgresql.org/docs/19/sql-dropschema.html)
+- [DROP SEQUENCE](https://www.postgresql.org/docs/19/sql-dropsequence.html)
+- [DROP SERVER](https://www.postgresql.org/docs/19/sql-dropserver.html) · MySQL 26.10 索引有同名语句
+- [DROP STATISTICS](https://www.postgresql.org/docs/19/sql-dropstatistics.html)
+- [DROP SUBSCRIPTION](https://www.postgresql.org/docs/19/sql-dropsubscription.html)
+- [DROP TABLE](https://www.postgresql.org/docs/19/sql-droptable.html) · MySQL 26.10 索引有同名语句
+- [DROP TABLESPACE](https://www.postgresql.org/docs/19/sql-droptablespace.html) · MySQL 26.10 索引有同名语句
+- [DROP TEXT SEARCH CONFIGURATION](https://www.postgresql.org/docs/19/sql-droptsconfig.html)
+- [DROP TEXT SEARCH DICTIONARY](https://www.postgresql.org/docs/19/sql-droptsdictionary.html)
+- [DROP TEXT SEARCH PARSER](https://www.postgresql.org/docs/19/sql-droptsparser.html)
+- [DROP TEXT SEARCH TEMPLATE](https://www.postgresql.org/docs/19/sql-droptstemplate.html)
+- [DROP TRANSFORM](https://www.postgresql.org/docs/19/sql-droptransform.html)
+- [DROP TRIGGER](https://www.postgresql.org/docs/19/sql-droptrigger.html) · MySQL 26.10 索引有同名语句
+- [DROP TYPE](https://www.postgresql.org/docs/19/sql-droptype.html)
+- [DROP USER](https://www.postgresql.org/docs/19/sql-dropuser.html) · MySQL 26.10 索引有同名语句
+- [DROP USER MAPPING](https://www.postgresql.org/docs/19/sql-dropusermapping.html)
+- [DROP VIEW](https://www.postgresql.org/docs/19/sql-dropview.html) · MySQL 26.10 索引有同名语句
+- [END](https://www.postgresql.org/docs/19/sql-end.html)
+- [EXECUTE](https://www.postgresql.org/docs/19/sql-execute.html) · MySQL 26.10 索引有同名语句
+- [EXPLAIN](https://www.postgresql.org/docs/19/sql-explain.html) · [示例](reference/30-performance.html#dial-plans) · MySQL 26.10 索引有同名语句
+- [FETCH](https://www.postgresql.org/docs/19/sql-fetch.html)
+- [GRANT](https://www.postgresql.org/docs/19/sql-grant.html) · [示例](reference/28-access-control.html#dial-acl) · MySQL 26.10 索引有同名语句
+- [IMPORT FOREIGN SCHEMA](https://www.postgresql.org/docs/19/sql-importforeignschema.html)
+- [INSERT](https://www.postgresql.org/docs/19/sql-insert.html) · [示例](reference/19-insert.html#dial-insert) · MySQL 26.10 索引有同名语句
+- [LISTEN](https://www.postgresql.org/docs/19/sql-listen.html)
+- [LOAD](https://www.postgresql.org/docs/19/sql-load.html)
+- [LOCK](https://www.postgresql.org/docs/19/sql-lock.html) · [示例](reference/47-postgresql-transactions.html#lock-table)
+- [MERGE](https://www.postgresql.org/docs/19/sql-merge.html) · [示例](reference/33-postgresql-write.html#merge)
+- [MOVE](https://www.postgresql.org/docs/19/sql-move.html)
+- [NOTIFY](https://www.postgresql.org/docs/19/sql-notify.html) · [示例](reference/47-postgresql-transactions.html#listen-notify)
+- [PREPARE](https://www.postgresql.org/docs/19/sql-prepare.html) · [示例](reference/32-modern-sql.html#dial-bind) · MySQL 26.10 索引有同名语句
+- [PREPARE TRANSACTION](https://www.postgresql.org/docs/19/sql-prepare-transaction.html) · [示例](reference/47-postgresql-transactions.html#two-phase)
+- [REASSIGN OWNED](https://www.postgresql.org/docs/19/sql-reassign-owned.html) · [示例](reference/62-postgresql-utilities.html#reassign-owned)
+- [REFRESH MATERIALIZED VIEW](https://www.postgresql.org/docs/19/sql-refreshmaterializedview.html) · [示例](reference/44-postgresql-schema.html#materialized-refresh)
+- [REINDEX](https://www.postgresql.org/docs/19/sql-reindex.html) · [示例](reference/45-postgresql-plans.html#pg-index-concurrent)
+- [RELEASE SAVEPOINT](https://www.postgresql.org/docs/19/sql-release-savepoint.html)
+- [REPACK](https://www.postgresql.org/docs/19/sql-repack.html) · [示例](reference/48-postgresql-administration.html#repack)
+- [RESET](https://www.postgresql.org/docs/19/sql-reset.html) · [示例](reference/62-postgresql-utilities.html#reset-settings) · MySQL 26.10 索引有同名语句
+- [REVOKE](https://www.postgresql.org/docs/19/sql-revoke.html) · MySQL 26.10 索引有同名语句
+- [ROLLBACK](https://www.postgresql.org/docs/19/sql-rollback.html)
+- [ROLLBACK PREPARED](https://www.postgresql.org/docs/19/sql-rollback-prepared.html)
+- [ROLLBACK TO SAVEPOINT](https://www.postgresql.org/docs/19/sql-rollback-to.html)
+- [SAVEPOINT](https://www.postgresql.org/docs/19/sql-savepoint.html) · [示例](reference/26-transactions.html#dial-tx)
+- [SECURITY LABEL](https://www.postgresql.org/docs/19/sql-security-label.html)
+- [SELECT](https://www.postgresql.org/docs/19/sql-select.html) · [示例](reference/04-select.html#w3-top) · MySQL 26.10 索引有同名语句
+- [SELECT INTO](https://www.postgresql.org/docs/19/sql-selectinto.html)
+- [SET](https://www.postgresql.org/docs/19/sql-set.html) · MySQL 26.10 索引有同名语句
+- [SET CONSTRAINTS](https://www.postgresql.org/docs/19/sql-set-constraints.html) · [示例](reference/44-postgresql-schema.html#deferred-fk)
+- [SET ROLE](https://www.postgresql.org/docs/19/sql-set-role.html) · [示例](reference/62-postgresql-utilities.html#session-authorization) · MySQL 26.10 索引有同名语句
+- [SET SESSION AUTHORIZATION](https://www.postgresql.org/docs/19/sql-set-session-authorization.html) · [示例](reference/62-postgresql-utilities.html#session-authorization)
+- [SET TRANSACTION](https://www.postgresql.org/docs/19/sql-set-transaction.html) · [示例](reference/47-postgresql-transactions.html#set-transaction) · MySQL 26.10 索引有同名语句
+- [SHOW](https://www.postgresql.org/docs/19/sql-show.html) · MySQL 26.10 索引有同名语句
+- [START TRANSACTION](https://www.postgresql.org/docs/19/sql-start-transaction.html)
+- [TRUNCATE](https://www.postgresql.org/docs/19/sql-truncate.html)
+- [UNLISTEN](https://www.postgresql.org/docs/19/sql-unlisten.html)
+- [UPDATE](https://www.postgresql.org/docs/19/sql-update.html) · [示例](reference/20-update-delete.html#dial-update) · MySQL 26.10 索引有同名语句
+- [VACUUM](https://www.postgresql.org/docs/19/sql-vacuum.html)
+- [VALUES](https://www.postgresql.org/docs/19/sql-values.html) · MySQL 26.10 索引有同名语句
+- [WAIT](https://www.postgresql.org/docs/19/sql-wait.html) · [示例](reference/48-postgresql-administration.html#standby-wait)
+
+### 数据类型（82）
+
+- [8.1. Numeric Types](https://www.postgresql.org/docs/19/datatype-numeric.html) · [示例](reference/41-postgresql-types.html#numeric-money)
+- [8.1.1. Integer Types](https://www.postgresql.org/docs/19/datatype-numeric.html#DATATYPE-INT)
+- [8.1.2. Arbitrary Precision Numbers](https://www.postgresql.org/docs/19/datatype-numeric.html#DATATYPE-NUMERIC-DECIMAL)
+- [8.1.3. Floating-Point Types](https://www.postgresql.org/docs/19/datatype-numeric.html#DATATYPE-FLOAT)
+- [8.1.4. Serial Types](https://www.postgresql.org/docs/19/datatype-numeric.html#DATATYPE-SERIAL)
+- [8.2. Monetary Types](https://www.postgresql.org/docs/19/datatype-money.html)
+- [8.3. Character Types](https://www.postgresql.org/docs/19/datatype-character.html)
+- [8.4. Binary Data Types](https://www.postgresql.org/docs/19/datatype-binary.html)
+- [8.4.1. bytea Hex Format](https://www.postgresql.org/docs/19/datatype-binary.html#DATATYPE-BINARY-BYTEA-HEX-FORMAT)
+- [8.4.2. bytea Escape Format](https://www.postgresql.org/docs/19/datatype-binary.html#DATATYPE-BINARY-BYTEA-ESCAPE-FORMAT)
+- [8.5. Date/Time Types](https://www.postgresql.org/docs/19/datatype-datetime.html) · [示例](reference/31-appendices.html#dial-types)
+- [8.5.1. Date/Time Input](https://www.postgresql.org/docs/19/datatype-datetime.html#DATATYPE-DATETIME-INPUT)
+- [8.5.2. Date/Time Output](https://www.postgresql.org/docs/19/datatype-datetime.html#DATATYPE-DATETIME-OUTPUT)
+- [8.5.3. Time Zones](https://www.postgresql.org/docs/19/datatype-datetime.html#DATATYPE-TIMEZONES)
+- [8.5.4. Interval Input](https://www.postgresql.org/docs/19/datatype-datetime.html#DATATYPE-INTERVAL-INPUT)
+- [8.5.5. Interval Output](https://www.postgresql.org/docs/19/datatype-datetime.html#DATATYPE-INTERVAL-OUTPUT)
+- [8.6. Boolean Type](https://www.postgresql.org/docs/19/datatype-boolean.html)
+- [8.7. Enumerated Types](https://www.postgresql.org/docs/19/datatype-enum.html)
+- [8.7.1. Declaration of Enumerated Types](https://www.postgresql.org/docs/19/datatype-enum.html#DATATYPE-ENUM-DECLARATION)
+- [8.7.2. Ordering](https://www.postgresql.org/docs/19/datatype-enum.html#DATATYPE-ENUM-ORDERING)
+- [8.7.3. Type Safety](https://www.postgresql.org/docs/19/datatype-enum.html#DATATYPE-ENUM-TYPE-SAFETY)
+- [8.7.4. Implementation Details](https://www.postgresql.org/docs/19/datatype-enum.html#DATATYPE-ENUM-IMPLEMENTATION-DETAILS)
+- [8.8. Geometric Types](https://www.postgresql.org/docs/19/datatype-geometric.html)
+- [8.8.1. Points](https://www.postgresql.org/docs/19/datatype-geometric.html#DATATYPE-GEOMETRIC-POINTS)
+- [8.8.2. Lines](https://www.postgresql.org/docs/19/datatype-geometric.html#DATATYPE-LINE)
+- [8.8.3. Line Segments](https://www.postgresql.org/docs/19/datatype-geometric.html#DATATYPE-LSEG)
+- [8.8.4. Boxes](https://www.postgresql.org/docs/19/datatype-geometric.html#DATATYPE-GEOMETRIC-BOXES)
+- [8.8.5. Paths](https://www.postgresql.org/docs/19/datatype-geometric.html#DATATYPE-GEOMETRIC-PATHS)
+- [8.8.6. Polygons](https://www.postgresql.org/docs/19/datatype-geometric.html#DATATYPE-POLYGON)
+- [8.8.7. Circles](https://www.postgresql.org/docs/19/datatype-geometric.html#DATATYPE-CIRCLE)
+- [8.9. Network Address Types](https://www.postgresql.org/docs/19/datatype-net-types.html) · [示例](reference/41-postgresql-types.html#network-address)
+- [8.9.1. inet](https://www.postgresql.org/docs/19/datatype-net-types.html#DATATYPE-INET)
+- [8.9.2. cidr](https://www.postgresql.org/docs/19/datatype-net-types.html#DATATYPE-CIDR)
+- [8.9.3. inet vs. cidr](https://www.postgresql.org/docs/19/datatype-net-types.html#DATATYPE-INET-VS-CIDR)
+- [8.9.4. macaddr](https://www.postgresql.org/docs/19/datatype-net-types.html#DATATYPE-MACADDR)
+- [8.9.5. macaddr8](https://www.postgresql.org/docs/19/datatype-net-types.html#DATATYPE-MACADDR8)
+- [8.10. Bit String Types](https://www.postgresql.org/docs/19/datatype-bit.html)
+- [8.11. Text Search Types](https://www.postgresql.org/docs/19/datatype-textsearch.html)
+- [8.11.1. tsvector](https://www.postgresql.org/docs/19/datatype-textsearch.html#DATATYPE-TSVECTOR)
+- [8.11.2. tsquery](https://www.postgresql.org/docs/19/datatype-textsearch.html#DATATYPE-TSQUERY)
+- [8.12. UUID Type](https://www.postgresql.org/docs/19/datatype-uuid.html)
+- [8.13. XML Type](https://www.postgresql.org/docs/19/datatype-xml.html)
+- [8.13.1. Creating XML Values](https://www.postgresql.org/docs/19/datatype-xml.html#DATATYPE-XML-CREATING)
+- [8.13.2. Encoding Handling](https://www.postgresql.org/docs/19/datatype-xml.html#DATATYPE-XML-ENCODING-HANDLING)
+- [8.13.3. Accessing XML Values](https://www.postgresql.org/docs/19/datatype-xml.html#DATATYPE-XML-ACCESSING-XML-VALUES)
+- [8.14. JSON Types](https://www.postgresql.org/docs/19/datatype-json.html) · [示例](reference/43-postgresql-documents.html#jsonb-presence)
+- [8.14.1. JSON Input and Output Syntax](https://www.postgresql.org/docs/19/datatype-json.html#JSON-KEYS-ELEMENTS)
+- [8.14.2. Designing JSON Documents](https://www.postgresql.org/docs/19/datatype-json.html#JSON-DOC-DESIGN)
+- [8.14.3. jsonb Containment and Existence](https://www.postgresql.org/docs/19/datatype-json.html#JSON-CONTAINMENT)
+- [8.14.4. jsonb Indexing](https://www.postgresql.org/docs/19/datatype-json.html#JSON-INDEXING) · [示例](reference/45-postgresql-plans.html#pg-index-gin)
+- [8.14.5. jsonb Subscripting](https://www.postgresql.org/docs/19/datatype-json.html#JSONB-SUBSCRIPTING)
+- [8.14.6. Transforms](https://www.postgresql.org/docs/19/datatype-json.html#DATATYPE-JSON-TRANSFORMS)
+- [8.14.7. jsonpath Type](https://www.postgresql.org/docs/19/datatype-json.html#DATATYPE-JSONPATH)
+- [8.15. Arrays](https://www.postgresql.org/docs/19/arrays.html) · [示例](reference/41-postgresql-types.html#array-dimensions)
+- [8.15.1. Declaration of Array Types](https://www.postgresql.org/docs/19/arrays.html#ARRAYS-DECLARATION)
+- [8.15.2. Array Value Input](https://www.postgresql.org/docs/19/arrays.html#ARRAYS-INPUT)
+- [8.15.3. Accessing Arrays](https://www.postgresql.org/docs/19/arrays.html#ARRAYS-ACCESSING)
+- [8.15.4. Modifying Arrays](https://www.postgresql.org/docs/19/arrays.html#ARRAYS-MODIFYING)
+- [8.15.5. Searching in Arrays](https://www.postgresql.org/docs/19/arrays.html#ARRAYS-SEARCHING)
+- [8.15.6. Array Input and Output Syntax](https://www.postgresql.org/docs/19/arrays.html#ARRAYS-IO)
+- [8.16. Composite Types](https://www.postgresql.org/docs/19/rowtypes.html) · [示例](reference/41-postgresql-types.html#composite-row)
+- [8.16.1. Declaration of Composite Types](https://www.postgresql.org/docs/19/rowtypes.html#ROWTYPES-DECLARING)
+- [8.16.2. Constructing Composite Values](https://www.postgresql.org/docs/19/rowtypes.html#ROWTYPES-CONSTRUCTING)
+- [8.16.3. Accessing Composite Types](https://www.postgresql.org/docs/19/rowtypes.html#ROWTYPES-ACCESSING)
+- [8.16.4. Modifying Composite Types](https://www.postgresql.org/docs/19/rowtypes.html#ROWTYPES-MODIFYING)
+- [8.16.5. Using Composite Types in Queries](https://www.postgresql.org/docs/19/rowtypes.html#ROWTYPES-USAGE)
+- [8.16.6. Composite Type Input and Output Syntax](https://www.postgresql.org/docs/19/rowtypes.html#ROWTYPES-IO-SYNTAX)
+- [8.17. Range Types](https://www.postgresql.org/docs/19/rangetypes.html) · [示例](reference/35-postgresql-design.html#range)
+- [8.17.1. Built-in Range and Multirange Types](https://www.postgresql.org/docs/19/rangetypes.html#RANGETYPES-BUILTIN)
+- [8.17.2. Examples](https://www.postgresql.org/docs/19/rangetypes.html#RANGETYPES-EXAMPLES)
+- [8.17.3. Inclusive and Exclusive Bounds](https://www.postgresql.org/docs/19/rangetypes.html#RANGETYPES-INCLUSIVITY)
+- [8.17.4. Infinite (Unbounded) Ranges](https://www.postgresql.org/docs/19/rangetypes.html#RANGETYPES-INFINITE)
+- [8.17.5. Range Input/Output](https://www.postgresql.org/docs/19/rangetypes.html#RANGETYPES-IO)
+- [8.17.6. Constructing Ranges and Multiranges](https://www.postgresql.org/docs/19/rangetypes.html#RANGETYPES-CONSTRUCT)
+- [8.17.7. Discrete Range Types](https://www.postgresql.org/docs/19/rangetypes.html#RANGETYPES-DISCRETE)
+- [8.17.8. Defining New Range Types](https://www.postgresql.org/docs/19/rangetypes.html#RANGETYPES-DEFINING)
+- [8.17.9. Indexing](https://www.postgresql.org/docs/19/rangetypes.html#RANGETYPES-INDEXING)
+- [8.17.10. Constraints on Ranges](https://www.postgresql.org/docs/19/rangetypes.html#RANGETYPES-CONSTRAINT) · [示例](reference/35-postgresql-design.html#exclude)
+- [8.18. Domain Types](https://www.postgresql.org/docs/19/domains.html)
+- [8.19. Object Identifier Types](https://www.postgresql.org/docs/19/datatype-oid.html) · [示例](reference/41-postgresql-types.html#oid-regclass-lsn)
+- [8.20. pg_lsn Type](https://www.postgresql.org/docs/19/datatype-pg-lsn.html)
+- [8.21. Pseudo-Types](https://www.postgresql.org/docs/19/datatype-pseudo.html) · [示例](reference/41-postgresql-types.html#pseudo-signatures)
+
+### 内置函数与运算符（92）
+
+- [9.1. Logical Operators](https://www.postgresql.org/docs/19/functions-logical.html)
+- [9.2. Comparison Functions and Operators](https://www.postgresql.org/docs/19/functions-comparison.html) · [示例](reference/06-where.html#dial-where-null)
+- [9.3. Mathematical Functions and Operators](https://www.postgresql.org/docs/19/functions-math.html)
+- [9.4. String Functions and Operators](https://www.postgresql.org/docs/19/functions-string.html) · [示例](reference/11-functions.html#dial-strings)
+- [9.4.1. format](https://www.postgresql.org/docs/19/functions-string.html#FUNCTIONS-STRING-FORMAT) · [示例](reference/42-postgresql-functions.html#format-quote)
+- [9.5. Binary String Functions and Operators](https://www.postgresql.org/docs/19/functions-binarystring.html) · [示例](reference/41-postgresql-types.html#binary-bits)
+- [9.6. Bit String Functions and Operators](https://www.postgresql.org/docs/19/functions-bitstring.html)
+- [9.7. Pattern Matching](https://www.postgresql.org/docs/19/functions-matching.html) · [示例](reference/08-like.html#dial-case-like)
+- [9.7.1. LIKE](https://www.postgresql.org/docs/19/functions-matching.html#FUNCTIONS-LIKE)
+- [9.7.2. SIMILAR TO Regular Expressions](https://www.postgresql.org/docs/19/functions-matching.html#FUNCTIONS-SIMILARTO-REGEXP)
+- [9.7.3. POSIX Regular Expressions](https://www.postgresql.org/docs/19/functions-matching.html#FUNCTIONS-POSIX-REGEXP) · [示例](reference/42-postgresql-functions.html#posix-operators)
+- [9.8. Data Type Formatting Functions](https://www.postgresql.org/docs/19/functions-formatting.html)
+- [9.9. Date/Time Functions and Operators](https://www.postgresql.org/docs/19/functions-datetime.html) · [示例](reference/11-functions.html#dial-dates)
+- [9.9.1. EXTRACT, date_part](https://www.postgresql.org/docs/19/functions-datetime.html#FUNCTIONS-DATETIME-EXTRACT)
+- [9.9.2. date_trunc](https://www.postgresql.org/docs/19/functions-datetime.html#FUNCTIONS-DATETIME-TRUNC)
+- [9.9.3. date_bin](https://www.postgresql.org/docs/19/functions-datetime.html#FUNCTIONS-DATETIME-BIN)
+- [9.9.4. AT TIME ZONE and AT LOCAL](https://www.postgresql.org/docs/19/functions-datetime.html#FUNCTIONS-DATETIME-ZONECONVERT) · [示例](reference/41-postgresql-types.html#timestamp-tz)
+- [9.9.5. Current Date/Time](https://www.postgresql.org/docs/19/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT) · [示例](reference/42-postgresql-functions.html#clock-scope)
+- [9.9.6. Delaying Execution](https://www.postgresql.org/docs/19/functions-datetime.html#FUNCTIONS-DATETIME-DELAY)
+- [9.10. Enum Support Functions](https://www.postgresql.org/docs/19/functions-enum.html)
+- [9.11. Geometric Functions and Operators](https://www.postgresql.org/docs/19/functions-geometry.html) · [示例](reference/41-postgresql-types.html#geometry-xy)
+- [9.12. Network Address Functions and Operators](https://www.postgresql.org/docs/19/functions-net.html)
+- [9.13. Text Search Functions and Operators](https://www.postgresql.org/docs/19/functions-textsearch.html)
+- [9.14. TID Functions](https://www.postgresql.org/docs/19/functions-tid.html)
+- [9.15. UUID Functions](https://www.postgresql.org/docs/19/functions-uuid.html) · [示例](reference/41-postgresql-types.html#uuid)
+- [9.16. XML Functions](https://www.postgresql.org/docs/19/functions-xml.html) · [示例](reference/43-postgresql-documents.html#xml)
+- [9.16.1. Producing XML Content](https://www.postgresql.org/docs/19/functions-xml.html#FUNCTIONS-PRODUCING-XML)
+- [9.16.2. XML Predicates](https://www.postgresql.org/docs/19/functions-xml.html#FUNCTIONS-XML-PREDICATES)
+- [9.16.3. Processing XML](https://www.postgresql.org/docs/19/functions-xml.html#FUNCTIONS-XML-PROCESSING)
+- [9.16.4. Mapping Tables to XML](https://www.postgresql.org/docs/19/functions-xml.html#FUNCTIONS-XML-MAPPING)
+- [9.17. JSON Functions and Operators](https://www.postgresql.org/docs/19/functions-json.html) · [示例](reference/32-modern-sql.html#dial-json-engine)
+- [9.17.1. Processing and Creating JSON Data](https://www.postgresql.org/docs/19/functions-json.html#FUNCTIONS-JSON-PROCESSING)
+- [9.17.2. The SQL/JSON Path Language](https://www.postgresql.org/docs/19/functions-json.html#FUNCTIONS-SQLJSON-PATH)
+- [9.17.3. SQL/JSON Query Functions](https://www.postgresql.org/docs/19/functions-json.html#SQLJSON-QUERY-FUNCTIONS)
+- [9.17.4. JSON_TABLE](https://www.postgresql.org/docs/19/functions-json.html#FUNCTIONS-SQLJSON-TABLE)
+- [9.18. Sequence Manipulation Functions](https://www.postgresql.org/docs/19/functions-sequence.html) · [示例](reference/44-postgresql-schema.html#sequence)
+- [9.19. Conditional Expressions](https://www.postgresql.org/docs/19/functions-conditional.html)
+- [9.19.1. CASE](https://www.postgresql.org/docs/19/functions-conditional.html#FUNCTIONS-CASE)
+- [9.19.2. COALESCE](https://www.postgresql.org/docs/19/functions-conditional.html#FUNCTIONS-COALESCE-NVL-IFNULL)
+- [9.19.3. NULLIF](https://www.postgresql.org/docs/19/functions-conditional.html#FUNCTIONS-NULLIF)
+- [9.19.4. GREATEST and LEAST](https://www.postgresql.org/docs/19/functions-conditional.html#FUNCTIONS-GREATEST-LEAST)
+- [9.20. Array Functions and Operators](https://www.postgresql.org/docs/19/functions-array.html) · [示例](reference/34-postgresql-query.html#array)
+- [9.21. Range/Multirange Functions and Operators](https://www.postgresql.org/docs/19/functions-range.html)
+- [9.22. Aggregate Functions](https://www.postgresql.org/docs/19/functions-aggregate.html) · [示例](reference/40-postgresql-analytics.html#ordered-aggregates)
+- [9.23. Window Functions](https://www.postgresql.org/docs/19/functions-window.html) · [示例](reference/40-postgresql-analytics.html#window-null-treatment)
+- [9.24. Merge Support Functions](https://www.postgresql.org/docs/19/functions-merge-support.html)
+- [9.25. Subquery Expressions](https://www.postgresql.org/docs/19/functions-subquery.html)
+- [9.25.1. EXISTS](https://www.postgresql.org/docs/19/functions-subquery.html#FUNCTIONS-SUBQUERY-EXISTS)
+- [9.25.2. IN](https://www.postgresql.org/docs/19/functions-subquery.html#FUNCTIONS-SUBQUERY-IN)
+- [9.25.3. NOT IN](https://www.postgresql.org/docs/19/functions-subquery.html#FUNCTIONS-SUBQUERY-NOTIN)
+- [9.25.4. ANY/SOME](https://www.postgresql.org/docs/19/functions-subquery.html#FUNCTIONS-SUBQUERY-ANY-SOME)
+- [9.25.5. ALL](https://www.postgresql.org/docs/19/functions-subquery.html#FUNCTIONS-SUBQUERY-ALL)
+- [9.25.6. Single-Row Comparison](https://www.postgresql.org/docs/19/functions-subquery.html#FUNCTIONS-SUBQUERY-SINGLE-ROW-COMP)
+- [9.26. Row and Array Comparisons](https://www.postgresql.org/docs/19/functions-comparisons.html) · [示例](reference/39-postgresql-syntax.html#row-comparisons)
+- [9.26.1. IN](https://www.postgresql.org/docs/19/functions-comparisons.html#FUNCTIONS-COMPARISONS-IN-SCALAR)
+- [9.26.2. NOT IN](https://www.postgresql.org/docs/19/functions-comparisons.html#FUNCTIONS-COMPARISONS-NOT-IN)
+- [9.26.3. ANY/SOME (array)](https://www.postgresql.org/docs/19/functions-comparisons.html#FUNCTIONS-COMPARISONS-ANY-SOME)
+- [9.26.4. ALL (array)](https://www.postgresql.org/docs/19/functions-comparisons.html#FUNCTIONS-COMPARISONS-ALL)
+- [9.26.5. Row Constructor Comparison](https://www.postgresql.org/docs/19/functions-comparisons.html#ROW-WISE-COMPARISON)
+- [9.26.6. Composite Type Comparison](https://www.postgresql.org/docs/19/functions-comparisons.html#COMPOSITE-TYPE-COMPARISON)
+- [9.27. Set Returning Functions](https://www.postgresql.org/docs/19/functions-srf.html) · [示例](reference/35-postgresql-design.html#generate-series)
+- [9.28. System Information Functions and Operators](https://www.postgresql.org/docs/19/functions-info.html) · [示例](reference/02-mysql-overview.html#dial-clients)
+- [9.28.1. Session Information Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-SESSION)
+- [9.28.2. Access Privilege Inquiry Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-ACCESS)
+- [9.28.3. Schema Visibility Inquiry Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-SCHEMA)
+- [9.28.4. System Catalog Information Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-CATALOG)
+- [9.28.5. Object Information and Addressing Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-OBJECT)
+- [9.28.6. Comment Information Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-COMMENT)
+- [9.28.7. Data Validity Checking Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-VALIDITY)
+- [9.28.8. Transaction ID and Snapshot Information Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-SNAPSHOT)
+- [9.28.9. Committed Transaction Information Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-COMMIT-TIMESTAMP)
+- [9.28.10. Control Data Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-CONTROLDATA)
+- [9.28.11. Version Information Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-VERSION)
+- [9.28.12. WAL Summarization Information Functions](https://www.postgresql.org/docs/19/functions-info.html#FUNCTIONS-INFO-WAL-SUMMARY)
+- [9.29. System Administration Functions](https://www.postgresql.org/docs/19/functions-admin.html) · [示例](reference/47-postgresql-transactions.html#snapshot)
+- [9.29.1. Configuration Settings Functions](https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-ADMIN-SET)
+- [9.29.2. Server Signaling Functions](https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-ADMIN-SIGNAL)
+- [9.29.3. Backup Control Functions](https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-ADMIN-BACKUP)
+- [9.29.4. Recovery Control Functions](https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-RECOVERY-CONTROL)
+- [9.29.5. Snapshot Synchronization Functions](https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-SNAPSHOT-SYNCHRONIZATION) · [示例](reference/47-postgresql-transactions.html#snapshot)
+- [9.29.6. Replication Management Functions](https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-REPLICATION)
+- [9.29.7. Database Object Management Functions](https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-ADMIN-DBOBJECT)
+- [9.29.8. Index Maintenance Functions](https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-ADMIN-INDEX)
+- [9.29.9. Generic File Access Functions](https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-ADMIN-GENFILE)
+- [9.29.10. Advisory Lock Functions](https://www.postgresql.org/docs/19/functions-admin.html#FUNCTIONS-ADVISORY-LOCKS) · [示例](reference/47-postgresql-transactions.html#advisory)
+- [9.30. Trigger Functions](https://www.postgresql.org/docs/19/functions-trigger.html)
+- [9.31. Event Trigger Functions](https://www.postgresql.org/docs/19/functions-event-triggers.html)
+- [9.31.1. Capturing Changes at Command End](https://www.postgresql.org/docs/19/functions-event-triggers.html#PG-EVENT-TRIGGER-DDL-COMMAND-END-FUNCTIONS)
+- [9.31.2. Processing Objects Dropped by a DDL Command](https://www.postgresql.org/docs/19/functions-event-triggers.html#PG-EVENT-TRIGGER-SQL-DROP-FUNCTIONS)
+- [9.31.3. Handling a Table Rewrite Event](https://www.postgresql.org/docs/19/functions-event-triggers.html#PG-EVENT-TRIGGER-TABLE-REWRITE-FUNCTIONS)
+- [9.32. Statistics Information Functions](https://www.postgresql.org/docs/19/functions-statistics.html)
+- [9.32.1. Inspecting MCV Lists](https://www.postgresql.org/docs/19/functions-statistics.html#FUNCTIONS-STATISTICS-MCV)
+
+### PL/pgSQL（51）
+
+- [41.1. Overview](https://www.postgresql.org/docs/19/plpgsql-overview.html)
+- [41.1.1. Advantages of Using PL/pgSQL](https://www.postgresql.org/docs/19/plpgsql-overview.html#PLPGSQL-ADVANTAGES)
+- [41.1.2. Supported Argument and Result Data Types](https://www.postgresql.org/docs/19/plpgsql-overview.html#PLPGSQL-ARGS-RESULTS)
+- [41.2. Structure of PL/pgSQL](https://www.postgresql.org/docs/19/plpgsql-structure.html)
+- [41.3. Declarations](https://www.postgresql.org/docs/19/plpgsql-declarations.html)
+- [41.3.1. Declaring Function Parameters](https://www.postgresql.org/docs/19/plpgsql-declarations.html#PLPGSQL-DECLARATION-PARAMETERS)
+- [41.3.2. ALIAS](https://www.postgresql.org/docs/19/plpgsql-declarations.html#PLPGSQL-DECLARATION-ALIAS)
+- [41.3.3. Copying Types](https://www.postgresql.org/docs/19/plpgsql-declarations.html#PLPGSQL-DECLARATION-TYPE)
+- [41.3.4. Row Types](https://www.postgresql.org/docs/19/plpgsql-declarations.html#PLPGSQL-DECLARATION-ROWTYPES)
+- [41.3.5. Record Types](https://www.postgresql.org/docs/19/plpgsql-declarations.html#PLPGSQL-DECLARATION-RECORDS)
+- [41.3.6. Collation of PL/pgSQL Variables](https://www.postgresql.org/docs/19/plpgsql-declarations.html#PLPGSQL-DECLARATION-COLLATION)
+- [41.4. Expressions](https://www.postgresql.org/docs/19/plpgsql-expressions.html)
+- [41.5. Basic Statements](https://www.postgresql.org/docs/19/plpgsql-statements.html) · [示例](reference/46-postgresql-routines.html#pg-routine-dynamic)
+- [41.5.1. Assignment](https://www.postgresql.org/docs/19/plpgsql-statements.html#PLPGSQL-STATEMENTS-ASSIGNMENT)
+- [41.5.2. Executing SQL Commands](https://www.postgresql.org/docs/19/plpgsql-statements.html#PLPGSQL-STATEMENTS-GENERAL-SQL)
+- [41.5.3. Executing a Command with a Single-Row Result](https://www.postgresql.org/docs/19/plpgsql-statements.html#PLPGSQL-STATEMENTS-SQL-ONEROW)
+- [41.5.4. Executing Dynamic Commands](https://www.postgresql.org/docs/19/plpgsql-statements.html#PLPGSQL-STATEMENTS-EXECUTING-DYN)
+- [41.5.5. Obtaining the Result Status](https://www.postgresql.org/docs/19/plpgsql-statements.html#PLPGSQL-STATEMENTS-DIAGNOSTICS)
+- [41.5.6. Doing Nothing At All](https://www.postgresql.org/docs/19/plpgsql-statements.html#PLPGSQL-STATEMENTS-NULL)
+- [41.6. Control Structures](https://www.postgresql.org/docs/19/plpgsql-control-structures.html) · [示例](reference/46-postgresql-routines.html#pg-routine-do)
+- [41.6.1. Returning from a Function](https://www.postgresql.org/docs/19/plpgsql-control-structures.html#PLPGSQL-STATEMENTS-RETURNING)
+- [41.6.2. Returning from a Procedure](https://www.postgresql.org/docs/19/plpgsql-control-structures.html#PLPGSQL-STATEMENTS-RETURNING-PROCEDURE)
+- [41.6.3. Calling a Procedure](https://www.postgresql.org/docs/19/plpgsql-control-structures.html#PLPGSQL-STATEMENTS-CALLING-PROCEDURE)
+- [41.6.4. Conditionals](https://www.postgresql.org/docs/19/plpgsql-control-structures.html#PLPGSQL-CONDITIONALS)
+- [41.6.5. Simple Loops](https://www.postgresql.org/docs/19/plpgsql-control-structures.html#PLPGSQL-CONTROL-STRUCTURES-LOOPS)
+- [41.6.6. Looping through Query Results](https://www.postgresql.org/docs/19/plpgsql-control-structures.html#PLPGSQL-RECORDS-ITERATING)
+- [41.6.7. Looping through Arrays](https://www.postgresql.org/docs/19/plpgsql-control-structures.html#PLPGSQL-FOREACH-ARRAY)
+- [41.6.8. Trapping Errors](https://www.postgresql.org/docs/19/plpgsql-control-structures.html#PLPGSQL-ERROR-TRAPPING) · [示例](reference/46-postgresql-routines.html#pg-routine-do)
+- [41.6.9. Obtaining Execution Location Information](https://www.postgresql.org/docs/19/plpgsql-control-structures.html#PLPGSQL-CALL-STACK)
+- [41.7. Cursors](https://www.postgresql.org/docs/19/plpgsql-cursors.html)
+- [41.7.1. Declaring Cursor Variables](https://www.postgresql.org/docs/19/plpgsql-cursors.html#PLPGSQL-CURSOR-DECLARATIONS)
+- [41.7.2. Opening Cursors](https://www.postgresql.org/docs/19/plpgsql-cursors.html#PLPGSQL-CURSOR-OPENING)
+- [41.7.3. Using Cursors](https://www.postgresql.org/docs/19/plpgsql-cursors.html#PLPGSQL-CURSOR-USING)
+- [41.7.4. Looping through a Cursor's Result](https://www.postgresql.org/docs/19/plpgsql-cursors.html#PLPGSQL-CURSOR-FOR-LOOP)
+- [41.8. Transaction Management](https://www.postgresql.org/docs/19/plpgsql-transactions.html)
+- [41.9. Errors and Messages](https://www.postgresql.org/docs/19/plpgsql-errors-and-messages.html)
+- [41.9.1. Reporting Errors and Messages](https://www.postgresql.org/docs/19/plpgsql-errors-and-messages.html#PLPGSQL-STATEMENTS-RAISE)
+- [41.9.2. Checking Assertions](https://www.postgresql.org/docs/19/plpgsql-errors-and-messages.html#PLPGSQL-STATEMENTS-ASSERT)
+- [41.10. Trigger Functions](https://www.postgresql.org/docs/19/plpgsql-trigger.html) · [示例](reference/46-postgresql-routines.html#pg-trigger-row)
+- [41.10.1. Triggers on Data Changes](https://www.postgresql.org/docs/19/plpgsql-trigger.html#PLPGSQL-DML-TRIGGER)
+- [41.10.2. Triggers on Events](https://www.postgresql.org/docs/19/plpgsql-trigger.html#PLPGSQL-EVENT-TRIGGER)
+- [41.11. PL/pgSQL under the Hood](https://www.postgresql.org/docs/19/plpgsql-implementation.html)
+- [41.11.1. Variable Substitution](https://www.postgresql.org/docs/19/plpgsql-implementation.html#PLPGSQL-VAR-SUBST)
+- [41.11.2. Plan Caching](https://www.postgresql.org/docs/19/plpgsql-implementation.html#PLPGSQL-PLAN-CACHING)
+- [41.12. Tips for Developing in PL/pgSQL](https://www.postgresql.org/docs/19/plpgsql-development-tips.html)
+- [41.12.1. Handling of Quotation Marks](https://www.postgresql.org/docs/19/plpgsql-development-tips.html#PLPGSQL-QUOTE-TIPS)
+- [41.12.2. Additional Compile-Time and Run-Time Checks](https://www.postgresql.org/docs/19/plpgsql-development-tips.html#PLPGSQL-EXTRA-CHECKS)
+- [41.13. Porting from Oracle PL/SQL](https://www.postgresql.org/docs/19/plpgsql-porting.html)
+- [41.13.1. Porting Examples](https://www.postgresql.org/docs/19/plpgsql-porting.html#PLPGSQL-PORTING-EXAMPLES)
+- [41.13.2. Other Things to Watch For](https://www.postgresql.org/docs/19/plpgsql-porting.html#PLPGSQL-PORTING-OTHER)
+- [41.13.3. Appendix](https://www.postgresql.org/docs/19/plpgsql-porting.html#PLPGSQL-PORTING-APPENDIX)
+
+### 官方随附模块（273）
+
+- [F.1. amcheck — tools to verify table and index consistency](https://www.postgresql.org/docs/19/amcheck.html)
+- [F.1.1. Functions](https://www.postgresql.org/docs/19/amcheck.html#AMCHECK-FUNCTIONS)
+- [F.1.2. Optional heapallindexed Verification](https://www.postgresql.org/docs/19/amcheck.html#AMCHECK-OPTIONAL-HEAPALLINDEXED-VERIFICATION)
+- [F.1.3. Using amcheck Effectively](https://www.postgresql.org/docs/19/amcheck.html#AMCHECK-USING-AMCHECK-EFFECTIVELY)
+- [F.1.4. Repairing Corruption](https://www.postgresql.org/docs/19/amcheck.html#AMCHECK-REPAIRING-CORRUPTION)
+- [F.2. auth_delay — pause on authentication failure](https://www.postgresql.org/docs/19/auth-delay.html)
+- [F.2.1. Configuration Parameters](https://www.postgresql.org/docs/19/auth-delay.html#AUTH-DELAY-CONFIGURATION-PARAMETERS)
+- [F.2.2. Author](https://www.postgresql.org/docs/19/auth-delay.html#AUTH-DELAY-AUTHOR)
+- [F.3. auto_explain — log execution plans of slow queries](https://www.postgresql.org/docs/19/auto-explain.html)
+- [F.3.1. Configuration Parameters](https://www.postgresql.org/docs/19/auto-explain.html#AUTO-EXPLAIN-CONFIGURATION-PARAMETERS)
+- [F.3.2. Example](https://www.postgresql.org/docs/19/auto-explain.html#AUTO-EXPLAIN-EXAMPLE)
+- [F.3.3. Author](https://www.postgresql.org/docs/19/auto-explain.html#AUTO-EXPLAIN-AUTHOR)
+- [F.4. basebackup_to_shell — example "shell" pg_basebackup module](https://www.postgresql.org/docs/19/basebackup-to-shell.html)
+- [F.4.1. Configuration Parameters](https://www.postgresql.org/docs/19/basebackup-to-shell.html#BASEBACKUP-TO-SHELL-CONFIGURATION-PARAMETERS)
+- [F.4.2. Author](https://www.postgresql.org/docs/19/basebackup-to-shell.html#BASEBACKUP-TO-SHELL-AUTHOR)
+- [F.5. basic_archive — an example WAL archive module](https://www.postgresql.org/docs/19/basic-archive.html)
+- [F.5.1. Configuration Parameters](https://www.postgresql.org/docs/19/basic-archive.html#BASIC-ARCHIVE-CONFIGURATION-PARAMETERS)
+- [F.5.2. Notes](https://www.postgresql.org/docs/19/basic-archive.html#BASIC-ARCHIVE-NOTES)
+- [F.5.3. Author](https://www.postgresql.org/docs/19/basic-archive.html#BASIC-ARCHIVE-AUTHOR)
+- [F.6. bloom — bloom filter index access method](https://www.postgresql.org/docs/19/bloom.html)
+- [F.6.1. Parameters](https://www.postgresql.org/docs/19/bloom.html#BLOOM-PARAMETERS)
+- [F.6.2. Examples](https://www.postgresql.org/docs/19/bloom.html#BLOOM-EXAMPLES)
+- [F.6.3. Operator Class Interface](https://www.postgresql.org/docs/19/bloom.html#BLOOM-OPERATOR-CLASS-INTERFACE)
+- [F.6.4. Limitations](https://www.postgresql.org/docs/19/bloom.html#BLOOM-LIMITATIONS)
+- [F.6.5. Authors](https://www.postgresql.org/docs/19/bloom.html#BLOOM-AUTHORS)
+- [F.7. btree_gin — GIN operator classes with B-tree behavior](https://www.postgresql.org/docs/19/btree-gin.html)
+- [F.7.1. Example Usage](https://www.postgresql.org/docs/19/btree-gin.html#BTREE-GIN-EXAMPLE-USAGE)
+- [F.7.2. Authors](https://www.postgresql.org/docs/19/btree-gin.html#BTREE-GIN-AUTHORS)
+- [F.8. btree_gist — GiST operator classes with B-tree behavior](https://www.postgresql.org/docs/19/btree-gist.html)
+- [F.8.1. Example Usage](https://www.postgresql.org/docs/19/btree-gist.html#BTREE-GIST-EXAMPLE-USAGE)
+- [F.8.2. btree_gist Indexes on inet/cidr Columns](https://www.postgresql.org/docs/19/btree-gist.html#BTREE-GIST-INET-INDEXES)
+- [F.8.3. Authors](https://www.postgresql.org/docs/19/btree-gist.html#BTREE-GIST-AUTHORS)
+- [F.9. citext — a case-insensitive character string type](https://www.postgresql.org/docs/19/citext.html)
+- [F.9.1. Rationale](https://www.postgresql.org/docs/19/citext.html#CITEXT-RATIONALE)
+- [F.9.2. How to Use It](https://www.postgresql.org/docs/19/citext.html#CITEXT-HOW-TO-USE-IT)
+- [F.9.3. String Comparison Behavior](https://www.postgresql.org/docs/19/citext.html#CITEXT-STRING-COMPARISON-BEHAVIOR)
+- [F.9.4. Limitations](https://www.postgresql.org/docs/19/citext.html#CITEXT-LIMITATIONS)
+- [F.9.5. Author](https://www.postgresql.org/docs/19/citext.html#CITEXT-AUTHOR)
+- [F.10. cube — a multi-dimensional cube data type](https://www.postgresql.org/docs/19/cube.html)
+- [F.10.1. Syntax](https://www.postgresql.org/docs/19/cube.html#CUBE-SYNTAX)
+- [F.10.2. Precision](https://www.postgresql.org/docs/19/cube.html#CUBE-PRECISION)
+- [F.10.3. Usage](https://www.postgresql.org/docs/19/cube.html#CUBE-USAGE)
+- [F.10.4. Defaults](https://www.postgresql.org/docs/19/cube.html#CUBE-DEFAULTS)
+- [F.10.5. Notes](https://www.postgresql.org/docs/19/cube.html#CUBE-NOTES)
+- [F.10.6. Credits](https://www.postgresql.org/docs/19/cube.html#CUBE-CREDITS)
+- [F.11. dblink — connect to other PostgreSQL databases](https://www.postgresql.org/docs/19/dblink.html)
+- [dblink_connect](https://www.postgresql.org/docs/19/contrib-dblink-connect.html)
+- [dblink_connect_u](https://www.postgresql.org/docs/19/contrib-dblink-connect-u.html)
+- [dblink_disconnect](https://www.postgresql.org/docs/19/contrib-dblink-disconnect.html)
+- [dblink](https://www.postgresql.org/docs/19/contrib-dblink-function.html)
+- [dblink_exec](https://www.postgresql.org/docs/19/contrib-dblink-exec.html)
+- [dblink_open](https://www.postgresql.org/docs/19/contrib-dblink-open.html)
+- [dblink_fetch](https://www.postgresql.org/docs/19/contrib-dblink-fetch.html)
+- [dblink_close](https://www.postgresql.org/docs/19/contrib-dblink-close.html)
+- [dblink_get_connections](https://www.postgresql.org/docs/19/contrib-dblink-get-connections.html)
+- [dblink_error_message](https://www.postgresql.org/docs/19/contrib-dblink-error-message.html)
+- [dblink_send_query](https://www.postgresql.org/docs/19/contrib-dblink-send-query.html)
+- [dblink_is_busy](https://www.postgresql.org/docs/19/contrib-dblink-is-busy.html)
+- [dblink_get_notify](https://www.postgresql.org/docs/19/contrib-dblink-get-notify.html)
+- [dblink_get_result](https://www.postgresql.org/docs/19/contrib-dblink-get-result.html)
+- [dblink_cancel_query](https://www.postgresql.org/docs/19/contrib-dblink-cancel-query.html)
+- [dblink_get_pkey](https://www.postgresql.org/docs/19/contrib-dblink-get-pkey.html)
+- [dblink_build_sql_insert](https://www.postgresql.org/docs/19/contrib-dblink-build-sql-insert.html)
+- [dblink_build_sql_delete](https://www.postgresql.org/docs/19/contrib-dblink-build-sql-delete.html)
+- [dblink_build_sql_update](https://www.postgresql.org/docs/19/contrib-dblink-build-sql-update.html)
+- [F.12. dict_int — example full-text search dictionary for integers](https://www.postgresql.org/docs/19/dict-int.html)
+- [F.12.1. Configuration](https://www.postgresql.org/docs/19/dict-int.html#DICT-INT-CONFIG)
+- [F.12.2. Usage](https://www.postgresql.org/docs/19/dict-int.html#DICT-INT-USAGE)
+- [F.13. dict_xsyn — example synonym full-text search dictionary](https://www.postgresql.org/docs/19/dict-xsyn.html)
+- [F.13.1. Configuration](https://www.postgresql.org/docs/19/dict-xsyn.html#DICT-XSYN-CONFIG)
+- [F.13.2. Usage](https://www.postgresql.org/docs/19/dict-xsyn.html#DICT-XSYN-USAGE)
+- [F.14. earthdistance — calculate great-circle distances](https://www.postgresql.org/docs/19/earthdistance.html)
+- [F.14.1. Cube-Based Earth Distances](https://www.postgresql.org/docs/19/earthdistance.html#EARTHDISTANCE-CUBE-BASED)
+- [F.14.2. Point-Based Earth Distances](https://www.postgresql.org/docs/19/earthdistance.html#EARTHDISTANCE-POINT-BASED)
+- [F.15. file_fdw — access data files in the server's file system](https://www.postgresql.org/docs/19/file-fdw.html)
+- [F.16. fuzzystrmatch — determine string similarities and distance](https://www.postgresql.org/docs/19/fuzzystrmatch.html)
+- [F.16.1. Soundex](https://www.postgresql.org/docs/19/fuzzystrmatch.html#FUZZYSTRMATCH-SOUNDEX)
+- [F.16.2. Daitch-Mokotoff Soundex](https://www.postgresql.org/docs/19/fuzzystrmatch.html#FUZZYSTRMATCH-DAITCH-MOKOTOFF)
+- [F.16.3. Levenshtein](https://www.postgresql.org/docs/19/fuzzystrmatch.html#FUZZYSTRMATCH-LEVENSHTEIN)
+- [F.16.4. Metaphone](https://www.postgresql.org/docs/19/fuzzystrmatch.html#FUZZYSTRMATCH-METAPHONE)
+- [F.16.5. Double Metaphone](https://www.postgresql.org/docs/19/fuzzystrmatch.html#FUZZYSTRMATCH-DOUBLE-METAPHONE)
+- [F.17. hstore — hstore key/value datatype](https://www.postgresql.org/docs/19/hstore.html)
+- [F.17.1. hstore External Representation](https://www.postgresql.org/docs/19/hstore.html#HSTORE-EXTERNAL-REP)
+- [F.17.2. hstore Operators and Functions](https://www.postgresql.org/docs/19/hstore.html#HSTORE-OPS-FUNCS)
+- [F.17.3. Indexes](https://www.postgresql.org/docs/19/hstore.html#HSTORE-INDEXES)
+- [F.17.4. Examples](https://www.postgresql.org/docs/19/hstore.html#HSTORE-EXAMPLES)
+- [F.17.5. Statistics](https://www.postgresql.org/docs/19/hstore.html#HSTORE-STATISTICS)
+- [F.17.6. Compatibility](https://www.postgresql.org/docs/19/hstore.html#HSTORE-COMPATIBILITY)
+- [F.17.7. Transforms](https://www.postgresql.org/docs/19/hstore.html#HSTORE-TRANSFORMS)
+- [F.17.8. Authors](https://www.postgresql.org/docs/19/hstore.html#HSTORE-AUTHORS)
+- [F.18. intagg — integer aggregator and enumerator](https://www.postgresql.org/docs/19/intagg.html)
+- [F.18.1. Functions](https://www.postgresql.org/docs/19/intagg.html#INTAGG-FUNCTIONS)
+- [F.18.2. Sample Uses](https://www.postgresql.org/docs/19/intagg.html#INTAGG-SAMPLES)
+- [F.19. intarray — manipulate arrays of integers](https://www.postgresql.org/docs/19/intarray.html)
+- [F.19.1. intarray Functions and Operators](https://www.postgresql.org/docs/19/intarray.html#INTARRAY-FUNCS-OPS)
+- [F.19.2. Index Support](https://www.postgresql.org/docs/19/intarray.html#INTARRAY-INDEX)
+- [F.19.3. Example](https://www.postgresql.org/docs/19/intarray.html#INTARRAY-EXAMPLE)
+- [F.19.4. Benchmark](https://www.postgresql.org/docs/19/intarray.html#INTARRAY-BENCHMARK)
+- [F.19.5. Authors](https://www.postgresql.org/docs/19/intarray.html#INTARRAY-AUTHORS)
+- [F.20. isn — data types for international standard numbers (ISBN, EAN, UPC, etc.)](https://www.postgresql.org/docs/19/isn.html)
+- [F.20.1. Data Types](https://www.postgresql.org/docs/19/isn.html#ISN-DATA-TYPES)
+- [F.20.2. Casts](https://www.postgresql.org/docs/19/isn.html#ISN-CASTS)
+- [F.20.3. Functions and Operators](https://www.postgresql.org/docs/19/isn.html#ISN-FUNCS-OPS)
+- [F.20.4. Configuration Parameters](https://www.postgresql.org/docs/19/isn.html#ISN-CONFIGURATION-PARAMETERS)
+- [F.20.5. Examples](https://www.postgresql.org/docs/19/isn.html#ISN-EXAMPLES)
+- [F.20.6. Bibliography](https://www.postgresql.org/docs/19/isn.html#ISN-BIBLIOGRAPHY)
+- [F.20.7. Author](https://www.postgresql.org/docs/19/isn.html#ISN-AUTHOR)
+- [F.21. lo — manage large objects](https://www.postgresql.org/docs/19/lo.html)
+- [F.21.1. Rationale](https://www.postgresql.org/docs/19/lo.html#LO-RATIONALE)
+- [F.21.2. How to Use It](https://www.postgresql.org/docs/19/lo.html#LO-HOW-TO-USE)
+- [F.21.3. Limitations](https://www.postgresql.org/docs/19/lo.html#LO-LIMITATIONS)
+- [F.21.4. Author](https://www.postgresql.org/docs/19/lo.html#LO-AUTHOR)
+- [F.22. ltree — hierarchical tree-like data type](https://www.postgresql.org/docs/19/ltree.html)
+- [F.22.1. Definitions](https://www.postgresql.org/docs/19/ltree.html#LTREE-DEFINITIONS)
+- [F.22.2. Operators and Functions](https://www.postgresql.org/docs/19/ltree.html#LTREE-OPS-FUNCS)
+- [F.22.3. Indexes](https://www.postgresql.org/docs/19/ltree.html#LTREE-INDEXES)
+- [F.22.4. Example](https://www.postgresql.org/docs/19/ltree.html#LTREE-EXAMPLE)
+- [F.22.5. Transforms](https://www.postgresql.org/docs/19/ltree.html#LTREE-TRANSFORMS)
+- [F.22.6. Authors](https://www.postgresql.org/docs/19/ltree.html#LTREE-AUTHORS)
+- [F.23. pageinspect — low-level inspection of database pages](https://www.postgresql.org/docs/19/pageinspect.html)
+- [F.23.1. General Functions](https://www.postgresql.org/docs/19/pageinspect.html#PAGEINSPECT-GENERAL-FUNCS)
+- [F.23.2. Heap Functions](https://www.postgresql.org/docs/19/pageinspect.html#PAGEINSPECT-HEAP-FUNCS)
+- [F.23.3. B-Tree Functions](https://www.postgresql.org/docs/19/pageinspect.html#PAGEINSPECT-B-TREE-FUNCS)
+- [F.23.4. BRIN Functions](https://www.postgresql.org/docs/19/pageinspect.html#PAGEINSPECT-BRIN-FUNCS)
+- [F.23.5. GIN Functions](https://www.postgresql.org/docs/19/pageinspect.html#PAGEINSPECT-GIN-FUNCS)
+- [F.23.6. GiST Functions](https://www.postgresql.org/docs/19/pageinspect.html#PAGEINSPECT-GIST-FUNCS)
+- [F.23.7. Hash Functions](https://www.postgresql.org/docs/19/pageinspect.html#PAGEINSPECT-HASH-FUNCS)
+- [F.24. passwordcheck — verify password strength](https://www.postgresql.org/docs/19/passwordcheck.html)
+- [F.24.1. Configuration Parameters](https://www.postgresql.org/docs/19/passwordcheck.html#PASSWORDCHECK-CONFIGURATION-PARAMETERS)
+- [F.25. pg_buffercache — inspect PostgreSQL buffer cache state](https://www.postgresql.org/docs/19/pgbuffercache.html)
+- [F.25.1. The pg_buffercache View](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-PG-BUFFERCACHE)
+- [F.25.2. The pg_buffercache_os_pages View](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-PG-BUFFERCACHE-OS-PAGES)
+- [F.25.3. The pg_buffercache_numa View](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-PG-BUFFERCACHE-NUMA)
+- [F.25.4. The pg_buffercache_summary() Function](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-SUMMARY)
+- [F.25.5. The pg_buffercache_usage_counts() Function](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-USAGE-COUNTS)
+- [F.25.6. The pg_buffercache_evict() Function](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-PG-BUFFERCACHE-EVICT)
+- [F.25.7. The pg_buffercache_evict_relation() Function](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-PG-BUFFERCACHE-EVICT-RELATION)
+- [F.25.8. The pg_buffercache_evict_all() Function](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-PG-BUFFERCACHE-EVICT-ALL)
+- [F.25.9. The pg_buffercache_mark_dirty() Function](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-PG-BUFFERCACHE-MARK-DIRTY)
+- [F.25.10. The pg_buffercache_mark_dirty_relation() Function](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-PG-BUFFERCACHE-MARK-DIRTY-RELATION)
+- [F.25.11. The pg_buffercache_mark_dirty_all() Function](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-PG-BUFFERCACHE-MARK-DIRTY-ALL)
+- [F.25.12. Sample Output](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-SAMPLE-OUTPUT)
+- [F.25.13. Authors](https://www.postgresql.org/docs/19/pgbuffercache.html#PGBUFFERCACHE-AUTHORS)
+- [F.26. pgcrypto — cryptographic functions](https://www.postgresql.org/docs/19/pgcrypto.html)
+- [F.26.1. General Hashing Functions](https://www.postgresql.org/docs/19/pgcrypto.html#PGCRYPTO-GENERAL-HASHING-FUNCS)
+- [F.26.2. Password Hashing Functions](https://www.postgresql.org/docs/19/pgcrypto.html#PGCRYPTO-PASSWORD-HASHING-FUNCS)
+- [F.26.3. PGP Encryption Functions](https://www.postgresql.org/docs/19/pgcrypto.html#PGCRYPTO-PGP-ENC-FUNCS)
+- [F.26.4. Raw Encryption Functions](https://www.postgresql.org/docs/19/pgcrypto.html#PGCRYPTO-RAW-ENC-FUNCS)
+- [F.26.5. Random-Data Functions](https://www.postgresql.org/docs/19/pgcrypto.html#PGCRYPTO-RANDOM-DATA-FUNCS)
+- [F.26.6. OpenSSL Support Functions](https://www.postgresql.org/docs/19/pgcrypto.html#PGCRYPTO-OPENSSL-SUPPORT-FUNCS)
+- [F.26.7. Configuration Parameters](https://www.postgresql.org/docs/19/pgcrypto.html#PGCRYPTO-CONFIGURATION-PARAMETERS)
+- [F.26.8. Notes](https://www.postgresql.org/docs/19/pgcrypto.html#PGCRYPTO-NOTES)
+- [F.26.9. Author](https://www.postgresql.org/docs/19/pgcrypto.html#PGCRYPTO-AUTHOR)
+- [F.27. pg_freespacemap — examine the free space map](https://www.postgresql.org/docs/19/pgfreespacemap.html)
+- [F.27.1. Functions](https://www.postgresql.org/docs/19/pgfreespacemap.html#PGFREESPACEMAP-FUNCS)
+- [F.27.2. Sample Output](https://www.postgresql.org/docs/19/pgfreespacemap.html#PGFREESPACEMAP-SAMPLE-OUTPUT)
+- [F.27.3. Author](https://www.postgresql.org/docs/19/pgfreespacemap.html#PGFREESPACEMAP-AUTHOR)
+- [F.28. pg_logicalinspect — logical decoding components inspection](https://www.postgresql.org/docs/19/pglogicalinspect.html)
+- [F.28.1. Functions](https://www.postgresql.org/docs/19/pglogicalinspect.html#PGLOGICALINSPECT-FUNCS)
+- [F.28.2. Author](https://www.postgresql.org/docs/19/pglogicalinspect.html#PGLOGICALINSPECT-AUTHOR)
+- [F.29. pg_overexplain — allow EXPLAIN to dump even more details](https://www.postgresql.org/docs/19/pgoverexplain.html)
+- [F.29.1. EXPLAIN (DEBUG)](https://www.postgresql.org/docs/19/pgoverexplain.html#PGOVEREXPLAIN-DEBUG)
+- [F.29.2. EXPLAIN (RANGE_TABLE)](https://www.postgresql.org/docs/19/pgoverexplain.html#PGOVEREXPLAIN-RANGE-TABLE)
+- [F.29.3. Author](https://www.postgresql.org/docs/19/pgoverexplain.html#PGOVEREXPLAIN-AUTHOR)
+- [F.30. pg_plan_advice — help the planner get the right plan](https://www.postgresql.org/docs/19/pgplanadvice.html)
+- [F.30.1. Getting Started](https://www.postgresql.org/docs/19/pgplanadvice.html#PGPLANADVICE-GETTING-STARTED)
+- [F.30.2. How It Works](https://www.postgresql.org/docs/19/pgplanadvice.html#PGPLANADVICE-HOW-IT-WORKS)
+- [F.30.3. Advice Targets](https://www.postgresql.org/docs/19/pgplanadvice.html#PGPLANADVICE-TARGETS)
+- [F.30.4. Advice Tags](https://www.postgresql.org/docs/19/pgplanadvice.html#PGPLANADVICE-TAGS)
+- [F.30.5. Advice Feedback](https://www.postgresql.org/docs/19/pgplanadvice.html#PGPLANADVICE-FEEDBACK)
+- [F.30.6. Configuration Parameters](https://www.postgresql.org/docs/19/pgplanadvice.html#PGPLANADVICE-CONFIG-PARAMS)
+- [F.30.7. Limitations](https://www.postgresql.org/docs/19/pgplanadvice.html#PGPLANADVICE-LIMITATIONS)
+- [F.30.8. Author](https://www.postgresql.org/docs/19/pgplanadvice.html#PGPLANADVICE-AUTHOR)
+- [F.31. pg_prewarm — preload relation data into buffer caches](https://www.postgresql.org/docs/19/pgprewarm.html)
+- [F.31.1. Functions](https://www.postgresql.org/docs/19/pgprewarm.html#PGPREWARM-FUNCS)
+- [F.31.2. Configuration Parameters](https://www.postgresql.org/docs/19/pgprewarm.html#PGPREWARM-CONFIG-PARAMS)
+- [F.31.3. Author](https://www.postgresql.org/docs/19/pgprewarm.html#PGPREWARM-AUTHOR)
+- [F.32. pgrowlocks — show a table's row locking information](https://www.postgresql.org/docs/19/pgrowlocks.html)
+- [F.32.1. Overview](https://www.postgresql.org/docs/19/pgrowlocks.html#PGROWLOCKS-OVERVIEW)
+- [F.32.2. Sample Output](https://www.postgresql.org/docs/19/pgrowlocks.html#PGROWLOCKS-SAMPLE-OUTPUT)
+- [F.32.3. Author](https://www.postgresql.org/docs/19/pgrowlocks.html#PGROWLOCKS-AUTHOR)
+- [F.33. pg_stash_advice — store and automatically apply plan advice](https://www.postgresql.org/docs/19/pgstashadvice.html)
+- [F.33.1. Functions](https://www.postgresql.org/docs/19/pgstashadvice.html#PGSTASHADVICE-FUNCTIONS)
+- [F.33.2. Configuration Parameters](https://www.postgresql.org/docs/19/pgstashadvice.html#PGSTASHADVICE-CONFIG-PARAMS)
+- [F.33.3. Author](https://www.postgresql.org/docs/19/pgstashadvice.html#PGSTASHADVICE-AUTHOR)
+- [F.34. pg_stat_statements — track statistics of SQL planning and execution](https://www.postgresql.org/docs/19/pgstatstatements.html)
+- [F.34.1. The pg_stat_statements View](https://www.postgresql.org/docs/19/pgstatstatements.html#PGSTATSTATEMENTS-PG-STAT-STATEMENTS)
+- [F.34.2. The pg_stat_statements_info View](https://www.postgresql.org/docs/19/pgstatstatements.html#PGSTATSTATEMENTS-PG-STAT-STATEMENTS-INFO)
+- [F.34.3. Functions](https://www.postgresql.org/docs/19/pgstatstatements.html#PGSTATSTATEMENTS-FUNCS)
+- [F.34.4. Configuration Parameters](https://www.postgresql.org/docs/19/pgstatstatements.html#PGSTATSTATEMENTS-CONFIG-PARAMS)
+- [F.34.5. Sample Output](https://www.postgresql.org/docs/19/pgstatstatements.html#PGSTATSTATEMENTS-SAMPLE-OUTPUT)
+- [F.34.6. Authors](https://www.postgresql.org/docs/19/pgstatstatements.html#PGSTATSTATEMENTS-AUTHORS)
+- [F.35. pgstattuple — obtain tuple-level statistics](https://www.postgresql.org/docs/19/pgstattuple.html)
+- [F.35.1. Functions](https://www.postgresql.org/docs/19/pgstattuple.html#PGSTATTUPLE-FUNCS)
+- [F.35.2. Authors](https://www.postgresql.org/docs/19/pgstattuple.html#PGSTATTUPLE-AUTHORS)
+- [F.36. pg_surgery — perform low-level surgery on relation data](https://www.postgresql.org/docs/19/pgsurgery.html)
+- [F.36.1. Functions](https://www.postgresql.org/docs/19/pgsurgery.html#PGSURGERY-FUNCS)
+- [F.36.2. Authors](https://www.postgresql.org/docs/19/pgsurgery.html#PGSURGERY-AUTHORS)
+- [F.37. pg_trgm — support for similarity of text using trigram matching](https://www.postgresql.org/docs/19/pgtrgm.html)
+- [F.37.1. Trigram (or Trigraph) Concepts](https://www.postgresql.org/docs/19/pgtrgm.html#PGTRGM-CONCEPTS)
+- [F.37.2. Functions and Operators](https://www.postgresql.org/docs/19/pgtrgm.html#PGTRGM-FUNCS-OPS)
+- [F.37.3. GUC Parameters](https://www.postgresql.org/docs/19/pgtrgm.html#PGTRGM-GUC)
+- [F.37.4. Index Support](https://www.postgresql.org/docs/19/pgtrgm.html#PGTRGM-INDEX)
+- [F.37.5. Text Search Integration](https://www.postgresql.org/docs/19/pgtrgm.html#PGTRGM-TEXT-SEARCH)
+- [F.37.6. References](https://www.postgresql.org/docs/19/pgtrgm.html#PGTRGM-REFERENCES)
+- [F.37.7. Authors](https://www.postgresql.org/docs/19/pgtrgm.html#PGTRGM-AUTHORS)
+- [F.38. pg_visibility — visibility map information and utilities](https://www.postgresql.org/docs/19/pgvisibility.html)
+- [F.38.1. Functions](https://www.postgresql.org/docs/19/pgvisibility.html#PGVISIBILITY-FUNCS)
+- [F.38.2. Author](https://www.postgresql.org/docs/19/pgvisibility.html#PGVISIBILITY-AUTHOR)
+- [F.39. pg_walinspect — low-level WAL inspection](https://www.postgresql.org/docs/19/pgwalinspect.html)
+- [F.39.1. General Functions](https://www.postgresql.org/docs/19/pgwalinspect.html#PGWALINSPECT-FUNCS)
+- [F.39.2. Author](https://www.postgresql.org/docs/19/pgwalinspect.html#PGWALINSPECT-AUTHOR)
+- [F.40. postgres_fdw — access data stored in external PostgreSQL servers](https://www.postgresql.org/docs/19/postgres-fdw.html) · [示例](reference/48-postgresql-administration.html#foreign-data)
+- [F.40.1. FDW Options of postgres_fdw](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-OPTIONS)
+- [F.40.2. Functions](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-FUNCTIONS)
+- [F.40.3. Connection Management](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-CONNECTION-MANAGEMENT)
+- [F.40.4. Subscription Management](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-SERVER-SUBSCRIPTION)
+- [F.40.5. Transaction Management](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-TRANSACTION-MANAGEMENT)
+- [F.40.6. Remote Query Optimization](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-REMOTE-QUERY-OPTIMIZATION)
+- [F.40.7. Remote Query Execution Environment](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-REMOTE-QUERY-EXECUTION-ENVIRONMENT)
+- [F.40.8. Cross-Version Compatibility](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-CROSS-VERSION-COMPATIBILITY)
+- [F.40.9. Wait Events](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-WAIT-EVENTS)
+- [F.40.10. Configuration Parameters](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-CONFIGURATION-PARAMETERS)
+- [F.40.11. Examples](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-EXAMPLES)
+- [F.40.12. Author](https://www.postgresql.org/docs/19/postgres-fdw.html#POSTGRES-FDW-AUTHOR)
+- [F.41. seg — a datatype for line segments or floating point intervals](https://www.postgresql.org/docs/19/seg.html)
+- [F.41.1. Rationale](https://www.postgresql.org/docs/19/seg.html#SEG-RATIONALE)
+- [F.41.2. Syntax](https://www.postgresql.org/docs/19/seg.html#SEG-SYNTAX)
+- [F.41.3. Precision](https://www.postgresql.org/docs/19/seg.html#SEG-PRECISION)
+- [F.41.4. Usage](https://www.postgresql.org/docs/19/seg.html#SEG-USAGE)
+- [F.41.5. Notes](https://www.postgresql.org/docs/19/seg.html#SEG-NOTES)
+- [F.41.6. Credits](https://www.postgresql.org/docs/19/seg.html#SEG-CREDITS)
+- [F.42. sepgsql — SELinux-, label-based mandatory access control (MAC) security module](https://www.postgresql.org/docs/19/sepgsql.html)
+- [F.42.1. Overview](https://www.postgresql.org/docs/19/sepgsql.html#SEPGSQL-OVERVIEW)
+- [F.42.2. Installation](https://www.postgresql.org/docs/19/sepgsql.html#SEPGSQL-INSTALLATION)
+- [F.42.3. Regression Tests](https://www.postgresql.org/docs/19/sepgsql.html#SEPGSQL-REGRESSION)
+- [F.42.4. GUC Parameters](https://www.postgresql.org/docs/19/sepgsql.html#SEPGSQL-PARAMETERS)
+- [F.42.5. Features](https://www.postgresql.org/docs/19/sepgsql.html#SEPGSQL-FEATURES)
+- [F.42.6. Sepgsql Functions](https://www.postgresql.org/docs/19/sepgsql.html#SEPGSQL-FUNCTIONS)
+- [F.42.7. Limitations](https://www.postgresql.org/docs/19/sepgsql.html#SEPGSQL-LIMITATIONS)
+- [F.42.8. External Resources](https://www.postgresql.org/docs/19/sepgsql.html#SEPGSQL-RESOURCES)
+- [F.42.9. Author](https://www.postgresql.org/docs/19/sepgsql.html#SEPGSQL-AUTHOR)
+- [F.43. spi — Server Programming Interface features/examples](https://www.postgresql.org/docs/19/contrib-spi.html)
+- [F.43.1. refint — Functions for Implementing Referential Integrity](https://www.postgresql.org/docs/19/contrib-spi.html#CONTRIB-SPI-REFINT)
+- [F.43.2. autoinc — Functions for Autoincrementing Fields](https://www.postgresql.org/docs/19/contrib-spi.html#CONTRIB-SPI-AUTOINC)
+- [F.43.3. insert_username — Functions for Tracking Who Changed a Table](https://www.postgresql.org/docs/19/contrib-spi.html#CONTRIB-SPI-INSERT-USERNAME)
+- [F.43.4. moddatetime — Functions for Tracking Last Modification Time](https://www.postgresql.org/docs/19/contrib-spi.html#CONTRIB-SPI-MODDATETIME)
+- [F.44. sslinfo — obtain client SSL information](https://www.postgresql.org/docs/19/sslinfo.html)
+- [F.44.1. Functions Provided](https://www.postgresql.org/docs/19/sslinfo.html#SSLINFO-FUNCTIONS)
+- [F.44.2. Author](https://www.postgresql.org/docs/19/sslinfo.html#SSLINFO-AUTHOR)
+- [F.45. tablefunc — functions that return tables (crosstab and others)](https://www.postgresql.org/docs/19/tablefunc.html)
+- [F.45.1. Functions Provided](https://www.postgresql.org/docs/19/tablefunc.html#TABLEFUNC-FUNCTIONS-SECT)
+- [F.45.2. Author](https://www.postgresql.org/docs/19/tablefunc.html#TABLEFUNC-AUTHOR)
+- [F.46. tcn — a trigger function to notify listeners of changes to table content](https://www.postgresql.org/docs/19/tcn.html)
+- [F.47. test_decoding — SQL-based test/example module for WAL logical decoding](https://www.postgresql.org/docs/19/test-decoding.html)
+- [F.48. tsm_system_rows — the SYSTEM_ROWS sampling method for TABLESAMPLE](https://www.postgresql.org/docs/19/tsm-system-rows.html)
+- [F.48.1. Examples](https://www.postgresql.org/docs/19/tsm-system-rows.html#TSM-SYSTEM-ROWS-EXAMPLES)
+- [F.49. tsm_system_time — the SYSTEM_TIME sampling method for TABLESAMPLE](https://www.postgresql.org/docs/19/tsm-system-time.html)
+- [F.49.1. Examples](https://www.postgresql.org/docs/19/tsm-system-time.html#TSM-SYSTEM-TIME-EXAMPLES)
+- [F.50. unaccent — a text search dictionary which removes diacritics](https://www.postgresql.org/docs/19/unaccent.html)
+- [F.50.1. Configuration](https://www.postgresql.org/docs/19/unaccent.html#UNACCENT-CONFIGURATION)
+- [F.50.2. Usage](https://www.postgresql.org/docs/19/unaccent.html#UNACCENT-USAGE)
+- [F.50.3. Functions](https://www.postgresql.org/docs/19/unaccent.html#UNACCENT-FUNCTIONS)
+- [F.51. uuid-ossp — a UUID generator](https://www.postgresql.org/docs/19/uuid-ossp.html)
+- [F.51.1. uuid-ossp Functions](https://www.postgresql.org/docs/19/uuid-ossp.html#UUID-OSSP-FUNCTIONS-SECT)
+- [F.51.2. Building uuid-ossp](https://www.postgresql.org/docs/19/uuid-ossp.html#UUID-OSSP-BUILDING)
+- [F.51.3. Author](https://www.postgresql.org/docs/19/uuid-ossp.html#UUID-OSSP-AUTHOR)
+- [F.52. xml2 — XPath querying and XSLT functionality](https://www.postgresql.org/docs/19/xml2.html)
+- [F.52.1. Deprecation Notice](https://www.postgresql.org/docs/19/xml2.html#XML2-DEPRECATION)
+- [F.52.2. Description of Functions](https://www.postgresql.org/docs/19/xml2.html#XML2-FUNCTIONS)
+- [F.52.3. xpath_table](https://www.postgresql.org/docs/19/xml2.html#XML2-XPATH-TABLE)
+- [F.52.4. XSLT Functions](https://www.postgresql.org/docs/19/xml2.html#XML2-XSLT)
+- [F.52.5. Author](https://www.postgresql.org/docs/19/xml2.html#XML2-AUTHOR)
+
+### 客户端命令（21）
+
+- [clusterdb](https://www.postgresql.org/docs/19/app-clusterdb.html)
+- [createdb](https://www.postgresql.org/docs/19/app-createdb.html)
+- [createuser](https://www.postgresql.org/docs/19/app-createuser.html)
+- [dropdb](https://www.postgresql.org/docs/19/app-dropdb.html)
+- [dropuser](https://www.postgresql.org/docs/19/app-dropuser.html)
+- [ecpg](https://www.postgresql.org/docs/19/app-ecpg.html)
+- [pg_amcheck](https://www.postgresql.org/docs/19/app-pgamcheck.html)
+- [pg_basebackup](https://www.postgresql.org/docs/19/app-pgbasebackup.html)
+- [pgbench](https://www.postgresql.org/docs/19/pgbench.html)
+- [pg_combinebackup](https://www.postgresql.org/docs/19/app-pgcombinebackup.html)
+- [pg_config](https://www.postgresql.org/docs/19/app-pgconfig.html)
+- [pg_dump](https://www.postgresql.org/docs/19/app-pgdump.html) · [示例](reference/29-maintenance.html#dial-backup)
+- [pg_dumpall](https://www.postgresql.org/docs/19/app-pg-dumpall.html)
+- [pg_isready](https://www.postgresql.org/docs/19/app-pg-isready.html)
+- [pg_receivewal](https://www.postgresql.org/docs/19/app-pgreceivewal.html)
+- [pg_recvlogical](https://www.postgresql.org/docs/19/app-pgrecvlogical.html)
+- [pg_restore](https://www.postgresql.org/docs/19/app-pgrestore.html) · [示例](reference/29-maintenance.html#dial-backup)
+- [pg_verifybackup](https://www.postgresql.org/docs/19/app-pgverifybackup.html)
+- [psql](https://www.postgresql.org/docs/19/app-psql.html) · [示例](reference/02-mysql-overview.html#dial-terminal)
+- [reindexdb](https://www.postgresql.org/docs/19/app-reindexdb.html)
+- [vacuumdb](https://www.postgresql.org/docs/19/app-vacuumdb.html)
+
+## SQL Server · T-SQL 与 XQuery
+
+### Date & time（7）
+
+- [Date & time · Overview](https://learn.microsoft.com/en-us/sql/t-sql/data-types/date-and-time-types?view=sql-server-ver17) · [示例](reference/31-appendices.html#dial-types) · 适用标记含 SQL Server
+- [date](https://learn.microsoft.com/en-us/sql/t-sql/data-types/date-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [datetime](https://learn.microsoft.com/en-us/sql/t-sql/data-types/datetime-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [datetime2](https://learn.microsoft.com/en-us/sql/t-sql/data-types/datetime2-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [datetimeoffset](https://learn.microsoft.com/en-us/sql/t-sql/data-types/datetimeoffset-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [smalldatetime](https://learn.microsoft.com/en-us/sql/t-sql/data-types/smalldatetime-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [time](https://learn.microsoft.com/en-us/sql/t-sql/data-types/time-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+
+### hierarchyid methods (database engine)（11）
+
+- [hierarchyid methods (database engine)](https://learn.microsoft.com/en-us/sql/t-sql/data-types/hierarchyid-data-type-method-reference?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#hierarchy) · 适用标记含 SQL Server
+- [GetAncestor](https://learn.microsoft.com/en-us/sql/t-sql/data-types/getancestor-database-engine?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GetDescendant](https://learn.microsoft.com/en-us/sql/t-sql/data-types/getdescendant-database-engine?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GetLevel](https://learn.microsoft.com/en-us/sql/t-sql/data-types/getlevel-database-engine?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GetRoot](https://learn.microsoft.com/en-us/sql/t-sql/data-types/getroot-database-engine?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IsDescendantOf](https://learn.microsoft.com/en-us/sql/t-sql/data-types/isdescendantof-database-engine?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Parse](https://learn.microsoft.com/en-us/sql/t-sql/data-types/parse-database-engine?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Read](https://learn.microsoft.com/en-us/sql/t-sql/data-types/read-database-engine?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GetReparentedValue](https://learn.microsoft.com/en-us/sql/t-sql/data-types/getreparentedvalue-database-engine?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ToString](https://learn.microsoft.com/en-us/sql/t-sql/data-types/tostring-database-engine?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Write](https://learn.microsoft.com/en-us/sql/t-sql/data-types/write-database-engine?view=sql-server-ver17) · 适用标记含 SQL Server
+
+### JSON（1）
+
+- [JSON data type](https://learn.microsoft.com/en-us/sql/t-sql/data-types/json-data-type?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#json-type) · 适用标记含 SQL Server
+
+### Numeric（6）
+
+- [Numeric](https://learn.microsoft.com/en-us/sql/t-sql/data-types/numeric-types?view=sql-server-ver17) · 适用标记含 SQL Server
+- [bit](https://learn.microsoft.com/en-us/sql/t-sql/data-types/bit-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [decimal & numeric](https://learn.microsoft.com/en-us/sql/t-sql/data-types/decimal-and-numeric-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [float & real](https://learn.microsoft.com/en-us/sql/t-sql/data-types/float-and-real-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [int, bigint, smallint, & tinyint](https://learn.microsoft.com/en-us/sql/t-sql/data-types/int-bigint-smallint-and-tinyint-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [money & smallmoney](https://learn.microsoft.com/en-us/sql/t-sql/data-types/money-and-smallmoney-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+
+### String & binary（5）
+
+- [String & binary · Overview](https://learn.microsoft.com/en-us/sql/t-sql/data-types/string-and-binary-types?view=sql-server-ver17) · 适用标记含 SQL Server
+- [binary & varbinary](https://learn.microsoft.com/en-us/sql/t-sql/data-types/binary-and-varbinary-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [char & varchar](https://learn.microsoft.com/en-us/sql/t-sql/data-types/char-and-varchar-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [nchar & nvarchar](https://learn.microsoft.com/en-us/sql/t-sql/data-types/nchar-and-nvarchar-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ntext, text, & image](https://learn.microsoft.com/en-us/sql/t-sql/data-types/ntext-text-and-image-transact-sql?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#large-objects) · 适用标记含 SQL Server
+
+### Spatial geography & instances (geography Data Type)（88）
+
+- [Spatial geography & instances (geography Data Type)](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/spatial-types-geography-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OGC Methods on Geography Instances](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/ogc-methods-on-geography-instances?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STArea](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/starea-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STAsBinary](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stasbinary-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STAsText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stastext-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STBuffer](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stbuffer-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STContains](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stcontains-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STConvexHull](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stconvexhull-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STCurveN](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stcurven-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STCurveToLine](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stcurvetoline-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STDifference](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stdifference-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STDimension](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stdimension-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STDisjoint](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stdisjoint-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STDistance](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stdistance-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STEndpoint](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stendpoint-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STEquals](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stequals-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeometryN](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stgeometryn-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeometryType](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stgeometrytype-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIntersection](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stintersection-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIntersects](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stintersects-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIsClosed](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stisclosed-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIsEmpty](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stisempty-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIsValid](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stisvalid-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STLength](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stlength-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STNumCurves](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stnumcurves-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STNumGeometries](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stnumgeometries-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STNumPoints](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stnumpoints-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STOverlaps](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stoverlaps-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STPointN](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stpointn-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STSrid](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stsrid-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STStartPoint](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/ststartpoint-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STSymDifference](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stsymdifference-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STUnion](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stunion-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STWithin](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stwithin-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Extended Methods on Geography Instances](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/extended-methods-on-geography-instances?view=sql-server-ver17) · 适用标记含 SQL Server
+- [AsBinaryZM](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/asbinaryzm-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [AsGml](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/asgml-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [AsTextZM](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/astextzm-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BufferWithCurves](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/bufferwithcurves-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BufferWithTolerance](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/bufferwithtolerance-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CurveToLineWithTolerance](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/curvetolinewithtolerance-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EnvelopeAngle](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/envelopeangle-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EnvelopeCenter](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/envelopecenter-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Filter](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/filter-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [HasM](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/hasm-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [HasZ](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/hasz-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [InstanceOf](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/instanceof-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IsNull](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/isnull-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IsValidDetailed](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/isvaliddetailed-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Lat](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/lat-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Long](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/long-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [M](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/m-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [MakeValid](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/makevalid-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [MinDbCompatibilityLevel](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/mindbcompatibilitylevel-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [NumRings](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/numrings-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Reduce](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/reduce-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ReorientObject](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/reorientobject-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RingN](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/ringn-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ShortestLineTo](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/shortestlineto-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ToString](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/tostring-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Z](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/z-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OGC Static Methods](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/ogc-static-geography-methods?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeomCollFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stgeomcollfromtext-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeomCollFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stgeomcollfromwkb-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeomFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stgeomfromtext-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeomFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stgeomfromwkb-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STLineFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stlinefromtext-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STLineFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stlinefromwkb-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMLineFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stmlinefromtext-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMLineFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stmlinefromwkb-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMPointFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stmpointfromtext-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMPointFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stmpointfromwkb-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMPolyFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stmpolyfromtext-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMPolyFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stmpolyfromwkb-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STPointFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stpointfromtext-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STPointFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stpointfromwkb-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STPolyFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stpolyfromtext-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STPolyFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/stpolyfromwkb-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Extended Static Methods](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/extended-static-geography-methods?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GeomFromGML](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/geomfromgml-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Null](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/null-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Parse](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/parse-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Point](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/point-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Static Aggregate Geography Methods](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/static-aggregate-geography-methods?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CollectionAggregate](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/collectionaggregate-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ConvexHullAggregate](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/convexhullaggregate-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EnvelopeAggregate](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/envelopeaggregate-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [UnionAggregate](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geography/unionaggregate-geography-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+
+### Spatial geometry & instances  (geometry Data Type)（95）
+
+- [Spatial geometry & instances  (geometry Data Type)](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/spatial-types-geometry-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OGC Methods on Geometry Instances](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/ogc-methods-on-geometry-instances?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STArea](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/starea-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STAsBinary](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stasbinary-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STAsText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stastext-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STBoundary](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stboundary-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STBuffer](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stbuffer-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STCentroid](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stcentroid-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STContains](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stcontains-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STConvexHull](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stconvexhull-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STCrosses](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stcrosses-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STCurveN](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stcurven-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STCurveToLine](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stcurvetoline-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STDifference](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stdifference-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STDimension](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stdimension-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STDisjoint](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stdisjoint-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STDistance](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stdistance-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STEndpoint](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stendpoint-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STEnvelope](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stenvelope-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STEquals](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stequals-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STExteriorRing](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stexteriorring-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeometryN](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stgeometryn-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeometryType](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stgeometrytype-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STInteriorRingN](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stinteriorringn-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIntersection](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stintersection-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIntersects](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stintersects-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIsClosed](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stisclosed-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIsEmpty](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stisempty-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIsRing](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stisring-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIsSimple](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stissimple-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STIsValid](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stisvalid-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STLength](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stlength-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STNumCurves](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stnumcurves-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STNumGeometries](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stnumgeometries-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STNumInteriorRing](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stnuminteriorring-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STNumPoints](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stnumpoints-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STOverlaps](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stoverlaps-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STPointN](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stpointn-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STPointOnSurface](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stpointonsurface-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STRelate](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/strelate-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STSrid](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stsrid-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STStartPoint](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/ststartpoint-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STSymDifference](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stsymdifference-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STTouches](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/sttouches-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STUnion](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stunion-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STWithin](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stwithin-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STX](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stx-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STY](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/sty-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Extended Methods on Geometry Instances](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/extended-methods-on-geometry-instances?view=sql-server-ver17) · 适用标记含 SQL Server
+- [AsBinaryZM](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/asbinaryzm-geometry-datatype?view=sql-server-ver17) · 适用标记含 SQL Server
+- [AsGml](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/asgml-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [AsTextZM](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/astextzm-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BufferWithCurves](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/bufferwithcurves-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BufferWithTolerance](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/bufferwithtolerance-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CurveToLineWithTolerance](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/curvetolinewithtolerance-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Filter](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/filter-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [HasM](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/hasm-geometry-datatype?view=sql-server-ver17) · 适用标记含 SQL Server
+- [HasZ](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/hasz-geometry-datatype?view=sql-server-ver17) · 适用标记含 SQL Server
+- [InstanceOf](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/instanceof-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IsNull](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/isnull-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IsValidDetailed](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/isvaliddetailed-geometry-datatype?view=sql-server-ver17) · 适用标记含 SQL Server
+- [M](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/m-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [MakeValid](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/makevalid-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [MinDbCompatibilityLevel](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/mindbcompatibilitylevel-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Reduce](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/reduce-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ShortestLineTo](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/shortestlineto-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ToString](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/tostring-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Z](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/z-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OGC Static Geometry Methods](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/ogc-static-geometry-methods?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeomCollFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stgeomcollfromtext-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeomCollFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stgeomcollfromwkb-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeomFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stgeomfromtext-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STGeomFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stgeomfromwkb-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STLineFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stlinefromtext-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STLineFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stlinefromwkb-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMLineFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stmlinefromtext-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMLineFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stmlinefromwkb-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMPointFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stmpointfromtext-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMPointFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stmpointfromwkb-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMPolyFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stmpolyfromtext-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STMPolyFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stmpolyfromwkb-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STPointFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stpointfromtext-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STPointFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stpointfromwkb-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STPolyFromText](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stpolyfromtext-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STPolyFromWKB](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stpolyfromwkb-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Extended Static Geometry Methods](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/extended-static-geometry-methods?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GeomFromGml](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/geomfromgml-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Null](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/null-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Parse](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/parse-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Point](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/point-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Static Aggregate Geometry Methods](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/static-aggregate-geometry-methods?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CollectionAggregate](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/collectionaggregate-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ConvexHullAggregate](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/convexhullaggregate-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EnvelopeAggregate](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/envelopeaggregate-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [UnionAggregate](https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/unionaggregate-geometry-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+
+### Data types（12）
+
+- [Data types](https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-types-transact-sql?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#bit-money) · 适用标记含 SQL Server
+- [Constants](https://learn.microsoft.com/en-us/sql/t-sql/data-types/constants-transact-sql?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#unicode-literal) · 适用标记含 SQL Server
+- [Conversion](https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-type-conversion-database-engine?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Nondeterministic conversion](https://learn.microsoft.com/en-us/sql/t-sql/data-types/nondeterministic-convert-date-literals?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Precedence](https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-type-precedence-transact-sql?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#data-precedence) · 适用标记含 SQL Server
+- [Synonyms](https://learn.microsoft.com/en-us/sql/t-sql/data-types/data-type-synonyms-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Precision, scale, & length](https://learn.microsoft.com/en-us/sql/t-sql/data-types/precision-scale-and-length-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Cursor](https://learn.microsoft.com/en-us/sql/t-sql/data-types/cursor-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [rowversion](https://learn.microsoft.com/en-us/sql/t-sql/data-types/rowversion-transact-sql?view=sql-server-ver17) · [示例](reference/38-sqlserver-design.html#rowversion) · 适用标记含 SQL Server
+- [sql_variant](https://learn.microsoft.com/en-us/sql/t-sql/data-types/sql-variant-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [table](https://learn.microsoft.com/en-us/sql/t-sql/data-types/table-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [uniqueidentifier](https://learn.microsoft.com/en-us/sql/t-sql/data-types/uniqueidentifier-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+
+### Vectors（3）
+
+- [Vector data type](https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#vector-type) · 适用标记含 SQL Server
+- [Vector data type (half-precision float)](https://learn.microsoft.com/en-us/sql/t-sql/data-types/vector-data-type-half-precision-float?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Vectors functions](https://learn.microsoft.com/en-us/sql/t-sql/functions/vector-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+
+### XML（15）
+
+- [XML](https://learn.microsoft.com/en-us/sql/t-sql/xml/xml-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [xml_schema_namespace](https://learn.microsoft.com/en-us/sql/t-sql/xml/xml-schema-namespace?view=sql-server-ver17) · 适用标记含 SQL Server
+- [WITH XMLNAMESPACES](https://learn.microsoft.com/en-us/sql/t-sql/xml/with-xmlnamespaces?view=sql-server-ver17) · 适用标记含 SQL Server
+- [XML Data Modification Language (XML DML)](https://learn.microsoft.com/en-us/sql/t-sql/xml/xml-data-modification-language-xml-dml?view=sql-server-ver17) · 适用标记含 SQL Server
+- [insert (XML DML)](https://learn.microsoft.com/en-us/sql/t-sql/xml/insert-xml-dml?view=sql-server-ver17) · 适用标记含 SQL Server
+- [delete (XML DML)](https://learn.microsoft.com/en-us/sql/t-sql/xml/delete-xml-dml?view=sql-server-ver17) · 适用标记含 SQL Server
+- [replace value of (XML DML)](https://learn.microsoft.com/en-us/sql/t-sql/xml/replace-value-of-xml-dml?view=sql-server-ver17) · 适用标记含 SQL Server
+- [xml Data Type Methods](https://learn.microsoft.com/en-us/sql/t-sql/xml/xml-data-type-methods?view=sql-server-ver17) · [示例](reference/53-sqlserver-documents.html#xml-methods) · 适用标记含 SQL Server
+- [query() Method](https://learn.microsoft.com/en-us/sql/t-sql/xml/query-method-xml-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [value() Method](https://learn.microsoft.com/en-us/sql/t-sql/xml/value-method-xml-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [exist() Method](https://learn.microsoft.com/en-us/sql/t-sql/xml/exist-method-xml-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [modify() Method](https://learn.microsoft.com/en-us/sql/t-sql/xml/modify-method-xml-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [nodes() Method](https://learn.microsoft.com/en-us/sql/t-sql/xml/nodes-method-xml-data-type?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Binding Relational Data Inside XML Data](https://learn.microsoft.com/en-us/sql/t-sql/xml/binding-relational-data-inside-xml-data?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Guidelines for Using xml Data Type Methods](https://learn.microsoft.com/en-us/sql/t-sql/xml/guidelines-for-using-xml-data-type-methods?view=sql-server-ver17) · 适用标记含 SQL Server
+
+### DBCC（42）
+
+- [database console commands](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/database-console-commands?view=sql-server-ver17) · 适用标记含 SQL Server
+- [About DBCC](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC CHECKALLOC](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkalloc-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC CHECKCATALOG](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkcatalog-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC CHECKCONSTRAINTS](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkconstraints-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC CHECKDB](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkdb-transact-sql?view=sql-server-ver17) · [示例](reference/60-sqlserver-administration.html#dbcc) · 适用标记含 SQL Server
+- [DBCC CHECKFILEGROUP](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkfilegroup-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC CHECKIDENT](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkident-transact-sql?view=sql-server-ver17) · [示例](reference/54-sqlserver-schema.html#identity) · 适用标记含 SQL Server
+- [DBCC CHECKTABLE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checktable-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC CLEANTABLE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-cleantable-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC CLONEDATABASE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-clonedatabase-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC DBREINDEX](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dbreindex-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC dllname (FREE)](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dllname-free-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC DROPCLEANBUFFERS](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dropcleanbuffers-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC DROPRESULTSETCACHE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dropresultsetcache-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [DBCC FLUSHAUTHCACHE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-flushauthcache-transact-sql?view=sql-server-ver17) · 文档适用标记为 Azure SQL、Fabric
+- [DBCC FREEPROCCACHE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-freeproccache-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC FREESESSIONCACHE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-freesessioncache-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC FREESYSTEMCACHE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-freesystemcache-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC HELP](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-help-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC INDEXDEFRAG](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-indexdefrag-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC INPUTBUFFER](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-inputbuffer-transact-sql?view=sql-server-ver17) · [示例](reference/63-sqlserver-utilities.html#dbcc-inputbuffer) · 适用标记含 SQL Server
+- [DBCC OPENTRAN](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-opentran-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC OUTPUTBUFFER](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-outputbuffer-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC PDW_SHOWEXECUTIONPLAN](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-pdw-showexecutionplan-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [DBCC PDW_SHOWMATERIALIZEDVIEWOVERHEAD](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-pdw-showmaterializedviewoverhead-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [DBCC PDW_SHOWPARTITIONSTATS](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-pdw-showpartitionstats-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [DBCC PDW_SHOWSPACEUSED](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-pdw-showspaceused-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [DBCC PROCCACHE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-proccache-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC SHOW_STATISTICS](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-show-statistics-transact-sql?view=sql-server-ver17) · [示例](reference/63-sqlserver-utilities.html#dbcc-histogram) · 适用标记含 SQL Server
+- [DBCC SHOWCONTIG](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-showcontig-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC SHOWRESULTCACHESPACEUSED](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-showresultcachespaceused-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [DBCC SHRINKDATABASE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-shrinkdatabase-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC SHRINKFILE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-shrinkfile-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC SHRINKLOG](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-shrinklog-azure-sql-data-warehouse?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [DBCC SQLPERF](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-sqlperf-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC TRACEOFF](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-traceoff-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC TRACEON](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-traceon-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Set trace flags with DBCC TRACEON](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-traceon-trace-flags-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC TRACESTATUS](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-tracestatus-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC UPDATEUSAGE](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-updateusage-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DBCC USEROPTIONS](https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-useroptions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+
+### Functions（366）
+
+- [Functions · Overview](https://learn.microsoft.com/en-us/sql/t-sql/functions/functions?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ODBC scalar](https://learn.microsoft.com/en-us/sql/t-sql/functions/odbc-scalar-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Functions · Overview](https://learn.microsoft.com/en-us/sql/t-sql/functions/aggregate-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ANY_VALUE](https://learn.microsoft.com/en-us/sql/t-sql/functions/any-value-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [APPROX_COUNT_DISTINCT](https://learn.microsoft.com/en-us/sql/t-sql/functions/approx-count-distinct-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#approx-count) · 适用标记含 SQL Server
+- [APPROX_MEDIAN](https://learn.microsoft.com/en-us/sql/t-sql/functions/approx-median-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [APPROX_PERCENTILE_CONT](https://learn.microsoft.com/en-us/sql/t-sql/functions/approx-percentile-cont-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#approx-percentiles) · 适用标记含 SQL Server
+- [APPROX_PERCENTILE_DISC](https://learn.microsoft.com/en-us/sql/t-sql/functions/approx-percentile-disc-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [APPROX_QUANTILE](https://learn.microsoft.com/en-us/sql/t-sql/functions/approx-quantile-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [AVG](https://learn.microsoft.com/en-us/sql/t-sql/functions/avg-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CHECKSUM_AGG](https://learn.microsoft.com/en-us/sql/t-sql/functions/checksum-agg-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COUNT](https://learn.microsoft.com/en-us/sql/t-sql/functions/count-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COUNT_BIG](https://learn.microsoft.com/en-us/sql/t-sql/functions/count-big-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#count-big) · 适用标记含 SQL Server
+- [GROUPING](https://learn.microsoft.com/en-us/sql/t-sql/functions/grouping-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GROUPING_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/grouping-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [MAX](https://learn.microsoft.com/en-us/sql/t-sql/functions/max-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [MEDIAN](https://learn.microsoft.com/en-us/sql/t-sql/functions/median-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [MIN](https://learn.microsoft.com/en-us/sql/t-sql/functions/min-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [PRODUCT](https://learn.microsoft.com/en-us/sql/t-sql/functions/product-aggregate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [QUANTILE](https://learn.microsoft.com/en-us/sql/t-sql/functions/quantile-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [STDEV](https://learn.microsoft.com/en-us/sql/t-sql/functions/stdev-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STDEVP](https://learn.microsoft.com/en-us/sql/t-sql/functions/stdevp-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SUM](https://learn.microsoft.com/en-us/sql/t-sql/functions/sum-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [VAR](https://learn.microsoft.com/en-us/sql/t-sql/functions/var-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [VARP](https://learn.microsoft.com/en-us/sql/t-sql/functions/varp-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Functions · Overview](https://learn.microsoft.com/en-us/sql/t-sql/functions/ai-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [AI_ANALYZE_SENTIMENT](https://learn.microsoft.com/en-us/sql/t-sql/functions/ai-analyze-sentiment-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [AI_CLASSIFY](https://learn.microsoft.com/en-us/sql/t-sql/functions/ai-classify-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [AI_EXTRACT](https://learn.microsoft.com/en-us/sql/t-sql/functions/ai-extract-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [AI_FIX_GRAMMAR](https://learn.microsoft.com/en-us/sql/t-sql/functions/ai-fix-grammar-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [AI_GENERATE_CHUNKS](https://learn.microsoft.com/en-us/sql/t-sql/functions/ai-generate-chunks-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [AI_GENERATE_EMBEDDINGS](https://learn.microsoft.com/en-us/sql/t-sql/functions/ai-generate-embeddings-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [AI_GENERATE_RESPONSE](https://learn.microsoft.com/en-us/sql/t-sql/functions/ai-generate-response-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [AI_SUMMARIZE](https://learn.microsoft.com/en-us/sql/t-sql/functions/ai-summarize-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [AI_TRANSLATE](https://learn.microsoft.com/en-us/sql/t-sql/functions/ai-translate-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [CREATE EXTERNAL MODEL](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-external-model-transact-sql?view=sql-server-ver17) · [示例](reference/61-sqlserver-versions.html#external-model) · 适用标记含 SQL Server
+- [ALTER EXTERNAL MODEL](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-external-model-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP EXTERNAL MODEL](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-external-model-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Analytic](https://learn.microsoft.com/en-us/sql/t-sql/functions/analytic-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CUME_DIST](https://learn.microsoft.com/en-us/sql/t-sql/functions/cume-dist-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FIRST_VALUE](https://learn.microsoft.com/en-us/sql/t-sql/functions/first-value-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [LAG](https://learn.microsoft.com/en-us/sql/t-sql/functions/lag-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#lag-lead-nulls) · 适用标记含 SQL Server
+- [LAST_VALUE](https://learn.microsoft.com/en-us/sql/t-sql/functions/last-value-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#first-last-nulls) · 适用标记含 SQL Server
+- [LEAD](https://learn.microsoft.com/en-us/sql/t-sql/functions/lead-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [PERCENTILE_CONT](https://learn.microsoft.com/en-us/sql/t-sql/functions/percentile-cont-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#percentiles) · 适用标记含 SQL Server
+- [PERCENTILE_DISC](https://learn.microsoft.com/en-us/sql/t-sql/functions/percentile-disc-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [PERCENT_RANK](https://learn.microsoft.com/en-us/sql/t-sql/functions/percent-rank-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Bit manipulation](https://learn.microsoft.com/en-us/sql/t-sql/functions/bit-manipulation-functions-overview?view=sql-server-ver17) · 适用标记含 SQL Server
+- [LEFT_SHIFT](https://learn.microsoft.com/en-us/sql/t-sql/functions/left-shift-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RIGHT_SHIFT](https://learn.microsoft.com/en-us/sql/t-sql/functions/right-shift-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BIT_COUNT](https://learn.microsoft.com/en-us/sql/t-sql/functions/bit-count-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GET_BIT](https://learn.microsoft.com/en-us/sql/t-sql/functions/get-bit-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET_BIT](https://learn.microsoft.com/en-us/sql/t-sql/functions/set-bit-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Collation - COLLATIONPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/collation-functions-collationproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Collation - TERTIARY_WEIGHTS](https://learn.microsoft.com/en-us/sql/t-sql/functions/collation-functions-tertiary-weights-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@DBTS](https://learn.microsoft.com/en-us/sql/t-sql/functions/dbts-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@LANGID](https://learn.microsoft.com/en-us/sql/t-sql/functions/langid-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@LANGUAGE](https://learn.microsoft.com/en-us/sql/t-sql/functions/language-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@LOCK_TIMEOUT](https://learn.microsoft.com/en-us/sql/t-sql/functions/lock-timeout-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@MAX_CONNECTIONS](https://learn.microsoft.com/en-us/sql/t-sql/functions/max-connections-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@MAX_PRECISION](https://learn.microsoft.com/en-us/sql/t-sql/functions/max-precision-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@NESTLEVEL](https://learn.microsoft.com/en-us/sql/t-sql/functions/nestlevel-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@OPTIONS](https://learn.microsoft.com/en-us/sql/t-sql/functions/options-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@REMSERVER](https://learn.microsoft.com/en-us/sql/t-sql/functions/remserver-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@SERVERNAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/servername-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@SERVICENAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/servicename-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@SPID](https://learn.microsoft.com/en-us/sql/t-sql/functions/spid-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@TEXTSIZE](https://learn.microsoft.com/en-us/sql/t-sql/functions/textsize-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@VERSION](https://learn.microsoft.com/en-us/sql/t-sql/functions/version-transact-sql-configuration-functions?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Functions · Overview](https://learn.microsoft.com/en-us/sql/t-sql/functions/conversion-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CAST & CONVERT](https://learn.microsoft.com/en-us/sql/t-sql/functions/cast-and-convert-transact-sql?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#cast-convert) · 适用标记含 SQL Server
+- [PARSE](https://learn.microsoft.com/en-us/sql/t-sql/functions/parse-transact-sql?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#culture-parse) · 适用标记含 SQL Server
+- [TRY_CAST](https://learn.microsoft.com/en-us/sql/t-sql/functions/try-cast-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TRY_CONVERT](https://learn.microsoft.com/en-us/sql/t-sql/functions/try-convert-transact-sql?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#try-conversions) · 适用标记含 SQL Server
+- [TRY_PARSE](https://learn.microsoft.com/en-us/sql/t-sql/functions/try-parse-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Cryptographic](https://learn.microsoft.com/en-us/sql/t-sql/functions/cryptographic-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ASYMKEY_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/asymkey-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ASYMKEYPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/asymkeyproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CERTPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/certproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CERT_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/cert-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CRYPT_GEN_RANDOM](https://learn.microsoft.com/en-us/sql/t-sql/functions/crypt-gen-random-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DECRYPTBYASYMKEY](https://learn.microsoft.com/en-us/sql/t-sql/functions/decryptbyasymkey-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DECRYPTBYCERT](https://learn.microsoft.com/en-us/sql/t-sql/functions/decryptbycert-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DECRYPTBYKEY](https://learn.microsoft.com/en-us/sql/t-sql/functions/decryptbykey-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DECRYPTBYKEYAUTOASYMKEY](https://learn.microsoft.com/en-us/sql/t-sql/functions/decryptbykeyautoasymkey-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DECRYPTBYKEYAUTOCERT](https://learn.microsoft.com/en-us/sql/t-sql/functions/decryptbykeyautocert-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DECRYPTBYPASSPHRASE](https://learn.microsoft.com/en-us/sql/t-sql/functions/decryptbypassphrase-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ENCRYPTBYASYMKEY](https://learn.microsoft.com/en-us/sql/t-sql/functions/encryptbyasymkey-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ENCRYPTBYCERT](https://learn.microsoft.com/en-us/sql/t-sql/functions/encryptbycert-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ENCRYPTBYKEY](https://learn.microsoft.com/en-us/sql/t-sql/functions/encryptbykey-transact-sql?view=sql-server-ver17) · [示例](reference/59-sqlserver-security.html#encryption) · 适用标记含 SQL Server
+- [ENCRYPTBYPASSPHRASE](https://learn.microsoft.com/en-us/sql/t-sql/functions/encryptbypassphrase-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [HASHBYTES](https://learn.microsoft.com/en-us/sql/t-sql/functions/hashbytes-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IS_OBJECTSIGNED](https://learn.microsoft.com/en-us/sql/t-sql/functions/is-objectsigned-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [KEY_GUID](https://learn.microsoft.com/en-us/sql/t-sql/functions/key-guid-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [KEY_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/key-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [KEY_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/key-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SIGNBYASYMKEY](https://learn.microsoft.com/en-us/sql/t-sql/functions/signbyasymkey-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SIGNBYCERT](https://learn.microsoft.com/en-us/sql/t-sql/functions/signbycert-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SYMKEYPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/symkeyproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [VERIFYSIGNEDBYCERT](https://learn.microsoft.com/en-us/sql/t-sql/functions/verifysignedbycert-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [VERIFYSIGNEDBYASYMKEY](https://learn.microsoft.com/en-us/sql/t-sql/functions/verifysignedbyasymkey-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Cursor](https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@CURSOR_ROWS](https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-rows-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@FETCH_STATUS](https://learn.microsoft.com/en-us/sql/t-sql/functions/fetch-status-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CURSOR_STATUS](https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-status-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Data type](https://learn.microsoft.com/en-us/sql/t-sql/functions/data-type-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATALENGTH](https://learn.microsoft.com/en-us/sql/t-sql/functions/datalength-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IDENT_CURRENT](https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-current-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IDENT_INCR](https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-incr-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IDENT_SEED](https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IDENTITY (Function)](https://learn.microsoft.com/en-us/sql/t-sql/functions/identity-function-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SQL_VARIANT_PROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/sql-variant-property-transact-sql?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#variant) · 适用标记含 SQL Server
+- [Date & time](https://learn.microsoft.com/en-us/sql/t-sql/functions/date-and-time-data-types-and-functions-transact-sql?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#time-types) · 适用标记含 SQL Server
+- [@@DATEFIRST](https://learn.microsoft.com/en-us/sql/t-sql/functions/datefirst-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CURRENT_DATE](https://learn.microsoft.com/en-us/sql/t-sql/functions/current-date-transact-sql?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#current-date) · 适用标记含 SQL Server
+- [CURRENT_TIMESTAMP](https://learn.microsoft.com/en-us/sql/t-sql/functions/current-timestamp-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CURRENT_TIMEZONE](https://learn.microsoft.com/en-us/sql/t-sql/functions/current-timezone-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CURRENT_TIMEZONE_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/current-timezone-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATE_BUCKET](https://learn.microsoft.com/en-us/sql/t-sql/functions/date-bucket-transact-sql?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#date-buckets) · 适用标记含 SQL Server
+- [DATEADD](https://learn.microsoft.com/en-us/sql/t-sql/functions/dateadd-transact-sql?view=sql-server-ver17) · [示例](reference/11-functions.html#dial-dates) · 适用标记含 SQL Server
+- [DATEDIFF](https://learn.microsoft.com/en-us/sql/t-sql/functions/datediff-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATEDIFF_BIG](https://learn.microsoft.com/en-us/sql/t-sql/functions/datediff-big-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATEFROMPARTS](https://learn.microsoft.com/en-us/sql/t-sql/functions/datefromparts-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATENAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/datename-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATEPART](https://learn.microsoft.com/en-us/sql/t-sql/functions/datepart-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATETIME2FROMPARTS](https://learn.microsoft.com/en-us/sql/t-sql/functions/datetime2fromparts-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATETIMEFROMPARTS](https://learn.microsoft.com/en-us/sql/t-sql/functions/datetimefromparts-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATETIMEOFFSETFROMPARTS](https://learn.microsoft.com/en-us/sql/t-sql/functions/datetimeoffsetfromparts-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATETRUNC](https://learn.microsoft.com/en-us/sql/t-sql/functions/datetrunc-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DAY](https://learn.microsoft.com/en-us/sql/t-sql/functions/day-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EOMONTH](https://learn.microsoft.com/en-us/sql/t-sql/functions/eomonth-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GETDATE](https://learn.microsoft.com/en-us/sql/t-sql/functions/getdate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GETUTCDATE](https://learn.microsoft.com/en-us/sql/t-sql/functions/getutcdate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ISDATE](https://learn.microsoft.com/en-us/sql/t-sql/functions/isdate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [MONTH](https://learn.microsoft.com/en-us/sql/t-sql/functions/month-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SMALLDATETIMEFROMPARTS](https://learn.microsoft.com/en-us/sql/t-sql/functions/smalldatetimefromparts-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SWITCHOFFSET](https://learn.microsoft.com/en-us/sql/t-sql/functions/switchoffset-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SYSDATETIME](https://learn.microsoft.com/en-us/sql/t-sql/functions/sysdatetime-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SYSDATETIMEOFFSET](https://learn.microsoft.com/en-us/sql/t-sql/functions/sysdatetimeoffset-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SYSUTCDATETIME](https://learn.microsoft.com/en-us/sql/t-sql/functions/sysutcdatetime-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TIMEFROMPARTS](https://learn.microsoft.com/en-us/sql/t-sql/functions/timefromparts-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TODATETIMEOFFSET](https://learn.microsoft.com/en-us/sql/t-sql/functions/todatetimeoffset-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [YEAR](https://learn.microsoft.com/en-us/sql/t-sql/functions/year-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EDIT_DISTANCE](https://learn.microsoft.com/en-us/sql/t-sql/functions/edit-distance-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EDIT_DISTANCE_SIMILARITY](https://learn.microsoft.com/en-us/sql/t-sql/functions/edit-distance-similarity-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [JARO_WINKLER_DISTANCE](https://learn.microsoft.com/en-us/sql/t-sql/functions/jaro-winkler-distance-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [JARO_WINKLER_SIMILARITY](https://learn.microsoft.com/en-us/sql/t-sql/functions/jaro-winkler-similarity-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Graph](https://learn.microsoft.com/en-us/sql/t-sql/functions/graph-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EDGE_ID_FROM_PARTS](https://learn.microsoft.com/en-us/sql/t-sql/functions/edge-id-from-parts-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRAPH_ID_FROM_EDGE_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/graph-id-from-edge-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRAPH_ID_FROM_NODE_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/graph-id-from-node-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [NODE_ID_FROM_PARTS](https://learn.microsoft.com/en-us/sql/t-sql/functions/node-id-from-parts-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OBJECT_ID_FROM_EDGE_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/object-id-from-edge-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OBJECT_ID_FROM_NODE_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/object-id-from-node-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [JSON](https://learn.microsoft.com/en-us/sql/t-sql/functions/json-functions-transact-sql?view=sql-server-ver17) · [示例](reference/53-sqlserver-documents.html#json-access) · 适用标记含 SQL Server
+- [ISJSON](https://learn.microsoft.com/en-us/sql/t-sql/functions/isjson-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [JSON_ARRAY](https://learn.microsoft.com/en-us/sql/t-sql/functions/json-array-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [JSON_ARRAYAGG](https://learn.microsoft.com/en-us/sql/t-sql/functions/json-arrayagg-transact-sql?view=sql-server-ver17) · [示例](reference/53-sqlserver-documents.html#json-aggregates) · 适用标记含 SQL Server
+- [JSON_CONTAINS](https://learn.microsoft.com/en-us/sql/t-sql/functions/json-contains-transact-sql?view=sql-server-ver17) · [示例](reference/53-sqlserver-documents.html#native-json-path) · 适用标记含 SQL Server
+- [JSON_MODIFY](https://learn.microsoft.com/en-us/sql/t-sql/functions/json-modify-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [JSON_OBJECT](https://learn.microsoft.com/en-us/sql/t-sql/functions/json-object-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [JSON_OBJECTAGG](https://learn.microsoft.com/en-us/sql/t-sql/functions/json-objectagg-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [JSON_PATH_EXISTS](https://learn.microsoft.com/en-us/sql/t-sql/functions/json-path-exists-transact-sql?view=sql-server-ver17) · [示例](reference/53-sqlserver-documents.html#json-construct) · 适用标记含 SQL Server
+- [JSON_QUERY](https://learn.microsoft.com/en-us/sql/t-sql/functions/json-query-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [JSON_VALUE](https://learn.microsoft.com/en-us/sql/t-sql/functions/json-value-transact-sql?view=sql-server-ver17) · [示例](reference/32-modern-sql.html#dial-json-engine) · 适用标记含 SQL Server
+- [REGEXP_LIKE](https://learn.microsoft.com/en-us/sql/t-sql/functions/regexp-like-transact-sql?view=sql-server-ver17) · [示例](reference/09-regexp.html#dial-regex) · 适用标记含 SQL Server
+- [REGEXP_REPLACE](https://learn.microsoft.com/en-us/sql/t-sql/functions/regexp-replace-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REGEXP_SUBSTR](https://learn.microsoft.com/en-us/sql/t-sql/functions/regexp-substr-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REGEXP_INSTR](https://learn.microsoft.com/en-us/sql/t-sql/functions/regexp-instr-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REGEXP_COUNT](https://learn.microsoft.com/en-us/sql/t-sql/functions/regexp-count-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REGEXP_MATCHES](https://learn.microsoft.com/en-us/sql/t-sql/functions/regexp-matches-transact-sql?view=sql-server-ver17) · [示例](reference/53-sqlserver-documents.html#regexp-matches) · 适用标记含 SQL Server
+- [REGEXP_SPLIT_TO_TABLE](https://learn.microsoft.com/en-us/sql/t-sql/functions/regexp-split-to-table-transact-sql?view=sql-server-ver17) · [示例](reference/53-sqlserver-documents.html#regexp-split) · 适用标记含 SQL Server
+- [Mathematical](https://learn.microsoft.com/en-us/sql/t-sql/functions/mathematical-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ABS](https://learn.microsoft.com/en-us/sql/t-sql/functions/abs-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ACOS](https://learn.microsoft.com/en-us/sql/t-sql/functions/acos-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ASIN](https://learn.microsoft.com/en-us/sql/t-sql/functions/asin-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ATAN](https://learn.microsoft.com/en-us/sql/t-sql/functions/atan-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ATN2](https://learn.microsoft.com/en-us/sql/t-sql/functions/atn2-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CEILING](https://learn.microsoft.com/en-us/sql/t-sql/functions/ceiling-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COS](https://learn.microsoft.com/en-us/sql/t-sql/functions/cos-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COT](https://learn.microsoft.com/en-us/sql/t-sql/functions/cot-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DEGREES](https://learn.microsoft.com/en-us/sql/t-sql/functions/degrees-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EXP](https://learn.microsoft.com/en-us/sql/t-sql/functions/exp-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FLOOR](https://learn.microsoft.com/en-us/sql/t-sql/functions/floor-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [LOG](https://learn.microsoft.com/en-us/sql/t-sql/functions/log-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [LOG10](https://learn.microsoft.com/en-us/sql/t-sql/functions/log10-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [PI](https://learn.microsoft.com/en-us/sql/t-sql/functions/pi-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [POWER](https://learn.microsoft.com/en-us/sql/t-sql/functions/power-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RADIANS](https://learn.microsoft.com/en-us/sql/t-sql/functions/radians-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RAND](https://learn.microsoft.com/en-us/sql/t-sql/functions/rand-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ROUND](https://learn.microsoft.com/en-us/sql/t-sql/functions/round-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SIGN](https://learn.microsoft.com/en-us/sql/t-sql/functions/sign-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SIN](https://learn.microsoft.com/en-us/sql/t-sql/functions/sin-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SQRT](https://learn.microsoft.com/en-us/sql/t-sql/functions/sqrt-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SQUARE](https://learn.microsoft.com/en-us/sql/t-sql/functions/square-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TAN](https://learn.microsoft.com/en-us/sql/t-sql/functions/tan-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CHOOSE](https://learn.microsoft.com/en-us/sql/t-sql/functions/logical-functions-choose-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GREATEST](https://learn.microsoft.com/en-us/sql/t-sql/functions/logical-functions-greatest-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IIF](https://learn.microsoft.com/en-us/sql/t-sql/functions/logical-functions-iif-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [LEAST](https://learn.microsoft.com/en-us/sql/t-sql/functions/logical-functions-least-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Metadata](https://learn.microsoft.com/en-us/sql/t-sql/functions/metadata-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@PROCID](https://learn.microsoft.com/en-us/sql/t-sql/functions/procid-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [APP_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/app-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [APPLOCK_MODE](https://learn.microsoft.com/en-us/sql/t-sql/functions/applock-mode-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [APPLOCK_TEST](https://learn.microsoft.com/en-us/sql/t-sql/functions/applock-test-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ASSEMBLYPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/assemblyproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COL_LENGTH](https://learn.microsoft.com/en-us/sql/t-sql/functions/col-length-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COL_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/col-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COLUMNPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/columnproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATABASEPROPERTYEX](https://learn.microsoft.com/en-us/sql/t-sql/functions/databasepropertyex-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DB_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/db-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DB_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/db-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FILE_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/file-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FILE_IDEX](https://learn.microsoft.com/en-us/sql/t-sql/functions/file-idex-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FILE_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/file-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FILEGROUP_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/filegroup-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FILEGROUP_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/filegroup-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FILEGROUPPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/filegroupproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FILEPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/fileproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FILEPROPERTYEX](https://learn.microsoft.com/en-us/sql/t-sql/functions/filepropertyex-transact-sql?view=sql-server-ver17) · 文档适用标记为 Azure SQL、Fabric
+- [FULLTEXTCATALOGPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/fulltextcatalogproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FULLTEXTSERVICEPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/fulltextserviceproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [INDEX_COL](https://learn.microsoft.com/en-us/sql/t-sql/functions/index-col-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [INDEXKEY_PROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/indexkey-property-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [INDEXPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/indexproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [NEXT VALUE FOR](https://learn.microsoft.com/en-us/sql/t-sql/functions/next-value-for-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OBJECT_DEFINITION](https://learn.microsoft.com/en-us/sql/t-sql/functions/object-definition-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OBJECT_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/object-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OBJECT_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/object-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OBJECT_SCHEMA_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/object-schema-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OBJECTPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/objectproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OBJECTPROPERTYEX](https://learn.microsoft.com/en-us/sql/t-sql/functions/objectpropertyex-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ORIGINAL_DB_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/original-db-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [PARSENAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/parsename-transact-sql?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#object-names) · 适用标记含 SQL Server
+- [SCHEMA_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/schema-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SCHEMA_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/schema-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SCOPE_IDENTITY](https://learn.microsoft.com/en-us/sql/t-sql/functions/scope-identity-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SERVERPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/serverproperty-transact-sql?view=sql-server-ver17) · [示例](reference/02-mysql-overview.html#dial-clients) · 适用标记含 SQL Server
+- [STATS_DATE](https://learn.microsoft.com/en-us/sql/t-sql/functions/stats-date-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TYPE_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/type-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TYPE_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/type-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TYPEPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/typeproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [VERSION](https://learn.microsoft.com/en-us/sql/t-sql/functions/version-transact-sql-metadata-functions?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [Ranking](https://learn.microsoft.com/en-us/sql/t-sql/functions/ranking-functions-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#ranking-distribution) · 适用标记含 SQL Server
+- [DENSE_RANK](https://learn.microsoft.com/en-us/sql/t-sql/functions/dense-rank-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [NTILE](https://learn.microsoft.com/en-us/sql/t-sql/functions/ntile-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RANK](https://learn.microsoft.com/en-us/sql/t-sql/functions/rank-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ROW_NUMBER](https://learn.microsoft.com/en-us/sql/t-sql/functions/row-number-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [PUBLISHINGSERVERNAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/replication-functions-publishingservername?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Security](https://learn.microsoft.com/en-us/sql/t-sql/functions/security-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CERTENCODED](https://learn.microsoft.com/en-us/sql/t-sql/functions/certencoded-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CERTPRIVATEKEY](https://learn.microsoft.com/en-us/sql/t-sql/functions/certprivatekey-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CURRENT_USER](https://learn.microsoft.com/en-us/sql/t-sql/functions/current-user-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DATABASE_PRINCIPAL_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/database-principal-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [HAS_DBACCESS](https://learn.microsoft.com/en-us/sql/t-sql/functions/has-dbaccess-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [HAS_PERMS_BY_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/has-perms-by-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IS_MEMBER](https://learn.microsoft.com/en-us/sql/t-sql/functions/is-member-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IS_ROLEMEMBER](https://learn.microsoft.com/en-us/sql/t-sql/functions/is-rolemember-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IS_SRVROLEMEMBER](https://learn.microsoft.com/en-us/sql/t-sql/functions/is-srvrolemember-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [LOGINPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/loginproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ORIGINAL_LOGIN](https://learn.microsoft.com/en-us/sql/t-sql/functions/original-login-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [PERMISSIONS](https://learn.microsoft.com/en-us/sql/t-sql/functions/permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [PWDENCRYPT](https://learn.microsoft.com/en-us/sql/t-sql/functions/pwdencrypt-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [PWDCOMPARE](https://learn.microsoft.com/en-us/sql/t-sql/functions/pwdcompare-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SESSION_USER](https://learn.microsoft.com/en-us/sql/t-sql/functions/session-user-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SESSIONPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/sessionproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SUSER_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SUSER_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SUSER_SID](https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-sid-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SUSER_SNAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-sname-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SYSTEM_USER](https://learn.microsoft.com/en-us/sql/t-sql/functions/system-user-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [USER](https://learn.microsoft.com/en-us/sql/t-sql/functions/user-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [USER_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/user-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [USER_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/user-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ASCII](https://learn.microsoft.com/en-us/sql/t-sql/functions/ascii-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BASE64_DECODE](https://learn.microsoft.com/en-us/sql/t-sql/functions/base64-decode-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BASE64_ENCODE](https://learn.microsoft.com/en-us/sql/t-sql/functions/base64-encode-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CHAR](https://learn.microsoft.com/en-us/sql/t-sql/functions/char-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CHARINDEX](https://learn.microsoft.com/en-us/sql/t-sql/functions/charindex-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CONCAT](https://learn.microsoft.com/en-us/sql/t-sql/functions/concat-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CONCAT_WS](https://learn.microsoft.com/en-us/sql/t-sql/functions/concat-ws-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DIFFERENCE](https://learn.microsoft.com/en-us/sql/t-sql/functions/difference-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FORMAT](https://learn.microsoft.com/en-us/sql/t-sql/functions/format-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [LEFT](https://learn.microsoft.com/en-us/sql/t-sql/functions/left-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [LEN](https://learn.microsoft.com/en-us/sql/t-sql/functions/len-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [LOWER](https://learn.microsoft.com/en-us/sql/t-sql/functions/lower-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [LTRIM](https://learn.microsoft.com/en-us/sql/t-sql/functions/ltrim-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [NCHAR](https://learn.microsoft.com/en-us/sql/t-sql/functions/nchar-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [PATINDEX](https://learn.microsoft.com/en-us/sql/t-sql/functions/patindex-transact-sql?view=sql-server-ver17) · [示例](reference/53-sqlserver-documents.html#character-classes) · 适用标记含 SQL Server
+- [QUOTENAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/quotename-transact-sql?view=sql-server-ver17) · [示例](reference/37-sqlserver-query.html#dynamic-pivot) · 适用标记含 SQL Server
+- [REPLACE](https://learn.microsoft.com/en-us/sql/t-sql/functions/replace-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REPLICATE](https://learn.microsoft.com/en-us/sql/t-sql/functions/replicate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVERSE](https://learn.microsoft.com/en-us/sql/t-sql/functions/reverse-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RIGHT](https://learn.microsoft.com/en-us/sql/t-sql/functions/right-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RTRIM](https://learn.microsoft.com/en-us/sql/t-sql/functions/rtrim-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SOUNDEX](https://learn.microsoft.com/en-us/sql/t-sql/functions/soundex-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SPACE](https://learn.microsoft.com/en-us/sql/t-sql/functions/space-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STR](https://learn.microsoft.com/en-us/sql/t-sql/functions/str-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STRING_AGG](https://learn.microsoft.com/en-us/sql/t-sql/functions/string-agg-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#string-agg) · 适用标记含 SQL Server
+- [STRING_ESCAPE](https://learn.microsoft.com/en-us/sql/t-sql/functions/string-escape-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STUFF](https://learn.microsoft.com/en-us/sql/t-sql/functions/stuff-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SUBSTRING](https://learn.microsoft.com/en-us/sql/t-sql/functions/substring-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TRANSLATE](https://learn.microsoft.com/en-us/sql/t-sql/functions/translate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TRIM](https://learn.microsoft.com/en-us/sql/t-sql/functions/trim-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [UNICODE](https://learn.microsoft.com/en-us/sql/t-sql/functions/unicode-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [UNISTR](https://learn.microsoft.com/en-us/sql/t-sql/functions/unistr-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [UPPER](https://learn.microsoft.com/en-us/sql/t-sql/functions/upper-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [System](https://learn.microsoft.com/en-us/sql/t-sql/functions/system-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [$PARTITION](https://learn.microsoft.com/en-us/sql/t-sql/functions/partition-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@ERROR](https://learn.microsoft.com/en-us/sql/t-sql/functions/error-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@IDENTITY](https://learn.microsoft.com/en-us/sql/t-sql/functions/identity-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@PACK_RECEIVED](https://learn.microsoft.com/en-us/sql/t-sql/functions/pack-received-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@ROWCOUNT](https://learn.microsoft.com/en-us/sql/t-sql/functions/rowcount-transact-sql?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#status-functions) · 适用标记含 SQL Server
+- [@@TRANCOUNT](https://learn.microsoft.com/en-us/sql/t-sql/functions/trancount-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BINARY_CHECKSUM](https://learn.microsoft.com/en-us/sql/t-sql/functions/binary-checksum-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CHECKSUM](https://learn.microsoft.com/en-us/sql/t-sql/functions/checksum-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COMPRESS](https://learn.microsoft.com/en-us/sql/t-sql/functions/compress-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CONNECTIONPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/connectionproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CONTEXT_INFO](https://learn.microsoft.com/en-us/sql/t-sql/functions/context-info-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CURRENT_REQUEST_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/current-request-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CURRENT_TRANSACTION_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/current-transaction-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DECOMPRESS](https://learn.microsoft.com/en-us/sql/t-sql/functions/decompress-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ERROR_LINE](https://learn.microsoft.com/en-us/sql/t-sql/functions/error-line-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ERROR_MESSAGE](https://learn.microsoft.com/en-us/sql/t-sql/functions/error-message-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ERROR_NUMBER](https://learn.microsoft.com/en-us/sql/t-sql/functions/error-number-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ERROR_PROCEDURE](https://learn.microsoft.com/en-us/sql/t-sql/functions/error-procedure-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ERROR_SEVERITY](https://learn.microsoft.com/en-us/sql/t-sql/functions/error-severity-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ERROR_STATE](https://learn.microsoft.com/en-us/sql/t-sql/functions/error-state-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [FORMATMESSAGE](https://learn.microsoft.com/en-us/sql/t-sql/functions/formatmessage-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GET_FILESTREAM_TRANSACTION_CONTEXT](https://learn.microsoft.com/en-us/sql/t-sql/functions/get-filestream-transaction-context-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GETANSINULL](https://learn.microsoft.com/en-us/sql/t-sql/functions/getansinull-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [HOST_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/host-id-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [HOST_NAME](https://learn.microsoft.com/en-us/sql/t-sql/functions/host-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ISNULL](https://learn.microsoft.com/en-us/sql/t-sql/functions/isnull-transact-sql?view=sql-server-ver17) · [示例](reference/11-functions.html#w3-null-functions) · 适用标记含 SQL Server
+- [ISNUMERIC](https://learn.microsoft.com/en-us/sql/t-sql/functions/isnumeric-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [MIN_ACTIVE_ROWVERSION](https://learn.microsoft.com/en-us/sql/t-sql/functions/min-active-rowversion-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [NEWID](https://learn.microsoft.com/en-us/sql/t-sql/functions/newid-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [NEWSEQUENTIALID](https://learn.microsoft.com/en-us/sql/t-sql/functions/newsequentialid-transact-sql?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#guid) · 适用标记含 SQL Server
+- [ROWCOUNT_BIG](https://learn.microsoft.com/en-us/sql/t-sql/functions/rowcount-big-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SESSION_CONTEXT](https://learn.microsoft.com/en-us/sql/t-sql/functions/session-context-transact-sql?view=sql-server-ver17) · [示例](reference/59-sqlserver-security.html#session-context) · 适用标记含 SQL Server
+- [SESSION_ID](https://learn.microsoft.com/en-us/sql/t-sql/functions/session-id-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [XACT_STATE](https://learn.microsoft.com/en-us/sql/t-sql/functions/xact-state-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [System Statistical](https://learn.microsoft.com/en-us/sql/t-sql/functions/system-statistical-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@CONNECTIONS](https://learn.microsoft.com/en-us/sql/t-sql/functions/connections-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@CPU_BUSY](https://learn.microsoft.com/en-us/sql/t-sql/functions/cpu-busy-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@IDLE](https://learn.microsoft.com/en-us/sql/t-sql/functions/idle-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@IO_BUSY](https://learn.microsoft.com/en-us/sql/t-sql/functions/io-busy-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@PACK_SENT](https://learn.microsoft.com/en-us/sql/t-sql/functions/pack-sent-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@PACKET_ERRORS](https://learn.microsoft.com/en-us/sql/t-sql/functions/packet-errors-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@TIMETICKS](https://learn.microsoft.com/en-us/sql/t-sql/functions/timeticks-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@TOTAL_ERRORS](https://learn.microsoft.com/en-us/sql/t-sql/functions/total-errors-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@TOTAL_READ](https://learn.microsoft.com/en-us/sql/t-sql/functions/total-read-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [@@TOTAL_WRITE](https://learn.microsoft.com/en-us/sql/t-sql/functions/total-write-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TEXTPTR](https://learn.microsoft.com/en-us/sql/t-sql/functions/text-and-image-functions-textptr-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TEXTVALID](https://learn.microsoft.com/en-us/sql/t-sql/functions/text-and-image-functions-textvalid-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Trigger](https://learn.microsoft.com/en-us/sql/t-sql/functions/trigger-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COLUMNS_UPDATED](https://learn.microsoft.com/en-us/sql/t-sql/functions/columns-updated-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EVENTDATA](https://learn.microsoft.com/en-us/sql/t-sql/functions/eventdata-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TRIGGER_NESTLEVEL](https://learn.microsoft.com/en-us/sql/t-sql/functions/trigger-nestlevel-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [UPDATE()](https://learn.microsoft.com/en-us/sql/t-sql/functions/update-trigger-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Vectors](https://learn.microsoft.com/en-us/sql/t-sql/functions/vector-functions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [VECTOR_DISTANCE](https://learn.microsoft.com/en-us/sql/t-sql/functions/vector-distance-transact-sql?view=sql-server-ver17) · [示例](reference/61-sqlserver-versions.html#vectors) · 适用标记含 SQL Server
+- [VECTOR_NORM](https://learn.microsoft.com/en-us/sql/t-sql/functions/vector-norm-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [VECTOR_NORMALIZE](https://learn.microsoft.com/en-us/sql/t-sql/functions/vector-normalize-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [VECTORPROPERTY](https://learn.microsoft.com/en-us/sql/t-sql/functions/vectorproperty-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [VECTOR_SEARCH](https://learn.microsoft.com/en-us/sql/t-sql/functions/vector-search-transact-sql?view=sql-server-ver17) · [示例](reference/61-sqlserver-versions.html#vector-preview) · 适用标记含 SQL Server
+
+### Language elements（126）
+
+- [Language elements](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/language-elements-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EXECUTE](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/execute-transact-sql?view=sql-server-ver17) · [示例](reference/57-sqlserver-routines.html#result-sets) · 适用标记含 SQL Server
+- [PRINT](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/print-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RAISERROR](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/raiserror-transact-sql?view=sql-server-ver17) · [示例](reference/58-sqlserver-transactions.html#raiserror) · 适用标记含 SQL Server
+- [CHECKPOINT](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/checkpoint-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [KILL](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/kill-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [KILL QUERY NOTIFICATION SUBSCRIPTION](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/kill-query-notification-subscription-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [KILL STATS JOB](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/kill-stats-job-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RECONFIGURE](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/reconfigure-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SHUTDOWN](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/shutdown-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Reserved Keywords](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/reserved-keywords-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Syntax Conventions](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/transact-sql-syntax-conventions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [-- (Comment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/comment-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Slash Star (Block Comment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/slash-star-comment-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE DIAGNOSTICS SESSION](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/create-diagnostics-session-transact-sql?view=sql-server-ver17)
+- [NULL & UNKNOWN](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/null-and-unknown-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [USE](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/use-transact-sql?view=sql-server-ver17) · [示例](reference/03-mysql-basics.html#dial-schema) · 适用标记含 SQL Server
+- [Backslash (Line Continuation)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/sql-server-utilities-statements-backslash?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GO](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/sql-server-utilities-statements-go?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#go-batches) · 适用标记含 SQL Server
+- [Control-of-Flow](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/control-of-flow?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BEGIN...END](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/begin-end-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BREAK](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/break-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ELSE (IF...ELSE)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/else-if-else-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [END (BEGIN...END)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/end-begin-end-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GOTO](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/goto-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IF...ELSE](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/if-else-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RETURN](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/return-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [THROW](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/throw-transact-sql?view=sql-server-ver17) · [示例](reference/58-sqlserver-transactions.html#throw) · 适用标记含 SQL Server
+- [TRY...CATCH](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/try-catch-transact-sql?view=sql-server-ver17) · [示例](reference/36-sqlserver-write.html#try-catch) · 适用标记含 SQL Server
+- [WAITFOR](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/waitfor-transact-sql?view=sql-server-ver17) · [示例](reference/57-sqlserver-routines.html#waitfor) · 适用标记含 SQL Server
+- [WHILE (and CONTINUE)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/while-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Cursors](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/cursors-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CLOSE](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/close-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DEALLOCATE](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/deallocate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DECLARE CURSOR](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/declare-cursor-transact-sql?view=sql-server-ver17) · [示例](reference/24-cursors.html#dial-cursor) · 适用标记含 SQL Server
+- [FETCH](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/fetch-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OPEN](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/open-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Expressions](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/expressions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CASE](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/case-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#conditional-aggregate) · 适用标记含 SQL Server
+- [COALESCE](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/coalesce-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [NULLIF](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/nullif-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Language elements · Overview](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/operators-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Unary - Positive](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/unary-operators-positive?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Unary - Negative](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/unary-operators-negative?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Set - EXCEPT & INTERSECT](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-except-and-intersect-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Set - UNION](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-operators-union-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Language elements · Overview](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/arithmetic-operators-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [+ (Addition)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/add-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [+= (Addition Assignment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/add-equals-transact-sql?view=sql-server-ver17) · [示例](reference/10-calculated-fields.html#w3-bitwise) · 适用标记含 SQL Server
+- [- (Subtraction)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/subtract-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [-= (Subtraction Assignment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/subtract-equals-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [* (Multiplication)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/multiply-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [*= (Multiplication Assignment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/multiply-equals-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [/ (Division)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/divide-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [/= (Division Assignment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/divide-equals-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [% Modulus](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/modulo-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [%= Modulus Assignment](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/modulo-equals-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [= (Assignment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/assignment-operator-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Language elements · Overview](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/bitwise-operators-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [& (Bitwise AND)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/bitwise-and-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [&= (Bitwise & assignment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/bitwise-and-equals-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [| (Bitwise OR)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/bitwise-or-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [|= (Bitwise OR assignment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/bitwise-or-equals-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [^ (Bitwise exclusive OR)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/bitwise-exclusive-or-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [^= (Bitwise exclusive OR assignment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/bitwise-exclusive-or-equals-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [<< (Bitwise left shift)](https://learn.microsoft.com/en-us/sql/t-sql/functions/left-shift-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [\>\> (Bitwise right shift)](https://learn.microsoft.com/en-us/sql/t-sql/functions/right-shift-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [~ (Bitwise NOT)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/bitwise-not-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Language elements · Overview](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/comparison-operators-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [= (Equals)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/equals-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [> (Greater Than)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/greater-than-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [< (Less Than)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/less-than-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [>= (Greater Than or Equal To)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/greater-than-or-equal-to-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [<= (Less Than or Equal To)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/less-than-or-equal-to-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [<> (Not Equal To)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/not-equal-to-transact-sql-traditional?view=sql-server-ver17) · 适用标记含 SQL Server
+- [!< (Not Less Than)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/not-less-than-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [!= (Not Equal To)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/not-equal-to-transact-sql-exclamation?view=sql-server-ver17) · 适用标记含 SQL Server
+- [!> (Not Greater Than)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/not-greater-than-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Compound](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/compound-operators-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Language elements · Overview](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/logical-operators-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALL](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/all-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [AND](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/and-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ANY](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/any-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BETWEEN](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/between-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EXISTS](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/exists-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IN](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/in-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [LIKE](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/like-transact-sql?view=sql-server-ver17) · [示例](reference/08-like.html#w3-brackets) · 适用标记含 SQL Server
+- [NOT](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/not-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OR](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/or-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SOME | ANY](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/some-any-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [:: (Scope Resolution)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/scope-resolution-operator-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Language elements · Overview](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/relational-operators-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GENERATE_SERIES](https://learn.microsoft.com/en-us/sql/t-sql/functions/generate-series-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#generate-series) · 适用标记含 SQL Server
+- [OPENDATASOURCE](https://learn.microsoft.com/en-us/sql/t-sql/functions/opendatasource-transact-sql?view=sql-server-ver17) · [示例](reference/60-sqlserver-administration.html#ad-hoc-oledb) · 适用标记含 SQL Server
+- [OPENJSON](https://learn.microsoft.com/en-us/sql/t-sql/functions/openjson-transact-sql?view=sql-server-ver17) · [示例](reference/37-sqlserver-query.html#openjson) · 适用标记含 SQL Server
+- [OPENQUERY](https://learn.microsoft.com/en-us/sql/t-sql/functions/openquery-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OPENROWSET](https://learn.microsoft.com/en-us/sql/t-sql/functions/openrowset-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OPENROWSET(BULK)](https://learn.microsoft.com/en-us/sql/t-sql/functions/openrowset-bulk-transact-sql?view=sql-server-ver17) · [示例](reference/36-sqlserver-write.html#bulk-single) · 适用标记含 SQL Server
+- [OPENXML](https://learn.microsoft.com/en-us/sql/t-sql/functions/openxml-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [PREDICT](https://learn.microsoft.com/en-us/sql/t-sql/queries/predict-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [STRING_SPLIT](https://learn.microsoft.com/en-us/sql/t-sql/functions/string-split-transact-sql?view=sql-server-ver17) · [示例](reference/37-sqlserver-query.html#string-split) · 适用标记含 SQL Server
+- [Language elements · Overview](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/string-operators-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [= (String comparison or assignment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/string-comparison-assignment?view=sql-server-ver17) · 适用标记含 SQL Server
+- [+ (String concatenation)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/string-concatenation-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [|| (String concatenation)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/string-concatenation-pipes-transact-sql?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#concat-operators) · 适用标记含 SQL Server
+- [||= (Compound assignment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/compound-assignment-pipes-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [+= (String concatenation assignment)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/string-concatenation-equal-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [% (wildcard - characters to match)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/percent-character-wildcard-character-s-to-match-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [\[\] (wildcard - characters to match)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/wildcard-character-s-to-match-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [\[^\] (Wildcard - character(s) not to match)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/wildcard-character-s-not-to-match-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [_ (Wildcard - match one character)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/wildcard-match-one-character-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Operator precedence](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#operator-precedence) · 适用标记含 SQL Server
+- [Transactions (Transact-SQL)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/transactions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Transactions (Azure Synapse Analytics)](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/transactions-sql-data-warehouse?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [Transaction Isolation Levels](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/transaction-isolation-levels?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BEGIN DISTRIBUTED TRANSACTION](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/begin-distributed-transaction-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BEGIN TRANSACTION](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/begin-transaction-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COMMIT TRANSACTION](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/commit-transaction-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COMMIT WORK](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/commit-work-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ROLLBACK TRANSACTION](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/rollback-transaction-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ROLLBACK WORK](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/rollback-work-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SAVE TRANSACTION](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/save-transaction-transact-sql?view=sql-server-ver17) · [示例](reference/26-transactions.html#dial-tx) · 适用标记含 SQL Server
+- [Variables](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/variables-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET @local_variable](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/set-local-variable-transact-sql?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#declare-set) · 适用标记含 SQL Server
+- [SELECT @local_variable](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/select-local-variable-transact-sql?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#select-assign) · 适用标记含 SQL Server
+- [DECLARE @local_variable](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/declare-local-variable-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+
+### Queries（41）
+
+- [Query](https://learn.microsoft.com/en-us/sql/t-sql/queries/queries?view=sql-server-ver17) · 适用标记含 SQL Server
+- [AT TIME ZONE](https://learn.microsoft.com/en-us/sql/t-sql/queries/at-time-zone-transact-sql?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#zones) · 适用标记含 SQL Server
+- [Aliasing (Azure Synapse Analytics)](https://learn.microsoft.com/en-us/sql/t-sql/queries/aliasing-azure-sql-data-warehouse-parallel-data-warehouse?view=sql-server-ver17) · 文档适用标记为 Fabric、Synapse
+- [EXPLAIN](https://learn.microsoft.com/en-us/sql/t-sql/queries/explain-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [OPTION clause](https://learn.microsoft.com/en-us/sql/t-sql/queries/option-clause-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OUTPUT clause](https://learn.microsoft.com/en-us/sql/t-sql/queries/output-clause-transact-sql?view=sql-server-ver17) · [示例](reference/19-insert.html#dial-insert) · 适用标记含 SQL Server
+- [READTEXT](https://learn.microsoft.com/en-us/sql/t-sql/queries/readtext-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Search condition](https://learn.microsoft.com/en-us/sql/t-sql/queries/search-condition-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Subqueries (Azure Synapse Analytics)](https://learn.microsoft.com/en-us/sql/t-sql/queries/subqueries-azure-sql-data-warehouse-parallel-data-warehouse?view=sql-server-ver17) · 文档适用标记为 Fabric、Synapse
+- [Table value constructor](https://learn.microsoft.com/en-us/sql/t-sql/queries/table-value-constructor-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [TOP](https://learn.microsoft.com/en-us/sql/t-sql/queries/top-transact-sql?view=sql-server-ver17) · [示例](reference/04-select.html#w3-top) · 适用标记含 SQL Server
+- [UPDATETEXT](https://learn.microsoft.com/en-us/sql/t-sql/queries/updatetext-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [WITH common_table_expression](https://learn.microsoft.com/en-us/sql/t-sql/queries/with-common-table-expression-transact-sql?view=sql-server-ver17) · [示例](reference/37-sqlserver-query.html#recursive-cte-limit) · 适用标记含 SQL Server
+- [Recursive queries using common table expressions](https://learn.microsoft.com/en-us/sql/t-sql/queries/recursive-common-table-expression-transact-sql?view=sql-server-ver17) · [示例](reference/32-modern-sql.html#dial-recursive) · 适用标记含 SQL Server
+- [Nested common table expressions in Fabric Warehouse](https://learn.microsoft.com/en-us/sql/t-sql/queries/nested-common-table-expression?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [WRITETEXT](https://learn.microsoft.com/en-us/sql/t-sql/queries/writetext-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Queries · Overview](https://learn.microsoft.com/en-us/sql/t-sql/queries/select-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SELECT clause](https://learn.microsoft.com/en-us/sql/t-sql/queries/select-clause-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SELECT examples](https://learn.microsoft.com/en-us/sql/t-sql/queries/select-examples-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SELECT - FOR clause](https://learn.microsoft.com/en-us/sql/t-sql/queries/select-for-clause-transact-sql?view=sql-server-ver17) · [示例](reference/37-sqlserver-query.html#browse) · 适用标记含 SQL Server
+- [SELECT - GROUP BY](https://learn.microsoft.com/en-us/sql/t-sql/queries/select-group-by-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#grouping-sets) · 适用标记含 SQL Server
+- [SELECT - WINDOW clause](https://learn.microsoft.com/en-us/sql/t-sql/queries/select-window-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#named-window) · 适用标记含 SQL Server
+- [SELECT - HAVING](https://learn.microsoft.com/en-us/sql/t-sql/queries/select-having-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SELECT - INTO clause](https://learn.microsoft.com/en-us/sql/t-sql/queries/select-into-clause-transact-sql?view=sql-server-ver17) · [示例](reference/19-insert.html#w3-select-into) · 适用标记含 SQL Server
+- [SELECT - ORDER BY clause](https://learn.microsoft.com/en-us/sql/t-sql/queries/select-order-by-clause-transact-sql?view=sql-server-ver17) · [示例](reference/04-select.html#dial-pagination) · 适用标记含 SQL Server
+- [SELECT - OVER clause](https://learn.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql?view=sql-server-ver17) · [示例](reference/51-sqlserver-analytics.html#window-frames) · 适用标记含 SQL Server
+- [SELECT - QUALIFY clause](https://learn.microsoft.com/en-us/sql/t-sql/queries/select-qualify-clause-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [FROM plus JOIN, APPLY, PIVOT](https://learn.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql?view=sql-server-ver17) · [示例](reference/16-advanced-joins.html#dial-full) · 适用标记含 SQL Server
+- [FROM - Using PIVOT & UNPIVOT](https://learn.microsoft.com/en-us/sql/t-sql/queries/from-using-pivot-and-unpivot?view=sql-server-ver17) · [示例](reference/37-sqlserver-query.html#pivot) · 适用标记含 SQL Server
+- [FROM - SELECT](https://learn.microsoft.com/en-us/sql/t-sql/queries/from-select-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [WHERE](https://learn.microsoft.com/en-us/sql/t-sql/queries/where-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [MATCH](https://learn.microsoft.com/en-us/sql/t-sql/queries/match-sql-graph?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Queries · Overview](https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Join hints](https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-join?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Query hints](https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-query?view=sql-server-ver17) · [示例](reference/56-sqlserver-plans.html#plan-io-time) · 适用标记含 SQL Server
+- [Table hints](https://learn.microsoft.com/en-us/sql/t-sql/queries/hints-transact-sql-table?view=sql-server-ver17) · [示例](reference/26-transactions.html#dial-locks) · 适用标记含 SQL Server
+- [Predicates](https://learn.microsoft.com/en-us/sql/t-sql/queries/predicates?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CONTAINS](https://learn.microsoft.com/en-us/sql/t-sql/queries/contains-transact-sql?view=sql-server-ver17) · [示例](reference/18-fulltext.html#dial-fulltext) · 适用标记含 SQL Server
+- [FREETEXT](https://learn.microsoft.com/en-us/sql/t-sql/queries/freetext-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [IS DISTINCT FROM](https://learn.microsoft.com/en-us/sql/t-sql/queries/is-distinct-from-transact-sql?view=sql-server-ver17) · [示例](reference/06-where.html#dial-where-null) · 适用标记含 SQL Server
+- [IS NULL](https://learn.microsoft.com/en-us/sql/t-sql/queries/is-null-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+
+### Statements（367）
+
+- [Statements](https://learn.microsoft.com/en-us/sql/t-sql/statements/statements?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ADD SENSITIVITY CLASSIFICATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/add-sensitivity-classification-transact-sql?view=sql-server-ver17) · [示例](reference/59-sqlserver-security.html#classification) · 适用标记含 SQL Server
+- [BULK INSERT](https://learn.microsoft.com/en-us/sql/t-sql/statements/bulk-insert-transact-sql?view=sql-server-ver17) · [示例](reference/36-sqlserver-write.html#bulk-csv) · 适用标记含 SQL Server
+- [COPY](https://learn.microsoft.com/en-us/sql/t-sql/statements/copy-into-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [DELETE](https://learn.microsoft.com/en-us/sql/t-sql/statements/delete-transact-sql?view=sql-server-ver17) · [示例](reference/36-sqlserver-write.html#delete-join) · 适用标记含 SQL Server
+- [DISABLE TRIGGER](https://learn.microsoft.com/en-us/sql/t-sql/statements/disable-trigger-transact-sql?view=sql-server-ver17) · [示例](reference/63-sqlserver-utilities.html#disable-trigger) · 适用标记含 SQL Server
+- [ENABLE TRIGGER](https://learn.microsoft.com/en-us/sql/t-sql/statements/enable-trigger-transact-sql?view=sql-server-ver17) · [示例](reference/63-sqlserver-utilities.html#enable-trigger) · 适用标记含 SQL Server
+- [INSERT](https://learn.microsoft.com/en-us/sql/t-sql/statements/insert-transact-sql?view=sql-server-ver17) · [示例](reference/36-sqlserver-write.html#insert-exec) · 适用标记含 SQL Server
+- [INSERT (SQL Graph)](https://learn.microsoft.com/en-us/sql/t-sql/statements/insert-sql-graph?view=sql-server-ver17) · 适用标记含 SQL Server
+- [UPDATE](https://learn.microsoft.com/en-us/sql/t-sql/queries/update-transact-sql?view=sql-server-ver17) · [示例](reference/20-update-delete.html#dial-update) · 适用标记含 SQL Server
+- [MERGE](https://learn.microsoft.com/en-us/sql/t-sql/statements/merge-transact-sql?view=sql-server-ver17) · [示例](reference/36-sqlserver-write.html#merge) · 适用标记含 SQL Server
+- [RENAME](https://learn.microsoft.com/en-us/sql/t-sql/statements/rename-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [TRUNCATE TABLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/truncate-table-transact-sql?view=sql-server-ver17) · [示例](reference/63-sqlserver-utilities.html#truncate-partitions) · 适用标记含 SQL Server
+- [UPDATE STATISTICS](https://learn.microsoft.com/en-us/sql/t-sql/statements/update-statistics-transact-sql?view=sql-server-ver17) · [示例](reference/29-maintenance.html#dial-statistics) · 适用标记含 SQL Server
+- [ALTER APPLICATION ROLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-application-role-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER ASSEMBLY](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-assembly-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER ASYMMETRIC KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-asymmetric-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER AUTHORIZATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-authorization-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER AVAILABILITY GROUP](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-availability-group-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER BROKER PRIORITY](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-broker-priority-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER CERTIFICATE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-certificate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER COLUMN ENCRYPTION KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-column-encryption-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER CREDENTIAL](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-credential-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER CRYPTOGRAPHIC PROVIDER](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-cryptographic-provider-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER DATABASE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql?view=sql-server-ver17)
+- [ALTER DATABASE AUDIT SPECIFICATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-audit-specification-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER DATABASE compatibility level](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql-compatibility-level?view=sql-server-ver17) · [示例](reference/60-sqlserver-administration.html#instance-database) · 适用标记含 SQL Server
+- [ALTER DATABASE mirroring](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql-database-mirroring?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER DATABASE ENCRYPTION KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-encryption-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER DATABASE file & filegroup options](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql-file-and-filegroup-options?view=sql-server-ver17)
+- [ALTER DATABASE HADR](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql-set-hadr?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER DATABASE SCOPED CREDENTIAL](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-scoped-credential-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER DATABASE SCOPED CONFIGURATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-scoped-configuration-transact-sql?view=sql-server-ver17) · [示例](reference/60-sqlserver-administration.html#scope) · 适用标记含 SQL Server
+- [ALTER DATABASE SET Options](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql-set-options?view=sql-server-ver17)
+- [ALTER ENDPOINT](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-endpoint-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER EVENT SESSION](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-event-session-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER EXTERNAL DATA SOURCE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-external-data-source-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER EXTERNAL LANGUAGE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-external-language-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER EXTERNAL LIBRARY](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-external-library-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER EXTERNAL RESOURCE POOL](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-external-resource-pool-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER FULLTEXT CATALOG](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-fulltext-catalog-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER FULLTEXT INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-fulltext-index-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER FULLTEXT STOPLIST](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-fulltext-stoplist-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER FUNCTION](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-function-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-index-transact-sql?view=sql-server-ver17) · [示例](reference/56-sqlserver-plans.html#online-maintenance) · 适用标记含 SQL Server
+- [ALTER INDEX (Selective XML Indexes)](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-index-selective-xml-indexes?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER LOGIN](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-login-transact-sql?view=sql-server-ver17)
+- [ALTER MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER MATERIALIZED VIEW](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-materialized-view-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [ALTER MESSAGE TYPE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-message-type-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER PARTITION FUNCTION](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-partition-function-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER PARTITION SCHEME](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-partition-scheme-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER PROCEDURE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-procedure-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER QUEUE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-queue-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER REMOTE SERVICE BINDING](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-remote-service-binding-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER RESOURCE GOVERNOR](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-resource-governor-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER RESOURCE POOL](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-resource-pool-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER ROLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-role-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER ROUTE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-route-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER SCHEMA](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-schema-transact-sql?view=sql-server-ver17) · [示例](reference/63-sqlserver-utilities.html#schema-transfer) · 适用标记含 SQL Server
+- [ALTER SEARCH PROPERTY LIST](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-search-property-list-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER SECURITY POLICY](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-security-policy-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER SEQUENCE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-sequence-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER SERVER AUDIT](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-server-audit-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER SERVER AUDIT SPECIFICATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-server-audit-specification-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER SERVER CONFIGURATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-server-configuration-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER SERVER ROLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-server-role-transact-sql?view=sql-server-ver17) · [示例](reference/59-sqlserver-security.html#roles) · 适用标记含 SQL Server
+- [ALTER SERVICE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-service-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER SERVICE MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-service-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER SYMMETRIC KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-symmetric-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER TABLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-table-transact-sql?view=sql-server-ver17) · [示例](reference/54-sqlserver-schema.html#switch) · 适用标记含 SQL Server
+- [ALTER TABLE column_constraint](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-table-column-constraint-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER TABLE column_definition](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-table-column-definition-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER TABLE computed_column_definition](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-table-computed-column-definition-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER TABLE index_option](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-table-index-option-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER TABLE table_constraint](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-table-table-constraint-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER TRIGGER](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-trigger-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER USER](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-user-transact-sql?view=sql-server-ver17)
+- [ALTER VIEW](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-view-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ALTER WORKLOAD GROUP](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-workload-group-transact-sql?view=sql-server-ver17)
+- [ALTER XML SCHEMA COLLECTION](https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-xml-schema-collection-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BACKUP](https://learn.microsoft.com/en-us/sql/t-sql/statements/backup-transact-sql?view=sql-server-ver17) · [示例](reference/29-maintenance.html#w3-backup-dialect)
+- [BACKUP CERTIFICATE](https://learn.microsoft.com/en-us/sql/t-sql/statements/backup-certificate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BACKUP MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/backup-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BACKUP SERVICE MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/backup-service-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BACKUP SYMMETRIC KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/backup-symmetric-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RESTORE](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-transact-sql?view=sql-server-ver17)
+- [RESTORE statements](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-for-restoring-recovering-and-managing-backups-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RESTORE arguments](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-arguments-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RESTORE FILELISTONLY](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-filelistonly-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RESTORE HEADERONLY](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-headeronly-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RESTORE LABELONLY](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-labelonly-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RESTORE MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RESTORE SERVICE MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-service-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RESTORE SYMMETRIC KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-symmetric-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RESTORE REWINDONLY](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-rewindonly-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RESTORE VERIFYONLY](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-verifyonly-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE AGGREGATE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-aggregate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE APPLICATION ROLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-application-role-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE ASSEMBLY](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-assembly-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE ASYMMETRIC KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-asymmetric-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE AVAILABILITY GROUP](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-availability-group-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE BROKER PRIORITY](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-broker-priority-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE CERTIFICATE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-certificate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE COLUMNSTORE INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-columnstore-index-transact-sql?view=sql-server-ver17) · [示例](reference/56-sqlserver-plans.html#columnstore) · 适用标记含 SQL Server
+- [CREATE COLUMN ENCRYPTION KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-column-encryption-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE COLUMN MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-column-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE CONTRACT](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-contract-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE CREDENTIAL](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-credential-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE CRYPTOGRAPHIC PROVIDER](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-cryptographic-provider-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE DATABASE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-database-transact-sql?view=sql-server-ver17)
+- [CREATE DATABASE AUDIT SPECIFICATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-database-audit-specification-transact-sql?view=sql-server-ver17) · [示例](reference/59-sqlserver-security.html#audit) · 适用标记含 SQL Server
+- [CREATE DATABASE ENCRYPTION KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-database-encryption-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE DATABASE SCOPED CREDENTIAL](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-database-scoped-credential-transact-sql?view=sql-server-ver17) · [示例](reference/63-sqlserver-utilities.html#scoped-credential) · 适用标记含 SQL Server
+- [CREATE DEFAULT](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-default-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE ENDPOINT](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-endpoint-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE EVENT NOTIFICATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-event-notification-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE EVENT SESSION](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-event-session-transact-sql?view=sql-server-ver17) · [示例](reference/56-sqlserver-plans.html#extended-events) · 适用标记含 SQL Server
+- [CREATE EXTERNAL DATA SOURCE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-external-data-source-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE EXTERNAL DATA SOURCE CONNECTION_OPTIONS](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-external-data-source-connection-options?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE EXTERNAL LANGUAGE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-external-language-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE EXTERNAL LIBRARY](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-external-library-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE EXTERNAL FILE FORMAT](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-external-file-format-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE EXTERNAL RESOURCE POOL](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-external-resource-pool-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE EXTERNAL TABLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-external-table-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE EXTERNAL TABLE AS SELECT](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-external-table-as-select-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE FULLTEXT CATALOG](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-catalog-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE FULLTEXT INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-index-transact-sql?view=sql-server-ver17) · [示例](reference/18-fulltext.html#dial-fulltext) · 适用标记含 SQL Server
+- [CREATE FULLTEXT STOPLIST](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-stoplist-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE FUNCTION](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-function-transact-sql?view=sql-server-ver17) · [示例](reference/57-sqlserver-routines.html#functions) · 适用标记含 SQL Server
+- [CREATE FUNCTION (Fabric and Synapse Analytics)](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-function-sql-data-warehouse?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [CREATE INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE JSON INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-json-index-transact-sql?view=sql-server-ver17) · [示例](reference/53-sqlserver-documents.html#json-index) · 适用标记含 SQL Server
+- [CREATE LOGIN](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-login-transact-sql?view=sql-server-ver17) · [示例](reference/59-sqlserver-security.html#login-user)
+- [CREATE MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE MATERIALIZED VIEW AS SELECT](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-materialized-view-as-select-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [CREATE MESSAGE TYPE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-message-type-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE PARTITION FUNCTION](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-partition-function-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE PARTITION SCHEME](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-partition-scheme-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE PROCEDURE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-procedure-transact-sql?view=sql-server-ver17) · [示例](reference/23-procedures.html#dial-procedure) · 适用标记含 SQL Server
+- [CREATE QUEUE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-queue-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE REMOTE SERVICE BINDING](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-remote-service-binding-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse)](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-remote-table-as-select-parallel-data-warehouse?view=sql-server-ver17)
+- [CREATE RESOURCE POOL](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-resource-pool-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE ROLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-role-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE ROUTE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-route-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE RULE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-rule-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE SCHEMA](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-schema-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE SEARCH PROPERTY LIST](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-search-property-list-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE SECURITY POLICY](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-security-policy-transact-sql?view=sql-server-ver17) · [示例](reference/59-sqlserver-security.html#rls) · 适用标记含 SQL Server
+- [CREATE SELECTIVE XML INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-selective-xml-index-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE SEQUENCE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-sequence-transact-sql?view=sql-server-ver17) · [示例](reference/54-sqlserver-schema.html#sequence) · 适用标记含 SQL Server
+- [CREATE SERVER AUDIT](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-server-audit-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE SERVER AUDIT SPECIFICATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-server-audit-specification-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE SERVER ROLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-server-role-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE SERVICE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-service-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE SPATIAL INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-spatial-index-transact-sql?view=sql-server-ver17) · [示例](reference/56-sqlserver-plans.html#xml-spatial) · 适用标记含 SQL Server
+- [CREATE STATISTICS](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-statistics-transact-sql?view=sql-server-ver17) · [示例](reference/56-sqlserver-plans.html#statistics) · 适用标记含 SQL Server
+- [CREATE SYMMETRIC KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-symmetric-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE SYNONYM](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-synonym-transact-sql?view=sql-server-ver17) · [示例](reference/54-sqlserver-schema.html#schema-synonym) · 适用标记含 SQL Server
+- [CREATE TABLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql?view=sql-server-ver17) · [示例](reference/21-tables.html#dial-ddl) · 适用标记含 SQL Server
+- [CREATE TABLE AS CLONE OF](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-table-as-clone-of-transact-sql?view=sql-server-ver17) · 文档适用标记为 Fabric
+- [CREATE TABLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-table-azure-sql-data-warehouse?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [CREATE TABLE (SQL Graph)](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-table-sql-graph?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE TABLE AS SELECT (CTAS)](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-table-as-select-azure-sql-data-warehouse?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [CREATE TABLE IDENTITY (Property)](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql-identity-property?view=sql-server-ver17) · [示例](reference/21-tables.html#w3-auto-increment) · 适用标记含 SQL Server
+- [CREATE TRIGGER](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-trigger-transact-sql?view=sql-server-ver17) · [示例](reference/57-sqlserver-routines.html#dml-trigger) · 适用标记含 SQL Server
+- [CREATE TYPE](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-type-transact-sql?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#table-types) · 适用标记含 SQL Server
+- [CREATE USER](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-user-transact-sql?view=sql-server-ver17) · [示例](reference/59-sqlserver-security.html#contained) · 适用标记含 SQL Server
+- [CREATE VECTOR INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-vector-index-transact-sql?view=sql-server-ver17) · [示例](reference/56-sqlserver-plans.html#vector-index) · 适用标记含 SQL Server
+- [CREATE VIEW](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-view-transact-sql?view=sql-server-ver17) · [示例](reference/22-views.html#dial-views) · 适用标记含 SQL Server
+- [CREATE WORKLOAD CLASSIFIER](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-workload-classifier-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [CREATE WORKLOAD GROUP](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-workload-group-transact-sql?view=sql-server-ver17)
+- [CREATE XML INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-xml-index-transact-sql?view=sql-server-ver17) · [示例](reference/56-sqlserver-plans.html#xml-spatial) · 适用标记含 SQL Server
+- [CREATE XML INDEX (Selective XML Indexes)](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-xml-index-selective-xml-indexes?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CREATE XML SCHEMA COLLECTION](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-xml-schema-collection-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [COLLATE clause](https://learn.microsoft.com/en-us/sql/t-sql/statements/collations?view=sql-server-ver17) · [示例](reference/52-sqlserver-types.html#unicode-collation) · 适用标记含 SQL Server
+- [SQL Server Collation Name](https://learn.microsoft.com/en-us/sql/t-sql/statements/sql-server-collation-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Windows Collation Name](https://learn.microsoft.com/en-us/sql/t-sql/statements/windows-collation-name-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Collation Precedence](https://learn.microsoft.com/en-us/sql/t-sql/statements/collation-precedence-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP AGGREGATE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-aggregate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP APPLICATION ROLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-application-role-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP ASSEMBLY](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-assembly-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP ASYMMETRIC KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-asymmetric-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP AVAILABILITY GROUP](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-availability-group-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP BROKER PRIORITY](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-broker-priority-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP CERTIFICATE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-certificate-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP COLUMN ENCRYPTION KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-column-encryption-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP COLUMN MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-column-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP CONTRACT](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-contract-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP CREDENTIAL](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-credential-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP CRYPTOGRAPHIC PROVIDER](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-cryptographic-provider-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP DATABASE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-database-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP DATABASE AUDIT SPECIFICATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-database-audit-specification-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP DATABASE ENCRYPTION KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-database-encryption-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP DATABASE SCOPED CREDENTIAL](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-database-scoped-credential-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP DEFAULT](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-default-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP ENDPOINT](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-endpoint-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP EXTERNAL DATA SOURCE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-external-data-source-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP EXTERNAL FILE FORMAT](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-external-file-format-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP EXTERNAL LANGUAGE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-external-language-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP EXTERNAL LIBRARY](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-external-library-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP EXTERNAL RESOURCE POOL](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-external-resource-pool-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP EXTERNAL TABLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-external-table-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP EVENT NOTIFICATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-event-notification-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP EVENT SESSION](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-event-session-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP FULLTEXT CATALOG](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-fulltext-catalog-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP FULLTEXT INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-fulltext-index-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP FULLTEXT STOPLIST](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-fulltext-stoplist-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP FUNCTION](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-function-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP INDEX](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-index-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP INDEX (Selective XML Indexes)](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-index-selective-xml-indexes?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP LOGIN](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-login-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP MESSAGE TYPE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-message-type-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP PARTITION FUNCTION](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-partition-function-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP PARTITION SCHEME](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-partition-scheme-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP PROCEDURE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-procedure-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP QUEUE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-queue-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP REMOTE SERVICE BINDING](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-remote-service-binding-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP RESOURCE POOL](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-resource-pool-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP ROLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-role-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP ROUTE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-route-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP RULE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-rule-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SCHEMA](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-schema-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SEARCH PROPERTY LIST](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-search-property-list-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SECURITY POLICY](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-security-policy-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SENSITIVITY CLASSIFICATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-sensitivity-classification-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SEQUENCE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-sequence-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SERVER AUDIT](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-server-audit-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SERVER AUDIT SPECIFICATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-server-audit-specification-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SERVER ROLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-server-role-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SERVICE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-service-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SIGNATURE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-signature-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP STATISTICS](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-statistics-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SYMMETRIC KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-symmetric-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP SYNONYM](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-synonym-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP TABLE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-table-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP TRIGGER](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-trigger-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP TYPE](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-type-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP USER](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-user-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP VIEW](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-view-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DROP WORKLOAD CLASSIFIER](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-workload-classifier-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [DROP WORKLOAD GROUP](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-workload-group-transact-sql?view=sql-server-ver17)
+- [DROP XML SCHEMA COLLECTION](https://learn.microsoft.com/en-us/sql/t-sql/statements/drop-xml-schema-collection-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [ADD SIGNATURE](https://learn.microsoft.com/en-us/sql/t-sql/statements/add-signature-transact-sql?view=sql-server-ver17) · [示例](reference/59-sqlserver-security.html#module-signing) · 适用标记含 SQL Server
+- [CLOSE MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/close-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [CLOSE SYMMETRIC KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/close-symmetric-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-transact-sql?view=sql-server-ver17) · [示例](reference/59-sqlserver-security.html#grant-deny) · 适用标记含 SQL Server
+- [DENY Assembly Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-assembly-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Asymmetric Key Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-asymmetric-key-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Availability Group Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-availability-group-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Certificate Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-certificate-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Database Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-database-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Database Principal Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-database-principal-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Database Scoped Credential](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-database-scoped-credential-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Endpoint Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-endpoint-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Full-Text Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-full-text-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Object Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-object-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Schema Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-schema-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Search Property List Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-search-property-list-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Server Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-server-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Server Principal Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-server-principal-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Service Broker Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-service-broker-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Symmetric Key Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-symmetric-key-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY System Object Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-system-object-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY Type Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-type-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [DENY XML Schema Collection Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/deny-xml-schema-collection-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EXECUTE AS](https://learn.microsoft.com/en-us/sql/t-sql/statements/execute-as-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [EXECUTE AS Clause](https://learn.microsoft.com/en-us/sql/t-sql/statements/execute-as-clause-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-transact-sql?view=sql-server-ver17) · [示例](reference/28-access-control.html#dial-acl) · 适用标记含 SQL Server
+- [GRANT Assembly Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-assembly-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Asymmetric Key Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-asymmetric-key-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Availability Group Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-availability-group-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Certificate Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-certificate-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Database Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-database-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Database Principal Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-database-principal-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Database Scoped Credential](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-database-scoped-credential-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Endpoint Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-endpoint-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Full-Text Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-full-text-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Object Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-object-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Schema Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-schema-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Search Property List Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-search-property-list-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Server Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-server-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Server Principal Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-server-principal-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Service Broker Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-service-broker-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Symmetric Key Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-symmetric-key-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT System Object Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-system-object-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT Type Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-type-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GRANT XML Schema Collection Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/grant-xml-schema-collection-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OPEN MASTER KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/open-master-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [OPEN SYMMETRIC KEY](https://learn.microsoft.com/en-us/sql/t-sql/statements/open-symmetric-key-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [Permissions: GRANT, DENY, REVOKE](https://learn.microsoft.com/en-us/sql/t-sql/statements/permissions-grant-deny-revoke-azure-sql-data-warehouse-parallel-data-warehouse?view=sql-server-ver17) · 文档适用标记为 Fabric、Synapse
+- [REVERT](https://learn.microsoft.com/en-us/sql/t-sql/statements/revert-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Assembly Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-assembly-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Asymmetric Key Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-asymmetric-key-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Availability Group Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-availability-group-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Certificate Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-certificate-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Database Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-database-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Database Principal Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-database-principal-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Database Scoped Credential](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-database-scoped-credential-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Endpoint Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-endpoint-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Full-Text Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-full-text-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Object Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-object-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Schema Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-schema-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Search Property List Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-search-property-list-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Server Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-server-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Server Principal Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-server-principal-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Service Broker Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-service-broker-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Symmetric Key Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-symmetric-key-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE System Object Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-system-object-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE Type Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-type-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [REVOKE XML Schema Collection Permissions](https://learn.microsoft.com/en-us/sql/t-sql/statements/revoke-xml-schema-collection-permissions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SETUSER](https://learn.microsoft.com/en-us/sql/t-sql/statements/setuser-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BEGIN CONVERSATION TIMER](https://learn.microsoft.com/en-us/sql/t-sql/statements/begin-conversation-timer-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [BEGIN DIALOG CONVERSATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/begin-dialog-conversation-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [END CONVERSATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/end-conversation-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GET CONVERSATION GROUP](https://learn.microsoft.com/en-us/sql/t-sql/statements/get-conversation-group-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [GET_TRANSMISSION_STATUS](https://learn.microsoft.com/en-us/sql/t-sql/statements/get-transmission-status-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [MOVE CONVERSATION](https://learn.microsoft.com/en-us/sql/t-sql/statements/move-conversation-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [RECEIVE](https://learn.microsoft.com/en-us/sql/t-sql/statements/receive-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SEND](https://learn.microsoft.com/en-us/sql/t-sql/statements/send-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statements-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET ANSI_DEFAULTS](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-ansi-defaults-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET ANSI_NULL_DFLT_OFF](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-ansi-null-dflt-off-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET ANSI_NULL_DFLT_ON](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-ansi-null-dflt-on-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET ANSI_NULLS](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-ansi-nulls-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET ANSI_PADDING](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-ansi-padding-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET ANSI_WARNINGS](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-ansi-warnings-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET ARITHABORT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-arithabort-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET ARITHIGNORE](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-arithignore-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET CONCAT_NULL_YIELDS_NULL](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-concat-null-yields-null-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET CONTEXT_INFO](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-context-info-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET CURSOR_CLOSE_ON_COMMIT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-cursor-close-on-commit-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET DATEFIRST](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-datefirst-transact-sql?view=sql-server-ver17) · [示例](reference/60-sqlserver-administration.html#set-options) · 适用标记含 SQL Server
+- [SET DATEFORMAT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-dateformat-transact-sql?view=sql-server-ver17) · [示例](reference/63-sqlserver-utilities.html#language-dateformat) · 适用标记含 SQL Server
+- [SET DEADLOCK_PRIORITY](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-deadlock-priority-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET FIPS_FLAGGER](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-fips-flagger-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET FMTONLY](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-fmtonly-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET FORCEPLAN](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-forceplan-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET IDENTITY_INSERT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-identity-insert-transact-sql?view=sql-server-ver17) · [示例](reference/36-sqlserver-write.html#identity-insert) · 适用标记含 SQL Server
+- [SET IMPLICIT_TRANSACTIONS](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-implicit-transactions-transact-sql?view=sql-server-ver17) · [示例](reference/58-sqlserver-transactions.html#modes) · 适用标记含 SQL Server
+- [SET LANGUAGE](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-language-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET LOCK_TIMEOUT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-lock-timeout-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET NOCOUNT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-nocount-transact-sql?view=sql-server-ver17) · [示例](reference/63-sqlserver-utilities.html#set-nocount) · 适用标记含 SQL Server
+- [SET NOEXEC](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-noexec-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET NUMERIC_ROUNDABORT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-numeric-roundabort-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET OFFSETS](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-offsets-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET PARSEONLY](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-parseonly-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET QUERY_GOVERNOR_COST_LIMIT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-query-governor-cost-limit-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET QUOTED_IDENTIFIER](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-quoted-identifier-transact-sql?view=sql-server-ver17) · [示例](reference/50-sqlserver-batches.html#quoted-identifier) · 适用标记含 SQL Server
+- [SET RECOMMENDATIONS](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-recommendations-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [SET REMOTE_PROC_TRANSACTIONS](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-remote-proc-transactions-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET RESULT SET CACHING](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-result-set-caching-transact-sql?view=sql-server-ver17) · 文档适用标记为 Synapse
+- [SET ROWCOUNT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-rowcount-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET SHOWPLAN_ALL](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-showplan-all-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET SHOWPLAN_TEXT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-showplan-text-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET SHOWPLAN_XML](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-showplan-xml-transact-sql?view=sql-server-ver17) · [示例](reference/56-sqlserver-plans.html#plan-io-time) · 适用标记含 SQL Server
+- [SET STATISTICS IO](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-io-transact-sql?view=sql-server-ver17) · [示例](reference/30-performance.html#dial-plans) · 适用标记含 SQL Server
+- [SET STATISTICS PROFILE](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-profile-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+- [SET STATISTICS TIME](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-time-transact-sql?view=sql-server-ver17) · [示例](reference/56-sqlserver-plans.html#plan-io-time) · 适用标记含 SQL Server
+- [SET STATISTICS XML](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-xml-transact-sql?view=sql-server-ver17) · [示例](reference/56-sqlserver-plans.html#plan-io-time) · 适用标记含 SQL Server
+- [SET TEXTSIZE](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-textsize-transact-sql?view=sql-server-ver17) · [示例](reference/63-sqlserver-utilities.html#set-textsize) · 适用标记含 SQL Server
+- [SET TIME ZONE](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-time-zone-transact-sql?view=sql-server-ver17) · 文档适用标记为 Azure SQL、Fabric
+- [SET TRANSACTION ISOLATION LEVEL](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-transaction-isolation-level-transact-sql?view=sql-server-ver17) · [示例](reference/58-sqlserver-transactions.html#rcsi) · 适用标记含 SQL Server
+- [SET XACT_ABORT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-xact-abort-transact-sql?view=sql-server-ver17) · 适用标记含 SQL Server
+
+来源：[PostgreSQL 19 SQL Commands](https://www.postgresql.org/docs/19/sql-commands.html) · [MicrosoftDocs 官方导航源](https://github.com/MicrosoftDocs/sql-docs/blob/live/docs/toc.yml)

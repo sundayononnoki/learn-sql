@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>高级 SQL · SQL 路线速查</title>
+<link rel="stylesheet" href="../assets/notes.css">
+<script src="../assets/dialects.js"></script>
+</head>
+<body>
+<header class="site-header"><div class="wrap">
+<a href="../index.html">SQL 速查</a>
+<nav aria-label="主导航"><a href="../index.html">章节目录</a>
+<a href="../v1.html">v1 旧版</a></nav>
+<div class="dialect-control" role="group" aria-label="切换数据库方言"><button type="button" data-dialect-button="postgresql" aria-pressed="false">PostgreSQL</button><button type="button" data-dialect-button="sqlserver" aria-pressed="false">SQL Server</button><button type="button" data-dialect-button="mysql" aria-pressed="false">MySQL</button></div>
+</div></header>
+<main class="wrap roadmap-v2">
+<p class="kicker">第 16 章 · 共 17 章</p>
+<h1>高级 SQL</h1>
+<div class="layout">
+<article class="content" aria-label="知识点">
+<section class="point" id="window" data-dialects="postgresql sqlserver mysql">
+<h2>窗口函数 OVER 保留明细并汇总</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT order_id, customer_id, COUNT(*) OVER (PARTITION BY customer_id) AS customer_orders
+FROM sql_notes_lab.orders ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres（sql_notes_lab 模式）</code>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td></tr><tr><td><code>104</code></td><td><code>3</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">customer_orders</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td><td><code>1</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2</code></td></tr><tr><td><code>104</code></td><td><code>3</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, customer_id, COUNT(*) OVER (PARTITION BY customer_id) AS customer_orders
+FROM dbo.orders ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td></tr><tr><td><code>104</code></td><td><code>3</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">customer_orders</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td><td><code>1</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2</code></td></tr><tr><td><code>104</code></td><td><code>3</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT order_id, customer_id, COUNT(*) OVER (PARTITION BY customer_id) AS customer_orders
+FROM orders ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td></tr><tr><td><code>104</code></td><td><code>3</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">customer_orders</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2</code></td></tr><tr><td><code>102</code></td><td><code>2</code></td><td><code>1</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2</code></td></tr><tr><td><code>104</code></td><td><code>3</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+</div>
+<p><code>OVER</code> 指定计算范围。客户 1 的两笔订单各保留一行，两行都读到该客户的订单数 2。</p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="rank" data-dialects="postgresql sqlserver mysql">
+<h2>RANK 并列后跳号</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT order_id, RANK() OVER (ORDER BY ordered_on DESC) AS position_no
+FROM sql_notes_lab.orders ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>102</code></td><td><code>2025-02-01</code></td></tr><tr><td><code>103</code></td><td><code>2025-02-02</code></td></tr><tr><td><code>104</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">position_no</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>4</code></td></tr>
+<tr><td><code>102</code></td><td><code>3</code></td></tr>
+<tr><td><code>103</code></td><td><code>1</code></td></tr>
+<tr><td><code>104</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT order_id, RANK() OVER (ORDER BY ordered_on DESC) AS position_no
+FROM orders ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>102</code></td><td><code>2025-02-01</code></td></tr><tr><td><code>103</code></td><td><code>2025-02-02</code></td></tr><tr><td><code>104</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">position_no</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>4</code></td></tr>
+<tr><td><code>102</code></td><td><code>3</code></td></tr>
+<tr><td><code>103</code></td><td><code>1</code></td></tr>
+<tr><td><code>104</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, RANK() OVER (ORDER BY ordered_on DESC) AS position_no
+FROM dbo.orders ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>102</code></td><td><code>2025-02-01</code></td></tr><tr><td><code>103</code></td><td><code>2025-02-02</code></td></tr><tr><td><code>104</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">position_no</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>4</code></td></tr>
+<tr><td><code>102</code></td><td><code>3</code></td></tr>
+<tr><td><code>103</code></td><td><code>1</code></td></tr>
+<tr><td><code>104</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>同一天订单同名次，两个第一后是第三。</p>
+
+<p class="sources"><a href="../reference/32-modern-sql.html#p4">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="dense-rank" data-dialects="postgresql sqlserver mysql">
+<h2>DENSE_RANK 并列后连续排名</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT order_id, DENSE_RANK() OVER (ORDER BY ordered_on DESC) AS position_no
+FROM sql_notes_lab.orders ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>102</code></td><td><code>2025-02-01</code></td></tr><tr><td><code>103</code></td><td><code>2025-02-02</code></td></tr><tr><td><code>104</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">position_no</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>3</code></td></tr>
+<tr><td><code>102</code></td><td><code>2</code></td></tr>
+<tr><td><code>103</code></td><td><code>1</code></td></tr>
+<tr><td><code>104</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT order_id, DENSE_RANK() OVER (ORDER BY ordered_on DESC) AS position_no
+FROM orders ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>102</code></td><td><code>2025-02-01</code></td></tr><tr><td><code>103</code></td><td><code>2025-02-02</code></td></tr><tr><td><code>104</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">position_no</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>3</code></td></tr>
+<tr><td><code>102</code></td><td><code>2</code></td></tr>
+<tr><td><code>103</code></td><td><code>1</code></td></tr>
+<tr><td><code>104</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, DENSE_RANK() OVER (ORDER BY ordered_on DESC) AS position_no
+FROM dbo.orders ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>102</code></td><td><code>2025-02-01</code></td></tr><tr><td><code>103</code></td><td><code>2025-02-02</code></td></tr><tr><td><code>104</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">position_no</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>3</code></td></tr>
+<tr><td><code>102</code></td><td><code>2</code></td></tr>
+<tr><td><code>103</code></td><td><code>1</code></td></tr>
+<tr><td><code>104</code></td><td><code>1</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>并列订单同名次，下一个不同日期紧接下一名。</p>
+
+<p class="sources"><a href="../reference/32-modern-sql.html#p4">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="lead" data-dialects="postgresql sqlserver mysql">
+<h2>LEAD 读取下一行</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT order_id, LEAD(order_id) OVER (ORDER BY order_id) AS next_id
+FROM sql_notes_lab.orders WHERE customer_id = 1 ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">next_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>103</code></td></tr>
+<tr><td><code>103</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT order_id, LEAD(order_id) OVER (ORDER BY order_id) AS next_id
+FROM orders WHERE customer_id = 1 ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">next_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>103</code></td></tr>
+<tr><td><code>103</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, LEAD(order_id) OVER (ORDER BY order_id) AS next_id
+FROM dbo.orders WHERE customer_id = 1 ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">next_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>103</code></td></tr>
+<tr><td><code>103</code></td><td class="sql-null"><code>NULL</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>不存在下一行时默认是 NULL。</p>
+
+<p class="sources"><a href="../reference/32-modern-sql.html#p5">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="lag" data-dialects="postgresql sqlserver mysql">
+<h2>LAG 读取上一行</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT order_id, LAG(order_id) OVER (ORDER BY order_id) AS prev_id
+FROM sql_notes_lab.orders WHERE customer_id = 1 ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">prev_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>103</code></td><td><code>101</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT order_id, LAG(order_id) OVER (ORDER BY order_id) AS prev_id
+FROM orders WHERE customer_id = 1 ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">prev_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>103</code></td><td><code>101</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, LAG(order_id) OVER (ORDER BY order_id) AS prev_id
+FROM dbo.orders WHERE customer_id = 1 ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">prev_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td class="sql-null"><code>NULL</code></td></tr>
+<tr><td><code>103</code></td><td><code>101</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>不存在上一行时默认是 NULL。窗口顺序由 OVER 内的 ORDER BY 决定。</p>
+
+<p class="sources"><a href="../reference/32-modern-sql.html#p5">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="row-number" data-dialects="postgresql sqlserver mysql">
+<h2>ROW_NUMBER 组内逐行编号</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT order_id, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY ordered_on, order_id) AS rn
+FROM sql_notes_lab.orders WHERE customer_id = 1 ORDER BY rn;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">rn</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>1</code></td></tr>
+<tr><td><code>103</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT order_id, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY ordered_on, order_id) AS rn
+FROM orders WHERE customer_id = 1 ORDER BY rn;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">rn</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>1</code></td></tr>
+<tr><td><code>103</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY ordered_on, order_id) AS rn
+FROM dbo.orders WHERE customer_id = 1 ORDER BY rn;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">rn</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>1</code></td></tr>
+<tr><td><code>103</code></td><td><code>2</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>窗口每一行仍然保留。分区内按日期及唯一编号确定顺序。</p>
+
+<p class="sources"><a href="../reference/32-modern-sql.html#p4">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="first-value" data-dialects="postgresql sqlserver mysql">
+<h2>FIRST_VALUE 取窗口首行值</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT order_id, FIRST_VALUE(order_id) OVER (PARTITION BY customer_id
+ ORDER BY ordered_on, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS first_id
+FROM sql_notes_lab.orders WHERE customer_id = 1 ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">first_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>101</code></td></tr>
+<tr><td><code>103</code></td><td><code>101</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT order_id, FIRST_VALUE(order_id) OVER (PARTITION BY customer_id
+ ORDER BY ordered_on, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS first_id
+FROM orders WHERE customer_id = 1 ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">first_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>101</code></td></tr>
+<tr><td><code>103</code></td><td><code>101</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT order_id, FIRST_VALUE(order_id) OVER (PARTITION BY customer_id
+ ORDER BY ordered_on, order_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS first_id
+FROM dbo.orders WHERE customer_id = 1 ORDER BY order_id;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">customer_id</th><th scope="col">ordered_on</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>1</code></td><td><code>2025-01-10</code></td></tr><tr><td><code>103</code></td><td><code>1</code></td><td><code>2025-02-02</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">first_id</th></tr></thead>
+<tbody>
+<tr><td><code>101</code></td><td><code>101</code></td></tr>
+<tr><td><code>103</code></td><td><code>101</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>显式把窗口框架起点设为分区第一行。</p>
+
+<p class="sources"><a href="../reference/32-modern-sql.html#p4">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="recursive" data-dialects="postgresql sqlserver mysql">
+<h2>递归 CTE 逐步生成序列</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n&lt;3)
+SELECT n FROM seq ORDER BY n;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n&lt;3)
+SELECT n FROM seq ORDER BY n;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>WITH seq(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM seq WHERE n&lt;3)
+SELECT n FROM seq ORDER BY n;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">n</th></tr></thead>
+<tbody>
+<tr><td><code>1</code></td></tr>
+<tr><td><code>2</code></td></tr>
+<tr><td><code>3</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>第一部分产生起点，递归部分产生下一行。n &lt; 3 是终止条件。</p>
+
+<p class="sources"><a href="../reference/32-modern-sql.html#dial-recursive">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="pivot" data-dialects="postgresql sqlserver mysql">
+<h2>PIVOT / UNPIVOT 互换行与列</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>SELECT COUNT(CASE WHEN status = 'paid' THEN 1 END) AS paid,
+       COUNT(CASE WHEN status = 'pending' THEN 1 END) AS pending
+FROM sql_notes_lab.orders;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres（sql_notes_lab 模式）</code>。需要读取订单表。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr><tr><td><code>102</code></td><td><code>pending</code></td></tr><tr><td><code>103</code></td><td><code>paid</code></td></tr><tr><td><code>104</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 行转列" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 行转列</caption>
+<thead><tr><th scope="col">paid</th><th scope="col">pending</th></tr></thead><tbody><tr><td><code>3</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>SELECT COUNT(CASE WHEN status = 'paid' THEN 1 END) AS paid,
+       COUNT(CASE WHEN status = 'pending' THEN 1 END) AS pending
+FROM orders;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。需要读取订单表。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr><tr><td><code>102</code></td><td><code>pending</code></td></tr><tr><td><code>103</code></td><td><code>paid</code></td></tr><tr><td><code>104</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 行转列" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 行转列</caption>
+<thead><tr><th scope="col">paid</th><th scope="col">pending</th></tr></thead><tbody><tr><td><code>3</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>SELECT [paid], [pending]
+FROM (SELECT status, order_id FROM dbo.orders) AS src
+PIVOT (COUNT(order_id) FOR status IN ([paid], [pending])) AS p;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。需要读取订单表。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr><tr><td><code>102</code></td><td><code>pending</code></td></tr><tr><td><code>103</code></td><td><code>paid</code></td></tr><tr><td><code>104</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 行转列" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 行转列</caption>
+<thead><tr><th scope="col">paid</th><th scope="col">pending</th></tr></thead><tbody><tr><td><code>3</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+</div>
+<p>先把每种状态的计数放成一列。SQL Server 用 PIVOT，PostgreSQL 和 MySQL 可用条件聚合得到同样的两列。</p>
+<details><summary>进阶 · 把两列还原成两行</summary>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH totals AS (
+  SELECT COUNT(CASE WHEN status = 'paid' THEN 1 END) AS paid,
+         COUNT(CASE WHEN status = 'pending' THEN 1 END) AS pending FROM sql_notes_lab.orders
+)
+SELECT 'paid' AS status, paid AS order_count FROM totals
+UNION ALL SELECT 'pending', pending FROM totals ORDER BY status;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">导入订单练习数据</a>并连接到 <code>postgres（sql_notes_lab 模式）</code>。先运行上方行转列示例，确认两列的计数。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="列转行前 · 聚合结果" tabindex="0">
+<table class="sql-result">
+<caption>列转行前 · 聚合结果</caption>
+<thead><tr><th scope="col">paid</th><th scope="col">pending</th></tr></thead><tbody><tr><td><code>3</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 列转行" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 列转行</caption>
+<thead><tr><th scope="col">status</th><th scope="col">order_count</th></tr></thead><tbody><tr><td><code>paid</code></td><td><code>3</code></td></tr><tr><td><code>pending</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>WITH totals AS (
+  SELECT COUNT(CASE WHEN status = 'paid' THEN 1 END) AS paid,
+         COUNT(CASE WHEN status = 'pending' THEN 1 END) AS pending FROM orders
+)
+SELECT 'paid' AS status, paid AS order_count FROM totals
+UNION ALL SELECT 'pending', pending FROM totals ORDER BY status;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">导入订单练习数据</a>并连接到 <code>learn_sql_lab</code>。先运行上方行转列示例，确认两列的计数。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="列转行前 · 聚合结果" tabindex="0">
+<table class="sql-result">
+<caption>列转行前 · 聚合结果</caption>
+<thead><tr><th scope="col">paid</th><th scope="col">pending</th></tr></thead><tbody><tr><td><code>3</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 列转行" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 列转行</caption>
+<thead><tr><th scope="col">status</th><th scope="col">order_count</th></tr></thead><tbody><tr><td><code>paid</code></td><td><code>3</code></td></tr><tr><td><code>pending</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>WITH totals AS (
+  SELECT [paid], [pending] FROM (SELECT status, order_id FROM dbo.orders) AS src
+  PIVOT (COUNT(order_id) FOR status IN ([paid], [pending])) AS p
+)
+SELECT status, order_count FROM totals
+UNPIVOT (order_count FOR status IN ([paid], [pending])) AS u ORDER BY status;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">导入订单练习数据</a>并连接到 <code>SQLNotesLab</code>。先运行上方行转列示例，确认两列的计数。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="列转行前 · 聚合结果" tabindex="0">
+<table class="sql-result">
+<caption>列转行前 · 聚合结果</caption>
+<thead><tr><th scope="col">paid</th><th scope="col">pending</th></tr></thead><tbody><tr><td><code>3</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果 · 列转行" tabindex="0">
+<table class="sql-result">
+<caption>预期结果 · 列转行</caption>
+<thead><tr><th scope="col">status</th><th scope="col">order_count</th></tr></thead><tbody><tr><td><code>paid</code></td><td><code>3</code></td></tr><tr><td><code>pending</code></td><td><code>1</code></td></tr></tbody>
+</table></div>
+</div></details>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="cte" data-dialects="postgresql sqlserver mysql">
+<h2>WITH 命名中间结果</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>WITH pending AS (SELECT order_id FROM sql_notes_lab.orders WHERE status = &#x27;pending&#x27;)
+SELECT order_id FROM pending;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr><tr><td><code>102</code></td><td><code>pending</code></td></tr><tr><td><code>103</code></td><td><code>paid</code></td></tr><tr><td><code>104</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>WITH pending AS (SELECT order_id FROM orders WHERE status = &#x27;pending&#x27;)
+SELECT order_id FROM pending;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr><tr><td><code>102</code></td><td><code>pending</code></td></tr><tr><td><code>103</code></td><td><code>paid</code></td></tr><tr><td><code>104</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>WITH pending AS (SELECT order_id FROM dbo.orders WHERE status = &#x27;pending&#x27;)
+SELECT order_id FROM pending;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>101</code></td><td><code>paid</code></td></tr><tr><td><code>102</code></td><td><code>pending</code></td></tr><tr><td><code>103</code></td><td><code>paid</code></td></tr><tr><td><code>104</code></td><td><code>paid</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">order_id</th></tr></thead>
+<tbody>
+<tr><td><code>102</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>CTE 当前语句可用。SQL Server 前面有语句时，先用分号结束上一句。</p>
+
+<p class="sources"><a href="../reference/32-modern-sql.html#p2">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="point" id="dynamic" data-dialects="postgresql sqlserver mysql">
+<h2>动态 SQL 绑定参数后执行</h2>
+<div data-dialects="postgresql">
+<figure><figcaption>SQL · PostgreSQL</figcaption><pre><code>PREPARE path_order(INT) AS SELECT status FROM sql_notes_lab.orders WHERE order_id = $1;
+EXECUTE path_order(102);
+DEALLOCATE path_order;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> PostgreSQL SQL 查询窗口或 psql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-postgresql">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 postgres（含 sql_notes_lab 模式）</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>102</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="mysql">
+<figure><figcaption>SQL · MySQL</figcaption><pre><code>PREPARE path_order FROM &#x27;SELECT status FROM orders WHERE order_id = ?&#x27;;
+SET @path_id = 102;
+EXECUTE path_order USING @path_id;
+DEALLOCATE PREPARE path_order;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> MySQL SQL 查询窗口或 mysql 提示符<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 learn_sql_lab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>102</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<div data-dialects="sqlserver">
+<figure><figcaption>SQL · SQL Server</figcaption><pre><code>EXEC sys.sp_executesql N&#x27;SELECT status FROM dbo.orders WHERE order_id = @id&#x27;,
+ N&#x27;@id int&#x27;, @id = 102;</code></pre></figure>
+<p class="sql-input-note"><strong>执行位置</strong> SQL Server SQL 查询窗口<br>
+<strong>前提</strong> 已<a href="../lessons/0001-first-query.html#setup-sqlserver">准备练习数据</a>并<a href="../reference/03-mysql-basics.html#quick-switch-database">连接到 SQLNotesLab</a>。</p>
+<div class="sql-grid-viewport sql-input-grid" role="region" aria-label="执行前 · orders（相关行）" tabindex="0">
+<table class="sql-result">
+<caption>执行前 · orders（相关行）</caption>
+<thead><tr><th scope="col">order_id</th><th scope="col">status</th></tr></thead><tbody><tr><td><code>102</code></td><td><code>pending</code></td></tr></tbody>
+</table></div>
+<div class="sql-grid-viewport" role="region" aria-label="预期结果" tabindex="0">
+<table class="sql-result">
+<caption>预期结果</caption>
+<thead><tr><th scope="col">status</th></tr></thead>
+<tbody>
+<tr><td><code>pending</code></td></tr>
+</tbody>
+</table></div>
+</div>
+<p>值通过参数传入。表名等标识符需要独立校验，不能由值参数替代。</p>
+
+<p class="sources"><a href="../reference/32-modern-sql.html#dial-bind">相关笔记</a></p>
+<p class="dialect-tags"><span class="dialect-tag" data-engine="postgresql">PostgreSQL</span> <span class="dialect-tag" data-engine="sqlserver">SQL Server</span> <span class="dialect-tag" data-engine="mysql">MySQL</span></p>
+</section>
+<section class="panel"><h2>合上示例试一题</h2><p>哪两个排名函数对并列后的下一位处理不同？</p>
+<details><summary>查看答案</summary><p>RANK 会跳号，DENSE_RANK 连续编号。</p></details></section>
+</article>
+<nav class="jump" aria-label="本阶段知识点"><strong>本阶段知识点</strong>
+<ol>
+<li><a href="#window">窗口函数 OVER 保留明细并汇总</a></li>
+<li><a href="#rank">RANK 并列后跳号</a></li>
+<li><a href="#dense-rank">DENSE_RANK 并列后连续排名</a></li>
+<li><a href="#lead">LEAD 读取下一行</a></li>
+<li><a href="#lag">LAG 读取上一行</a></li>
+<li><a href="#row-number">ROW_NUMBER 组内逐行编号</a></li>
+<li><a href="#first-value">FIRST_VALUE 取窗口首行值</a></li>
+<li><a href="#recursive">递归 CTE 逐步生成序列</a></li>
+<li><a href="#pivot">PIVOT / UNPIVOT 互换行与列</a></li>
+<li><a href="#cte">WITH 命名中间结果</a></li>
+<li><a href="#dynamic">动态 SQL 绑定参数后执行</a></li>
+</ol></nav>
+</div>
+<nav class="pager" aria-label="章节导航"><a rel="prev" href="15-performance.html">← 性能优化</a><a href="../index.html">章节目录</a><a rel="next" href="17-practical.html">SQL 实务细节 →</a></nav>
+</main>
+</body>
+</html>
